@@ -311,6 +311,15 @@ export async function PUT(req: Request) {
     }
 
     const userId = (session.user as any).id;
+    const userRole = (session.user as any).role;
+
+    // 2. Strict Access Control (Only ADMINs can update interns)
+    if (userRole !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Access Denied. Profile modification privileges restricted strictly to Administrator role." },
+        { status: 403 }
+      );
+    }
 
     // 2. Extract and parse parameters
     const body = await req.json();
