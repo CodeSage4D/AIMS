@@ -1,0 +1,159 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+enum Role {
+  ADMIN
+  MENTOR
+}
+
+enum InternStatus {
+  ACTIVE
+  ONBOARDING
+  COMPLETED
+  TERMINATED
+  ARCHIVED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+}
+
+enum DocType {
+  OFFER_LETTER
+  RESUME
+  ID_PROOF
+  AGREEMENT
+  CERTIFICATE
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  fullName     String        @map("full_name")
+  role         Role          @default(MENTOR)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  interns      Intern[]      @relation("SupervisorRelation")
+  tasks        Task[]
+  logs         ActivityLog[]
+
+  @@map("users")
+}
+
+model Intern {
+  id                     String           @id @default(uuid())
+  internId               String           @unique @map("intern_id")
+  fullName               String           @map("full_name")
+  gender                 String
+  dateOfBirth            DateTime         @map("date_of_birth")
+  email                  String           @unique
+  phoneNumber            String           @map("phone_number")
+  address                String
+  city                   String
+  state                  String
+  country                String
+  university             String           @map("university_college")
+  degree                 String           @map("degree_course")
+  department             String
+  roleDomain             String           @map("role_domain")
+  batchSemester          String           @map("batch_semester")
+  startDate              DateTime         @map("start_date")
+  endDate                DateTime         @map("end_date")
+  status                 InternStatus     @default(ONBOARDING)
+  stipendAmount          Decimal          @default(0.00) @map("stipend_amount")
+  paymentStatus          String           @default("UNPAID") @map("payment_status")
+  documentStatus         String           @default("PENDING") @map("document_status")
+  emergencyContactName   String           @map("emergency_contact_name")
+  emergencyContactNumber String           @map("emergency_contact_number")
+  skills                 String[]         @default([])
+  performanceScore       Int?             @map("performance_score") // 1-5 Scale
+  performanceNotes       String?          @map("performance_notes")
+  notes                  String?          @map("notes")
+  ssidn                  String?          @map("ssidn")
+  supervisorId           String?          @map("supervisor_id")
+  supervisor             User?            @relation("SupervisorRelation", fields: [supervisorId], references: [id], onDelete: SetNull)
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+  attendance             Attendance[]
+  tasks                  Task[]
+  documents              Document[]
+
+  @@index([fullName])
+  @@index([status])
+  @@index([internId])
+  @@map("interns")
+}
+
+model Attendance {
+  id           String           @id @default(uuid())
+  internId     String           @map("intern_id")
+  intern       Intern           @relation(fields: [internId], references: [id], onDelete: Cascade)
+  date         DateTime
+  status       AttendanceStatus @default(PRESENT)
+  checkIn      DateTime?        @map("check_in")
+  checkOut     DateTime?        @map("check_out")
+  remarks      String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@unique([internId, date])
+  @@map("attendance")
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  internId    String     @map("intern_id")
+  intern      Intern     @relation(fields: [internId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  deadline    DateTime
+  status      TaskStatus @default(PENDING)
+  assignedById String?    @map("assigned_by_id")
+  assigner    User?      @relation(fields: [assignedById], references: [id], onDelete: SetNull)
+  remarks     String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("tasks")
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  internId     String   @map("intern_id")
+  intern       Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  type         DocType
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("documents")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("activity_logs")
+}
