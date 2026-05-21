@@ -88,7 +88,15 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
         <div className="hidden md:flex flex-col text-right">
           <span className="text-xs font-semibold text-foreground">{user.name || "AURXON User"}</span>
           <span className="text-[9px] font-heading font-bold text-primary tracking-wider uppercase">
-            {user.role} WORKSPACE
+            {user.role === "FOUNDER"
+              ? "FOUNDER ELITE WORKSPACE"
+              : user.role === "HR"
+              ? "HR MANAGEMENT SUITE"
+              : user.role === "TEAM_LEAD"
+              ? "TEAM LEAD CONSOLE"
+              : user.role === "INTERN"
+              ? "INTERN PORTAL"
+              : `${user.role || "USER"} WORKSPACE`}
           </span>
         </div>
         
