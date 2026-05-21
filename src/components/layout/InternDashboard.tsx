@@ -537,20 +537,20 @@ export default function InternDashboard({
             </div>
           </CardHeader>
           
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-5">
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2.5 text-center text-xs font-semibold select-none">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2.5 text-center text-xs font-semibold select-none">
               
               {/* Day Titles */}
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName) => (
-                <div key={dayName} className="text-gray-400/90 text-[10px] uppercase font-bold py-2 tracking-widest">
+                <div key={dayName} className="text-gray-400/90 text-[9px] sm:text-[10px] uppercase font-bold py-1.5 sm:py-2 tracking-wider sm:tracking-widest">
                   {dayName}
                 </div>
               ))}
 
               {/* Offset Days */}
               {Array.from({ length: firstDayIndex }).map((_, i) => (
-                <div key={`empty-${i}`} className="h-16 rounded-xl border border-white/[0.02] bg-white/[0.01]/20 pointer-events-none opacity-20" />
+                <div key={`empty-${i}`} className="h-11 sm:h-16 rounded-lg sm:rounded-xl border border-white/[0.02] bg-white/[0.01]/20 pointer-events-none opacity-20" />
               ))}
 
               {/* Month Days */}
@@ -562,24 +562,24 @@ export default function InternDashboard({
                   <div
                     key={`day-${dayNumber}`}
                     className={cn(
-                      "h-16 rounded-xl p-2.5 flex flex-col justify-between items-start transition-all duration-200 cursor-pointer border group hover:border-white/20 select-none",
+                      "h-11 sm:h-16 rounded-lg sm:rounded-xl p-1 sm:p-2.5 flex flex-col justify-between items-start transition-all duration-200 cursor-pointer border group hover:border-white/20 select-none",
                       getStatusClasses(record?.status)
                     )}
                   >
-                    <span className="text-xs font-bold">{dayNumber}</span>
+                    <span className="text-[10px] sm:text-xs font-bold">{dayNumber}</span>
                     {record ? (
                       <div className="w-full text-left">
-                        <span className="text-[7.5px] uppercase font-heading font-extrabold tracking-wide block truncate">
+                        <span className="text-[6px] sm:text-[7.5px] uppercase font-heading font-extrabold tracking-wide block truncate">
                           {record.status.replace(/_/g, " ")}
                         </span>
                         {record.checkIn && (
-                          <span className="text-[7.5px] text-gray-400 block font-mono mt-0.5">
+                          <span className="text-[5.5px] sm:text-[7.5px] text-gray-400 block font-mono mt-0.5 leading-none">
                             {new Date(record.checkIn).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
                           </span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-[7.5px] text-gray-500 uppercase font-heading font-semibold tracking-wide">
+                      <span className="text-[6px] sm:text-[7.5px] text-gray-500 uppercase font-heading font-semibold tracking-wide">
                         No roll
                       </span>
                     )}
