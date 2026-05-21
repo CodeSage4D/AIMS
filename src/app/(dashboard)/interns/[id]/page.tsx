@@ -79,6 +79,27 @@ export default async function InternWorkspacePage({ params }: PageProps) {
     notFound();
   }
 
+  // 2. Scope access verification for standard mentors
+  if (!isAdmin && intern.supervisorId !== (session?.user as any)?.id) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center select-none animate-fadeIn">
+        <div className="p-4 rounded-full bg-destructive/10 border border-destructive/20 text-destructive">
+          <AlertCircle className="h-10 w-10 animate-pulse" />
+        </div>
+        <h3 className="text-sm font-heading font-extrabold text-foreground tracking-tight">Access Denied</h3>
+        <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+          You do not have permission to access this intern's workspace dashboard.
+          Mentor views are strictly restricted to assigned enrollees.
+        </p>
+        <Link href="/interns">
+          <Button variant="secondary" size="sm" className="h-9 font-semibold text-xs border border-border/40 hover:bg-secondary/40 mt-2">
+            Return to Directory
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   // 2. Compute Operational Analytics
   const totalTasks = intern.tasks.length;
   const completedTasks = intern.tasks.filter((t) => t.status === "COMPLETED").length;
@@ -291,7 +312,15 @@ export default async function InternWorkspacePage({ params }: PageProps) {
               <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-4">
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">SSIDN</span>
-                  <p className="text-xs font-mono font-bold text-cyan-400 select-all">{intern.ssidn || "N/A"}</p>
+                  <p className="text-xs font-mono font-bold text-cyan-400 select-all">
+                    {intern.ssidn
+                      ? isAdmin
+                        ? intern.ssidn
+                        : intern.ssidn.length > 4
+                        ? `***-**-${intern.ssidn.slice(-4)}`
+                        : "****"
+                      : "N/A"}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Stipend Status</span>
