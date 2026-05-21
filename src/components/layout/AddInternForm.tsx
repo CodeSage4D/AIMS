@@ -370,8 +370,11 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   </select>
                 </div>
                 <div className="flex flex-col space-y-1.5 w-full">
-                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-                    Role Domain
+                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    <span>Role Domain</span>
+                    <span className="text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">
+                      Code: {ROLE_CODES[formData.roleDomain] || "N/A"}
+                    </span>
                   </label>
                   <select
                     name="roleDomain"

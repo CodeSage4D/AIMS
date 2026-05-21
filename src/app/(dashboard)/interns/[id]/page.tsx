@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import WorkspaceHeaderActions from "@/components/layout/WorkspaceHeaderActions";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
@@ -36,6 +37,18 @@ export default async function InternWorkspacePage({ params }: PageProps) {
   if (!session?.user) {
     return notFound();
   }
+
+  const isAdmin = (session?.user as any)?.role === "ADMIN";
+
+  // Fetch supervisors/mentors list for the update profile dropdown list
+  const mentors = await db.user.findMany({
+    select: {
+      id: true,
+      fullName: true,
+      role: true,
+    },
+    orderBy: { fullName: "asc" },
+  });
 
   const resolvedParams = await params;
   const id = resolvedParams.id;
@@ -131,6 +144,12 @@ export default async function InternWorkspacePage({ params }: PageProps) {
             </p>
           </div>
         </div>
+
+        <WorkspaceHeaderActions
+          intern={intern as any}
+          mentors={mentors}
+          isAdmin={isAdmin}
+        />
       </div>
 
       {/* 2. Analytical Statistics Ribbons */}

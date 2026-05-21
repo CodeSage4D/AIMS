@@ -256,3 +256,125 @@ export async function DELETE(req: Request) {
   }
 }
 
+/**
+ * REST Endpoint for updating an intern profile record.
+ * PUT /api/interns
+ */
+export async function PUT(req: Request) {
+  try {
+    // 1. Session verification
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized access. Session credentials missing." },
+        { status: 401 }
+      );
+    }
+
+    const userId = (session.user as any).id;
+
+    // 2. Extract and parse parameters
+    const body = await req.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing required parameter: id." },
+        { status: 400 }
+      );
+    }
+
+    // 3. Verify intern exists
+    const existing = await db.intern.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Intern file not found." },
+        { status: 404 }
+      );
+    }
+
+    // 4. Build selective update payload
+    const dataToUpdate: any = {};
+    if (updateData.fullName !== undefined) dataToUpdate.fullName = updateData.fullName;
+    if (updateData.gender !== undefined) dataToUpdate.gender = updateData.gender;
+    if (updateData.dateOfBirth !== undefined) dataToUpdate.dateOfBirth = new Date(updateData.dateOfBirth);
+    if (updateData.email !== undefined) dataToUpdate.email = String(updateData.email).toLowerCase().trim();
+    if (updateData.phoneNumber !== undefined) dataToUpdate.phoneNumber = updateData.phoneNumber;
+    if (updateData.address !== undefined) dataToUpdate.address = updateData.address;
+    if (updateData.city !== undefined) dataToUpdate.city = updateData.city;
+    if (updateData.state !== undefined) dataToUpdate.state = updateData.state;
+    if (updateData.country !== undefined) dataToUpdate.country = updateData.country;
+    if (updateData.university !== undefined) dataToUpdate.university = updateData.university;
+    if (updateData.degree !== undefined) dataToUpdate.degree = updateData.degree;
+    if (updateData.department !== undefined) dataToUpdate.department = updateData.department;
+    if (updateData.roleDomain !== undefined) dataToUpdate.roleDomain = updateData.roleDomain;
+    if (updateData.batchSemester !== undefined) dataToUpdate.batchSemester = updateData.batchSemester;
+    if (updateData.startDate !== undefined) dataToUpdate.startDate = new Date(updateData.startDate);
+    if (updateData.endDate !== undefined) dataToUpdate.endDate = new Date(updateData.endDate);
+    if (updateData.stipendAmount !== undefined) dataToUpdate.stipendAmount = Number(updateData.stipendAmount);
+    if (updateData.paymentStatus !== undefined) dataToUpdate.paymentStatus = updateData.paymentStatus;
+    if (updateData.emergencyContactName !== undefined) dataToUpdate.emergencyContactName = updateData.emergencyContactName;
+    if (updateData.emergencyContactNumber !== undefined) dataToUpdate.emergencyContactNumber = updateData.emergencyContactNumber;
+    if (updateData.notes !== undefined) dataToUpdate.notes = updateData.notes;
+    if (updateData.ssidn !== undefined) dataToUpdate.ssidn = updateData.ssidn || null;
+    if (updateData.supervisorId !== undefined) dataToUpdate.supervisorId = updateData.supervisorId || null;
+    if (updateData.status !== undefined) dataToUpdate.status = updateData.status as any;
+
+    if (updateData.skillsInput !== undefined) {
+      dataToUpdate.skills = updateData.skillsInput
+        ? updateData.skillsInput
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0)
+        : [];
+    }
+
+    // 5. Auto-recompute Intern ID if name, dates, or roles change AND not explicitly specified
+    if (
+      updateData.internId === undefined &&
+      (updateData.fullName !== undefined ||
+        updateData.department !== undefined ||
+        updateData.roleDomain !== undefined ||
+        updateData.startDate !== undefined)
+    ) {
+      const finalName = updateData.fullName !== undefined ? updateData.fullName : existing.fullName;
+      const finalDept = updateData.department !== undefined ? updateData.department : existing.department;
+      const finalRole = updateData.roleDomain !== undefined ? updateData.roleDomain : existing.roleDomain;
+      
+      const rawDate = updateData.startDate !== undefined ? updateData.startDate : existing.startDate;
+      const finalDateStr = rawDate instanceof Date ? rawDate.toISOString() : String(rawDate);
+
+      const { generateInternId } = await import("@/lib/generateInternId");
+      dataToUpdate.internId = await generateInternId(db, finalName, finalDept, finalRole, finalDateStr);
+    } else if (updateData.internId !== undefined) {
+      dataToUpdate.internId = updateData.internId;
+    }
+
+    // 6. Execute update in database
+    const updated = await db.intern.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+
+    // 7. Register administrative audit log
+    await db.activityLog.create({
+      data: {
+        userId: userId,
+        action: "UPDATE_INTERN",
+        description: `Successfully updated intern file for ${updated.fullName} (ID: ${updated.internId})`,
+      },
+    });
+
+    return NextResponse.json({ success: true, intern: updated });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || "An internal server error occurred during database update." },
+      { status: 500 }
+    );
+  }
+}
+
+
