@@ -45,27 +45,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
         } catch (dbError) {
           console.warn(
-            "Database connection failed during login, falling back to static offline demo credentials:",
+            "Database connection failed during login:",
             dbError
           );
         }
 
-        // Robust Offline Mock Fallback for Local Dev & Seamless UX Auditing
-        if (email === "admin@aurxon.demo" && password === "aims-demo-admin-2026") {
+        // DEV-ONLY Fallback (Requested by User for local testing during DB outage)
+        if (process.env.NODE_ENV !== "production" && email === "aurxon" && password === "AurxonFuture#136") {
           return {
-            id: "demo-admin-offline",
-            email: "admin@aurxon.demo",
-            name: "AIMS Demo Administrator (Offline)",
+            id: "dev-aurxon-admin",
+            email: "aurxon@aurxon.demo",
+            name: "Aurxon Admin (Dev Override)",
             role: "ADMIN",
-          };
-        }
-
-        if (email === "mentor@aurxon.demo" && password === "aims-demo-mentor-2026") {
-          return {
-            id: "demo-mentor-offline",
-            email: "mentor@aurxon.demo",
-            name: "AIMS Demo Mentor (Offline)",
-            role: "MENTOR",
           };
         }
 
