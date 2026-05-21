@@ -49,6 +49,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     batchSemester: "",
     startDate: "",
     endDate: "",
+    employmentType: "INTERN",
     stipendAmount: "",
     paymentStatus: "UNPAID",
     emergencyContactName: "",
@@ -71,9 +72,30 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
         setError("Please complete all required personal fields.");
         return;
       }
+      const nameRegex = /^[a-zA-Z\s]+$/;
+      const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+      if (!nameRegex.test(formData.fullName.trim())) {
+        setError("Full Name must contain alphabetical letters and spaces only.");
+        return;
+      }
+      if (!phoneRegex.test(formData.phoneNumber.trim())) {
+        setError("Primary Phone Number must be a valid number containing between 7 and 15 digits.");
+        return;
+      }
     } else if (activeTab === 2) {
-      if (!formData.university || !formData.degree || !formData.roleDomain || !formData.startDate || !formData.endDate) {
-        setError("Please complete all required educational and internship fields.");
+      const isIntern = formData.employmentType === "INTERN";
+      if (
+        !formData.university ||
+        !formData.degree ||
+        !formData.roleDomain ||
+        !formData.startDate ||
+        (isIntern && !formData.endDate)
+      ) {
+        setError(
+          `Please complete all required educational and ${
+            isIntern ? "internship" : "employment"
+          } fields.`
+        );
         return;
       }
     }
@@ -94,6 +116,19 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     // Final checks
     if (!formData.emergencyContactName || !formData.emergencyContactNumber) {
       setError("Please fill in emergency contact information before final submission.");
+      setLoading(false);
+      return;
+    }
+
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+    if (!nameRegex.test(formData.emergencyContactName.trim())) {
+      setError("Emergency Contact Name must contain alphabetical letters and spaces only.");
+      setLoading(false);
+      return;
+    }
+    if (!phoneRegex.test(formData.emergencyContactNumber.trim())) {
+      setError("Emergency Contact Number must be a valid number containing between 7 and 15 digits.");
       setLoading(false);
       return;
     }
@@ -158,7 +193,11 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
   // Tabs List Headers
   const tabs = [
     { step: 1, label: "Personal Data", icon: User },
-    { step: 2, label: "Internship Details", icon: School },
+    {
+      step: 2,
+      label: formData.employmentType === "INTERN" ? "Internship Details" : "Employment Details",
+      icon: School,
+    },
     { step: 3, label: "Compliance & Skills", icon: Heart },
   ];
 
@@ -168,8 +207,12 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
       <div className="border-b border-border/40 p-6 bg-secondary/10">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <CardTitle>Intern Onboarding Center</CardTitle>
-            <CardDescription>Enroll a new intern profile directly into AIMS workspace database.</CardDescription>
+            <CardTitle>
+              {formData.employmentType === "INTERN"
+                ? "Intern Onboarding Center"
+                : "Employee Onboarding Center"}
+            </CardTitle>
+            <CardDescription>Enroll a new profile directly into AIMS workspace database.</CardDescription>
           </div>
           <span className="text-xs font-heading font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded">
             STEP {activeTab} OF 3
@@ -351,7 +394,32 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col space-y-1.5 w-full">
+                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                    Employment Type
+                  </label>
+                  <select
+                    name="employmentType"
+                    value={formData.employmentType}
+                    onChange={handleChange}
+                    className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer font-semibold"
+                  >
+                    <option value="INTERN">Intern</option>
+                    <option value="PERMANENT">Permanent / Full-Time</option>
+                    <option value="CONTRACT">Contract</option>
+                  </select>
+                </div>
+                <Input
+                  label="Batch / Semester"
+                  name="batchSemester"
+                  placeholder="e.g. Semester 6 / 2026"
+                  value={formData.batchSemester}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="flex flex-col space-y-1.5 w-full">
                   <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
                     Core Department
@@ -389,18 +457,11 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                     ))}
                   </select>
                 </div>
-                <Input
-                  label="Batch / Semester"
-                  name="batchSemester"
-                  placeholder="e.g. Semester 6 / 2026"
-                  value={formData.batchSemester}
-                  onChange={handleChange}
-                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Input
-                  label="Internship Start Date"
+                  label={formData.employmentType === "INTERN" ? "Internship Start Date (Required)" : "Joining Date (Required)"}
                   name="startDate"
                   type="date"
                   value={formData.startDate}
@@ -408,12 +469,12 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   required
                 />
                 <Input
-                  label="Internship End Date"
+                  label={formData.employmentType === "INTERN" ? "Internship End Date (Required)" : "Ending Date (Optional)"}
                   name="endDate"
                   type="date"
                   value={formData.endDate}
                   onChange={handleChange}
-                  required
+                  required={formData.employmentType === "INTERN"}
                 />
               </div>
 
@@ -567,7 +628,11 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 isLoading={loading}
               >
                 <Sparkles className="h-4 w-4 shrink-0" />
-                <span>Onboard Intern File</span>
+                <span>
+                  {formData.employmentType === "INTERN"
+                    ? "Onboard Intern File"
+                    : "Onboard Employee File"}
+                </span>
               </Button>
             )}
           </div>
