@@ -14,7 +14,10 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  RotateCcw
+  RotateCcw,
+  UserCheck,
+  Send,
+  X
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -130,7 +133,7 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
   };
 
   return (
-    <div className="space-y-6 select-none relative animate-fadeIn">
+    <div className="space-y-6 select-none relative animate-fadeIn text-white">
       {/* 1. Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
@@ -146,7 +149,7 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
             onClick={() => setIsModalOpen(true)}
             variant="primary"
             size="sm"
-            className="h-10 text-xs font-semibold font-heading flex items-center space-x-1.5"
+            className="h-10 text-xs font-semibold font-heading flex items-center space-x-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-white/5 rounded-xl px-4 transition-all"
           >
             <PlusCircle className="h-4.5 w-4.5" />
             <span>Assign New Task</span>
@@ -156,141 +159,246 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-center space-x-3 p-3.5 rounded-md bg-destructive/10 border border-destructive/25 text-destructive text-xs animate-pulse">
+        <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/25 text-destructive text-xs animate-pulse">
           <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
           <span className="font-semibold">{error}</span>
         </div>
       )}
 
-      {/* 2. Tasks Table directory */}
-      <Card className="border-border/60 p-0 overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/15 text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                <th className="py-4 px-6">Task Goal</th>
-                <th className="py-4 px-6">Assigned Intern</th>
-                <th className="py-4 px-6">Deadline</th>
-                <th className="py-4 px-6">Status</th>
-                <th className="py-4 px-6 text-center">Quick State Updates</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30 text-xs font-medium text-muted-foreground">
-              {tasks.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-sm font-semibold text-muted-foreground">
-                    <div className="flex flex-col items-center space-y-2.5">
-                      <CheckSquare className="h-8 w-8 text-muted-foreground/50" />
-                      <span>No active task goals in this workspace.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-secondary/5 hover:text-foreground transition-colors duration-150">
-                    <td className="py-4.5 px-6 max-w-sm">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-foreground text-sm">{task.title}</span>
-                        <span className="text-xs text-muted-foreground/80 mt-1 leading-relaxed line-clamp-2">
-                          {task.description}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4.5 px-6">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-foreground">{task.intern.fullName}</span>
-                        <span className="text-[10px] text-muted-foreground/80 mt-0.5">ID: {task.intern.internId || task.intern.id}</span>
-                      </div>
-                    </td>
-                    <td className="py-4.5 px-6 font-semibold text-foreground">
-                      <div className="flex items-center space-x-1.5">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span>{formatDate(task.deadline)}</span>
-                      </div>
-                    </td>
-                    <td className="py-4.5 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-heading font-semibold border ${getStatusBadge(task.status)}`}>
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="py-4.5 px-6 text-center">
-                      <div className="flex items-center justify-center space-x-1.5">
-                        {task.status !== "COMPLETED" ? (
-                          <>
-                            {task.status === "PENDING" && (
-                              <Button
-                                onClick={() => handleUpdateStatus(task.id, "IN_PROGRESS")}
-                                disabled={updatingId === task.id}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/5 hover:border-cyan-500/20"
-                              >
-                                Start Work
-                              </Button>
-                            )}
-                            {task.status === "IN_PROGRESS" && (
-                              <Button
-                                onClick={() => handleUpdateStatus(task.id, "IN_REVIEW")}
-                                disabled={updatingId === task.id}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold text-blue-400 hover:bg-blue-500/5 hover:border-blue-500/20"
-                              >
-                                Submit Review
-                              </Button>
-                            )}
-                            {task.status === "IN_REVIEW" && (
-                              <Button
-                                onClick={() => handleUpdateStatus(task.id, "COMPLETED")}
-                                disabled={updatingId === task.id}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/5 hover:border-emerald-500/20"
-                              >
-                                Approve Goal
-                              </Button>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex items-center space-x-1 text-emerald-400 font-bold select-none text-[10px] tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            <span>Approved</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+      {/* 2. Tasks Container */}
+      <div>
+        {/* DESKTOP VIEW: Table Layout (md and larger) */}
+        <div className="hidden md:block">
+          <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-0 overflow-hidden shadow-lg rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                    <th className="py-4 px-6">Task Goal</th>
+                    <th className="py-4 px-6">Assigned Intern</th>
+                    <th className="py-4 px-6">Deadline</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6 text-center">Quick State Updates</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04] text-xs font-medium text-gray-300">
+                  {tasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-sm font-semibold text-gray-500">
+                        <div className="flex flex-col items-center space-y-2.5">
+                          <CheckSquare className="h-8 w-8 text-gray-600" />
+                          <span>No active task goals in this workspace.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    tasks.map((task) => (
+                      <tr key={task.id} className="hover:bg-white/[0.02] hover:text-white transition-colors duration-150">
+                        <td className="py-4.5 px-6 max-w-sm">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-white text-sm">{task.title}</span>
+                            <span className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">
+                              {task.description}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4.5 px-6">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-white">{task.intern.fullName}</span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">ID: {task.intern.internId || task.intern.id}</span>
+                          </div>
+                        </td>
+                        <td className="py-4.5 px-6 font-semibold text-white">
+                          <div className="flex items-center space-x-1.5">
+                            <Clock className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                            <span>{formatDate(task.deadline)}</span>
+                          </div>
+                        </td>
+                        <td className="py-4.5 px-6">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-heading font-semibold border ${getStatusBadge(task.status)}`}>
+                            {task.status}
+                          </span>
+                        </td>
+                        <td className="py-4.5 px-6 text-center">
+                          <div className="flex items-center justify-center space-x-1.5">
+                            {task.status !== "COMPLETED" ? (
+                              <>
+                                {task.status === "PENDING" && (
+                                  <Button
+                                    onClick={() => handleUpdateStatus(task.id, "IN_PROGRESS")}
+                                    disabled={updatingId === task.id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-[10px] font-bold text-cyan-400 border-cyan-500/25 hover:bg-cyan-500/5"
+                                  >
+                                    Start Work
+                                  </Button>
+                                )}
+                                {task.status === "IN_PROGRESS" && (
+                                  <Button
+                                    onClick={() => handleUpdateStatus(task.id, "IN_REVIEW")}
+                                    disabled={updatingId === task.id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-[10px] font-bold text-blue-400 border-blue-500/25 hover:bg-blue-500/5"
+                                  >
+                                    Submit Review
+                                  </Button>
+                                )}
+                                {task.status === "IN_REVIEW" && (
+                                  <Button
+                                    onClick={() => handleUpdateStatus(task.id, "COMPLETED")}
+                                    disabled={updatingId === task.id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-[10px] font-bold text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/5"
+                                  >
+                                    Approve Goal
+                                  </Button>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center space-x-1 text-emerald-400 font-bold select-none text-[10px] tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                <span>Approved</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
-      </Card>
+
+        {/* MOBILE VIEW: Card Stack Layout (md and smaller) */}
+        <div className="block md:hidden space-y-4">
+          {tasks.length === 0 ? (
+            <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-8 text-center text-gray-500 select-none">
+              <CheckSquare className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+              <p className="text-xs font-semibold">No active goals in your work queue.</p>
+            </Card>
+          ) : (
+            tasks.map((task) => (
+              <Card
+                key={`mob-${task.id}`}
+                className="border-white/[0.08] bg-[#0b0f19]/70 backdrop-blur-md p-4 rounded-xl space-y-3.5 shadow-lg"
+              >
+                {/* Mobile Card Header */}
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-white">{task.title}</h3>
+                    <div className="flex items-center space-x-1 text-[10px] text-gray-400">
+                      <User className="h-3.5 w-3.5 text-indigo-400" />
+                      <span>Intern: {task.intern.fullName}</span>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border shrink-0 ${getStatusBadge(task.status)}`}>
+                    {task.status.replace(/_/g, " ")}
+                  </span>
+                </div>
+
+                {/* Mobile Card Description */}
+                <p className="text-xs text-gray-400 leading-relaxed font-medium">
+                  {task.description}
+                </p>
+
+                {/* Mobile Card Metadata Grid */}
+                <div className="grid grid-cols-2 gap-3 text-[11px] bg-white/[0.02] border border-white/[0.04] p-3 rounded-lg font-medium text-gray-300">
+                  <div>
+                    <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wider">Deadline</span>
+                    <span className="font-bold text-white flex items-center space-x-1 mt-0.5">
+                      <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>{formatDate(task.deadline)}</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wider">Assigner</span>
+                    <span className="font-semibold block truncate mt-0.5">{task.assigner?.fullName || "Supervisor"}</span>
+                  </div>
+                </div>
+
+                {/* Mobile Touch Action Button */}
+                <div className="flex items-center justify-end pt-2 border-t border-white/[0.04]">
+                  {task.status !== "COMPLETED" ? (
+                    <>
+                      {task.status === "PENDING" && (
+                        <Button
+                          onClick={() => handleUpdateStatus(task.id, "IN_PROGRESS")}
+                          disabled={updatingId === task.id}
+                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                        >
+                          <Send className="h-4 w-4" />
+                          <span>Start Work Goal</span>
+                        </Button>
+                      )}
+                      {task.status === "IN_PROGRESS" && (
+                        <Button
+                          onClick={() => handleUpdateStatus(task.id, "IN_REVIEW")}
+                          disabled={updatingId === task.id}
+                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                        >
+                          <Send className="h-4 w-4" />
+                          <span>Submit Work for Review</span>
+                        </Button>
+                      )}
+                      {task.status === "IN_REVIEW" && (
+                        <Button
+                          onClick={() => handleUpdateStatus(task.id, "COMPLETED")}
+                          disabled={updatingId === task.id}
+                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          <span>Approve & Complete Goal</span>
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center space-x-1 text-emerald-400 font-bold select-none text-[10px] tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl w-full justify-center">
+                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      <span>Approved Work Goal</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* 3. Sliding/Popup Assign Task Modal Overlay */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 transition-opacity animate-fadeIn select-none">
-          <div className="w-full max-w-lg">
-            <Card className="border-border shadow-2xl relative">
+          <div className="w-full max-w-lg animate-fadeIn">
+            <Card className="border-white/10 bg-[#0b0f19]/80 backdrop-blur-xl shadow-2xl relative rounded-2xl overflow-hidden">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4.5 right-4.5 text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
               <CardHeader className="pb-4">
-                <CardTitle>Assign Work Goal</CardTitle>
-                <CardDescription>Launch a new target directly to an intern's queue.</CardDescription>
+                <CardTitle className="text-white">Assign Work Goal</CardTitle>
+                <CardDescription className="text-gray-400">Launch a new target directly to an intern's queue.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateTask} className="space-y-4">
                   <div className="flex flex-col space-y-1.5 w-full">
-                    <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                    <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
                       Target Intern (Active Enrollee)
                     </label>
                     <select
                       value={internId}
                       onChange={(e) => setInternId(e.target.value)}
                       required
-                      className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer"
+                      className="flex h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/70 focus:border-indigo-500/70 transition-all cursor-pointer"
                     >
-                      <option value="">Select Target Profile...</option>
+                      <option value="" className="bg-[#0b0f19] text-white">Select Target Profile...</option>
                       {interns.map((i) => (
-                        <option key={i.id} value={i.id}>
+                        <option key={i.id} value={i.id} className="bg-[#0b0f19] text-white">
                           {i.fullName} ({i.internId || i.id})
                         </option>
                       ))}
@@ -303,10 +411,11 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
+                    className="bg-white/5 border-white/10 text-white placeholder-gray-500 rounded-xl focus:border-indigo-500/70"
                   />
 
                   <div className="flex flex-col space-y-1.5 w-full">
-                    <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                    <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
                       Work Instructions / Requirements
                     </label>
                     <textarea
@@ -315,7 +424,7 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                       onChange={(e) => setDescription(e.target.value)}
                       required
                       rows={3}
-                      className="flex w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                      className="flex w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/70 focus:border-indigo-500/70 transition-all placeholder-gray-500"
                     />
                   </div>
 
@@ -325,9 +434,10 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
                     required
+                    className="bg-white/5 border-white/10 text-white placeholder-gray-500 rounded-xl focus:border-indigo-500/70"
                   />
 
-                  <div className="flex items-center justify-end space-x-3.5 pt-4 border-t border-border/40 select-none">
+                  <div className="flex items-center justify-end space-x-3.5 pt-4 border-t border-white/[0.08] select-none">
                     <Button
                       type="button"
                       variant="secondary"
@@ -341,7 +451,7 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                       type="submit"
                       variant="primary"
                       size="sm"
-                      className="font-semibold"
+                      className="font-semibold bg-indigo-600 hover:bg-indigo-500 border border-white/5 text-white"
                       isLoading={loading}
                     >
                       Assign Task
