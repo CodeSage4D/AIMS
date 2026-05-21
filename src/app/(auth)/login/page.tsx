@@ -87,9 +87,9 @@ export default function LoginPage() {
                   <Mail className="h-4 w-4" />
                 </div>
                 <Input
-                  label="Corporate Email Address"
-                  type="email"
-                  placeholder="name@aurxon.com"
+                  label="Corporate Email Address / Username"
+                  type="text"
+                  placeholder="name@aurxon.com or username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10.5"
