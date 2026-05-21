@@ -64,6 +64,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to assign tasks." }, { status: 403 });
     }
 
+    if (user.role === "MENTOR" && intern.supervisorId !== user.id) {
+      return NextResponse.json({ error: "Forbidden. Mentors can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
+    }
+
     // Create the task in a database transaction along with the audit log
     const newTask = await db.$transaction(async (tx) => {
       const safeUserId = await getSafeUserId(user.id, tx);
