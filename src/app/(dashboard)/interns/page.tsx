@@ -31,24 +31,30 @@ export default async function InternsPage({ searchParams }: PageProps) {
   let isDbConnected = true;
 
   try {
+    const whereClause: any = {
+      AND: [
+        search
+          ? {
+              OR: [
+                { fullName: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+                { internId: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        status
+          ? { status: status as any }
+          : { status: { not: "ARCHIVED" } }, // Hide archived enrollees by default for clean operation
+        department ? { department: { contains: department, mode: "insensitive" } } : {},
+      ],
+    };
+
+    if (!isAdmin) {
+      whereClause.AND.push({ supervisorId: (session?.user as any)?.id || "" });
+    }
+
     interns = await db.intern.findMany({
-      where: {
-        AND: [
-          search
-            ? {
-                OR: [
-                  { fullName: { contains: search, mode: "insensitive" } },
-                  { email: { contains: search, mode: "insensitive" } },
-                  { internId: { contains: search, mode: "insensitive" } },
-                ],
-              }
-            : {},
-          status
-            ? { status: status as any }
-            : { status: { not: "ARCHIVED" } }, // Hide archived enrollees by default for clean operation
-          department ? { department: { contains: department, mode: "insensitive" } } : {},
-        ],
-      },
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {
         supervisor: {
@@ -195,7 +201,11 @@ export default async function InternsPage({ searchParams }: PageProps) {
                     <td className="py-4 px-6 font-mono text-[11px] font-semibold text-foreground/80">
                       {intern.ssidn ? (
                         <span className="bg-secondary/40 border border-border/40 px-2 py-0.5 rounded text-xs select-text">
-                          {intern.ssidn}
+                          {isAdmin
+                            ? intern.ssidn
+                            : intern.ssidn.length > 4
+                            ? `***-**-${intern.ssidn.slice(-4)}`
+                            : "****"}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/60 italic">N/A</span>
