@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     }
 
     const role = (session.user as any).role;
-    if (role !== "FOUNDER") {
+    if (role !== "FOUNDER" && role !== "HR") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { message: "A password reset request is already pending with the Founder." },
+        { message: "A password reset request is already pending with the Administrator." },
         { status: 200 }
       );
     }
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { message: "Reset request successfully filed. Please contact the Founder for approval." },
+      { message: "Reset request successfully filed. Please contact the Founder or HR for approval." },
       { status: 200 }
     );
   } catch (error) {
