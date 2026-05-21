@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Calendar, CheckCircle2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Calendar, CheckCircle2, ShieldCheck, AlertTriangle, Users, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InternOption {
@@ -121,28 +121,28 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
 
   // Status badges schemas
   const statuses = [
-    { value: "PRESENT", label: "Present", color: "peer-checked:bg-emerald-500/10 peer-checked:text-emerald-400 peer-checked:border-emerald-500/30 text-emerald-500/70 border-emerald-500/10 hover:bg-emerald-500/5" },
-    { value: "ABSENT", label: "Absent", color: "peer-checked:bg-red-500/10 peer-checked:text-red-400 peer-checked:border-red-500/30 text-red-500/70 border-red-500/10 hover:bg-red-500/5" },
-    { value: "LATE", label: "Late Log", color: "peer-checked:bg-amber-500/10 peer-checked:text-amber-400 peer-checked:border-amber-500/30 text-amber-500/70 border-amber-500/10 hover:bg-amber-500/5" },
-    { value: "LEAVE", label: "On Leave", color: "peer-checked:bg-blue-500/10 peer-checked:text-blue-400 peer-checked:border-blue-500/30 text-blue-500/70 border-blue-500/10 hover:bg-blue-500/5" },
+    { value: "PRESENT", label: "Present", activeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25", defaultColor: "bg-white/5 border-white/5 text-gray-400 hover:bg-emerald-500/5 hover:text-emerald-400" },
+    { value: "ABSENT", label: "Absent", activeColor: "bg-red-500/10 text-red-400 border-red-500/25", defaultColor: "bg-white/5 border-white/5 text-gray-400 hover:bg-red-500/5 hover:text-red-400" },
+    { value: "LATE", label: "Late", activeColor: "bg-amber-500/10 text-amber-400 border-amber-500/25", defaultColor: "bg-white/5 border-white/5 text-gray-400 hover:bg-amber-500/5 hover:text-amber-400" },
+    { value: "LEAVE", label: "Leave", activeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/25", defaultColor: "bg-white/5 border-white/5 text-gray-400 hover:bg-indigo-500/5 hover:text-indigo-400" },
   ];
 
   return (
-    <Card className="border-border/60 max-w-5xl mx-auto shadow-2xl select-none">
-      <CardHeader className="border-b border-border/40 p-6 bg-secondary/10 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+    <Card className="border-white/[0.08] max-w-5xl mx-auto shadow-2xl select-none bg-[#0b0f19]/70 backdrop-blur-xl text-white rounded-2xl overflow-hidden">
+      <CardHeader className="border-b border-white/[0.06] p-6 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <CardTitle>Daily Attendance Roster</CardTitle>
-          <CardDescription>Log, update, and audit daily attendance codes for active interns.</CardDescription>
+          <CardTitle className="text-xl font-heading font-extrabold text-white">Daily Attendance Roster</CardTitle>
+          <CardDescription className="text-xs text-gray-400">Log, update, and audit daily attendance codes for active interns.</CardDescription>
         </div>
         {/* Date Selector input widget */}
-        <div className="flex items-center space-x-3.5 shrink-0 bg-input border border-border px-3 py-1.5 rounded-md">
-          <Calendar className="h-4.5 w-4.5 text-primary shrink-0 pointer-events-none" />
+        <div className="flex items-center space-x-3 shrink-0 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+          <Calendar className="h-4.5 w-4.5 text-cyan-400 shrink-0 pointer-events-none" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             disabled={loading || fetching}
-            className="bg-transparent border-0 text-sm text-foreground focus:outline-none focus:ring-0 font-medium cursor-pointer"
+            className="bg-transparent border-0 text-sm text-white focus:outline-none focus:ring-0 font-medium cursor-pointer"
           />
         </div>
       </CardHeader>
@@ -152,10 +152,10 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
         {message && (
           <div
             className={cn(
-              "flex items-center space-x-3 p-3.5 rounded-md border text-xs font-semibold select-none",
+              "flex items-center space-x-3 p-4 rounded-xl border text-xs font-semibold select-none",
               message.type === "success"
-                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                : "bg-destructive/10 border-destructive/25 text-destructive animate-pulse"
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                : "bg-red-500/10 border-red-500/20 text-red-400 animate-pulse"
             )}
           >
             {message.type === "success" ? (
@@ -168,8 +168,8 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
         )}
 
         {/* Dynamic Bulk Action shortcuts */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-3 bg-secondary/15 rounded-md border border-border/40">
-          <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]">
+          <span className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
             Bulk Operations Selector
           </span>
           <div className="flex flex-wrap gap-2">
@@ -179,7 +179,7 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
               size="sm"
               onClick={() => handleBulkSet("PRESENT")}
               disabled={loading || fetching || initialInterns.length === 0}
-              className="text-emerald-400 hover:bg-emerald-500/5 hover:border-emerald-500/20 text-[10px] h-8"
+              className="text-emerald-400 hover:bg-emerald-500/5 hover:border-emerald-500/20 text-[10px] h-8.5 rounded-lg border-white/[0.08]"
             >
               All Present
             </Button>
@@ -189,7 +189,7 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
               size="sm"
               onClick={() => handleBulkSet("ABSENT")}
               disabled={loading || fetching || initialInterns.length === 0}
-              className="text-red-400 hover:bg-red-500/5 hover:border-red-500/20 text-[10px] h-8"
+              className="text-red-400 hover:bg-red-500/5 hover:border-red-500/20 text-[10px] h-8.5 rounded-lg border-white/[0.08]"
             >
               All Absent
             </Button>
@@ -198,36 +198,37 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
 
         {/* Data Table */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="overflow-x-auto border border-border/40 rounded-lg">
+          {/* DESKTOP TABLE VIEW (Visible on md and larger) */}
+          <div className="hidden md:block overflow-x-auto border border-white/[0.06] rounded-xl">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border/60 bg-secondary/15 text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest select-none">
+                <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest select-none">
                   <th className="py-3 px-6">ID File</th>
                   <th className="py-3 px-6">Intern Name</th>
                   <th className="py-3 px-6">Department</th>
                   <th className="py-3 px-6 text-center">Status Logging Marker</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/30 text-xs font-semibold text-muted-foreground">
+              <tbody className="divide-y divide-white/[0.04] text-xs font-semibold text-gray-300">
                 {fetching ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-sm font-semibold text-muted-foreground select-none animate-pulse">
+                    <td colSpan={4} className="py-12 text-center text-sm font-semibold text-gray-500 select-none animate-pulse">
                       Hydrating daily attendance roll...
                     </td>
                   </tr>
                 ) : initialInterns.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-sm font-semibold text-muted-foreground select-none">
+                    <td colSpan={4} className="py-12 text-center text-sm font-semibold text-gray-500 select-none">
                       No active interns currently enrolled in the roster system.
                     </td>
                   </tr>
                 ) : (
                   initialInterns.map((intern) => (
-                    <tr key={intern.id} className="hover:bg-secondary/5 hover:text-foreground transition-colors duration-150">
-                      <td className="py-4.5 px-6 font-heading font-bold text-foreground">
+                    <tr key={intern.id} className="hover:bg-white/[0.02] hover:text-white transition-colors duration-150">
+                      <td className="py-4.5 px-6 font-heading font-bold text-white">
                         {intern.internId || intern.id}
                       </td>
-                      <td className="py-4.5 px-6 text-foreground font-bold">
+                      <td className="py-4.5 px-6 text-white font-bold">
                         {intern.fullName}
                       </td>
                       <td className="py-4.5 px-6 font-medium">
@@ -247,8 +248,8 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
                                 className="peer sr-only"
                               />
                               <span className={cn(
-                                "inline-flex items-center px-3 py-1.5 rounded border text-[10px] font-heading font-bold tracking-wide transition-all select-none uppercase",
-                                s.color
+                                "inline-flex items-center px-3 py-1.5 rounded-lg border text-[10px] font-heading font-bold tracking-wide transition-all select-none uppercase",
+                                records[intern.id] === s.value ? s.activeColor : s.defaultColor
                               )}>
                                 {s.label}
                               </span>
@@ -263,6 +264,58 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
             </table>
           </div>
 
+          {/* MOBILE CARD VIEW (Visible on smaller than md) */}
+          <div className="block md:hidden space-y-4">
+            {fetching ? (
+              <div className="py-12 text-center text-xs font-semibold text-gray-500 animate-pulse">
+                Hydrating daily attendance roll...
+              </div>
+            ) : initialInterns.length === 0 ? (
+              <div className="py-12 text-center text-xs font-semibold text-gray-500">
+                No active interns enrolled in AIMS.
+              </div>
+            ) : (
+              initialInterns.map((intern) => (
+                <div
+                  key={`card-${intern.id}`}
+                  className="p-4 rounded-xl border border-white/[0.08] bg-[#0b0f19]/70 space-y-3.5"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[9px] font-mono font-bold text-cyan-400 block tracking-wide">
+                        {intern.internId || intern.id}
+                      </span>
+                      <h4 className="text-sm font-bold text-white">{intern.fullName}</h4>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{intern.department} Department</p>
+                    </div>
+                  </div>
+
+                  {/* Mobile Large Touchable Selection Triggers */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {statuses.map((s) => {
+                      const isActive = records[intern.id] === s.value;
+                      return (
+                        <button
+                          key={`btn-${intern.id}-${s.value}`}
+                          type="button"
+                          onClick={() => handleStatusChange(intern.id, s.value)}
+                          disabled={loading}
+                          className={cn(
+                            "py-3 px-4 rounded-xl border text-xs font-bold tracking-wide transition-all duration-200 select-none uppercase flex items-center justify-center space-x-1.5 active:scale-95",
+                            isActive ? s.activeColor : s.defaultColor
+                          )}
+                        >
+                          {isActive && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                          <span>{s.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
           {/* Submission Button */}
           {initialInterns.length > 0 && !fetching && (
             <div className="flex justify-end select-none">
@@ -270,7 +323,7 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
                 type="submit"
                 variant="primary"
                 size="md"
-                className="font-semibold flex items-center space-x-1.5 h-11"
+                className="w-full sm:w-auto font-semibold flex items-center justify-center space-x-2 h-11.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-white/5"
                 isLoading={loading}
               >
                 <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
