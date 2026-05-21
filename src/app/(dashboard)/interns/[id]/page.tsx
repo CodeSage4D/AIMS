@@ -222,7 +222,23 @@ export default async function InternWorkspacePage({ params }: PageProps) {
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Department & Domain</span>
                 <p className="text-xs font-semibold text-foreground">{intern.roleDomain}</p>
-                <p className="text-[11px] text-muted-foreground font-medium">{intern.department} Division</p>
+                <div className="flex items-center justify-between mt-1 text-[11px] font-medium">
+                  <span className="text-muted-foreground">{intern.department} Division</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-heading font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
+                    {intern.employmentType || "INTERN"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1 border-t border-border/40 pt-4">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tenure / Joining Period</span>
+                <div className="flex items-center space-x-2 text-xs font-semibold text-foreground">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span>
+                    {formatDate(intern.startDate)}
+                    {intern.endDate ? ` — ${formatDate(intern.endDate)}` : " — Present (Permanent)"}
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-4">
