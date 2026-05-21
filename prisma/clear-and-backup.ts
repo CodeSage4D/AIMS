@@ -30,6 +30,12 @@ const prisma = new PrismaClient({
 } as any);
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DESTRUCTIVE_DB_SCRIPTS !== "true") {
+    console.error("CRITICAL ERROR: Destructive database operations are BLOCKED in production.");
+    console.error("To override this guard, set the environment variable: ALLOW_DESTRUCTIVE_DB_SCRIPTS='true'");
+    process.exit(1);
+  }
+
   console.log("-----------------------------------------------------------------");
   console.log("  AURXON AIMS DATABASE BACKUP & WIPE ENGINE ENGAGED");
   console.log("-----------------------------------------------------------------");
