@@ -46,6 +46,7 @@ interface InternData {
   supervisorId: string | null;
   status: string;
   employmentType?: string;
+  user?: { username: string | null } | null;
 }
 
 interface WorkspaceHeaderActionsProps {
@@ -92,6 +93,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
     ssidn: intern.ssidn || "",
     supervisorId: intern.supervisorId || "",
     status: intern.status,
+    username: intern.user?.username || "",
   });
 
   const [activeTab, setActiveTab] = useState(1);
@@ -437,14 +439,23 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                       />
                     </div>
 
-                    <Input
-                      label="Primary Email Address (Required)"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Primary Email Address (Required)"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                      />
+                      <Input
+                        label="Custom Login Username (Optional)"
+                        name="username"
+                        placeholder="e.g. aaravsharma (Defaults to Intern ID)"
+                        value={formData.username}
+                        onChange={handleChange}
+                      />
+                    </div>
 
                     <div className="border-t border-border/40 pt-4 space-y-4">
                       <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
