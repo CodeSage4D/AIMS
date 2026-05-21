@@ -19,10 +19,15 @@ export default async function TasksPage() {
 
   try {
     // 1. Fetch only ACTIVE interns to populate the assign-task selection dropdown
+    const internWhere: any = {
+      status: "ACTIVE",
+    };
+    if (userRole !== "ADMIN") {
+      internWhere.supervisorId = userId;
+    }
+
     interns = await db.intern.findMany({
-      where: {
-        status: "ACTIVE",
-      },
+      where: internWhere,
       select: {
         id: true,
         internId: true,
