@@ -8,6 +8,11 @@ const prisma = new PrismaClient({
 } as any);
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("CRITICAL WARNING: Database seeding is BLOCKED in production environments to prevent accidental database wipe.");
+    process.exit(1);
+  }
+
   console.log("-----------------------------------------------------------------");
   console.log("  AURXON AIMS DATABASE SEEDING ENGINE ENGAGED");
   console.log("  STATUS: Initializing system tables in production-ready state.");
