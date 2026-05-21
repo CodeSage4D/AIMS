@@ -45,3 +45,7 @@ yarn-error.log*
 # Backups & Temporary Sheets (Optional, kept out of version control for security)
 *backup*.csv
 *backup*.xlsx
+
+
+# Ignore some folders
+New folder/
