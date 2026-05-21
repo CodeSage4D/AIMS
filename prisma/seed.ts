@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, EmploymentType, InternStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient({
@@ -15,55 +15,125 @@ async function main() {
 
   console.log("-----------------------------------------------------------------");
   console.log("  AURXON AIMS DATABASE SEEDING ENGINE ENGAGED");
-  console.log("  STATUS: Initializing system tables in production-ready state.");
+  console.log("  STATUS: Initializing custom 4-tier model users.");
   console.log("-----------------------------------------------------------------");
 
   // 1. Wipe existing databases to prevent collision
   console.log("Wiping existing records...");
   await prisma.activityLog.deleteMany({});
+  await prisma.passwordResetRequest.deleteMany({});
+  await prisma.leaveApplication.deleteMany({});
   await prisma.document.deleteMany({});
   await prisma.task.deleteMany({});
   await prisma.attendance.deleteMany({});
   await prisma.intern.deleteMany({});
   await prisma.user.deleteMany({});
 
-  // 2. Hydrate System Access Roles (Official Administrative Users)
+  // 2. Hydrate access roles
   console.log("Creating administrative system users...");
   
-  const adminPasswordHash = bcrypt.hashSync("aims-demo-admin-2026", 10);
-  const mentorPasswordHash = bcrypt.hashSync("aims-demo-mentor-2026", 10);
+  const founderPasswordHash = bcrypt.hashSync("aims-demo-founder-2026", 10);
+  const hrPasswordHash = bcrypt.hashSync("aims-demo-hr-2026", 10);
+  const leadPasswordHash = bcrypt.hashSync("aims-demo-lead-2026", 10);
+  const internPasswordHash = bcrypt.hashSync("aims-demo-intern-2026", 10);
 
-  const adminUser = await prisma.user.create({
+  const founderUser = await prisma.user.create({
     data: {
-      email: "admin@aurxon.demo",
-      passwordHash: adminPasswordHash,
-      fullName: "AIMS Demo Administrator",
-      role: Role.ADMIN,
+      email: "founder@aurxon.demo",
+      passwordHash: founderPasswordHash,
+      fullName: "Aurxon Founder (Elite)",
+      role: Role.FOUNDER,
     },
   });
 
-  const mentorUser = await prisma.user.create({
+  const hrUser = await prisma.user.create({
     data: {
-      email: "mentor@aurxon.demo",
-      passwordHash: mentorPasswordHash,
-      fullName: "AIMS Demo Mentor",
-      role: Role.MENTOR,
+      email: "hr@aurxon.demo",
+      passwordHash: hrPasswordHash,
+      fullName: "Aurxon HR Manager",
+      role: Role.HR,
+    },
+  });
+
+  const leadUser = await prisma.user.create({
+    data: {
+      email: "lead@aurxon.demo",
+      passwordHash: leadPasswordHash,
+      fullName: "Aurxon Team Lead",
+      role: Role.TEAM_LEAD,
+    },
+  });
+
+  console.log("Creating active enrollees & corresponding user credentials...");
+  
+  // Create an intern user credential for Aarav Sharma (forced password reset active)
+  const aaravInternUser = await prisma.user.create({
+    data: {
+      email: "aarav@aurxon.demo",
+      username: "AXN-SWE-2605-AS01",
+      passwordHash: internPasswordHash,
+      fullName: "Aarav Sharma",
+      role: Role.INTERN,
+      changePasswordRequired: true, // Forces Aarav to reset password on first login
+    },
+  });
+
+  const aaravInternProfile = await prisma.intern.create({
+    data: {
+      internId: "AXN-SWE-2605-AS01",
+      fullName: "Aarav Sharma",
+      gender: "Male",
+      dateOfBirth: new Date("2004-08-15"),
+      email: "aarav@aurxon.demo",
+      phoneNumber: "+91 9876543210",
+      address: "123 Glacial Tech Lane, Suite 400",
+      city: "New Delhi",
+      state: "Delhi",
+      country: "India",
+      university: "Delhi University",
+      degree: "B.Tech Computer Science",
+      department: "Engineering",
+      roleDomain: "Software Engineer",
+      batchSemester: "Semester 6",
+      startDate: new Date("2026-05-01"),
+      endDate: new Date("2026-11-01"),
+      employmentType: EmploymentType.INTERN,
+      status: InternStatus.ACTIVE,
+      stipendAmount: 15000.00,
+      paymentStatus: "UNPAID",
+      emergencyContactName: "Raj Sharma",
+      emergencyContactNumber: "+91 9876543211",
+      skills: ["React", "Next.js", "TypeScript", "Node.js"],
+      userId: aaravInternUser.id,
+      supervisorId: leadUser.id, // Mapped to our Team Lead
+    },
+  });
+
+  // Seed tasks for Aarav
+  await prisma.task.create({
+    data: {
+      internId: aaravInternProfile.id,
+      title: "Integrate Vercel Analytics",
+      description: "Implement lightweight summary analytics dashboard components for the AIMS web portal, ensuring compatibility with free-tier Postgres limits.",
+      deadline: new Date("2026-05-30"),
+      status: "IN_PROGRESS",
+      assignedById: leadUser.id,
     },
   });
 
   // 3. Log initial system startup
   await prisma.activityLog.create({
     data: {
-      userId: adminUser.id,
+      userId: founderUser.id,
       action: "PORTAL_INIT",
-      description: "AURXON Intern Management System (AIMS) database successfully initialized in clean production-ready state.",
+      description: "AURXON Intern Management System (AIMS) successfully initialized in clean 4-tier model state.",
     },
   });
 
-  console.log("System initialized successfully with administrator accounts.");
+  console.log("System initialized successfully with admin, lead, and intern accounts.");
   console.log("-----------------------------------------------------------------");
   console.log("  DATABASE SEEDING COMPLETED SUCCESSFULLY");
-  console.log("  Cleared: Yes  |  Users: 2  |  Interns: 0  |  Logs written");
+  console.log("  Cleared: Yes  |  Users: 4  |  Interns: 1  |  Logs written");
   console.log("-----------------------------------------------------------------");
 }
 
