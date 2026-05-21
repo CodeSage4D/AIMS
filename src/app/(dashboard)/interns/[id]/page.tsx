@@ -178,7 +178,6 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           intern={intern as any}
           mentors={mentors}
           isAdmin={isAdmin}
-          isFounder={isFounder}
         />
       </div>
 
