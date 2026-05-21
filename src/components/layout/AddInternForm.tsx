@@ -58,6 +58,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     notes: "",
     ssidn: "",
     supervisorId: "",
+    username: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -324,15 +325,24 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 />
               </div>
 
-              <Input
-                label="Primary Contact Email (Required)"
-                name="email"
-                type="email"
-                placeholder="name@aurxon.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Primary Contact Email (Required)"
+                  name="email"
+                  type="email"
+                  placeholder="name@aurxon.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+                <Input
+                  label="Custom Login Username (Optional)"
+                  name="username"
+                  placeholder="e.g. aaravsharma (Defaults to Intern ID)"
+                  value={formData.username}
+                  onChange={handleChange}
+                />
+              </div>
 
               <div className="border-t border-border/40 pt-5 space-y-4">
                 <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
