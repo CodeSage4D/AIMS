@@ -9,6 +9,15 @@ import { getSafeUserId } from "@/lib/safeUser";
  */
 export async function GET(req: Request) {
   try {
+    // 1. Session verification
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized access. Session credentials missing." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const dateQuery = searchParams.get("date");
 
