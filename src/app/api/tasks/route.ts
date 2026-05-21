@@ -60,12 +60,12 @@ export async function POST(req: Request) {
     // If user is MENTOR, verify they are allowed to assign tasks.
     // In AIMS, mentors can assign tasks to any intern or specifically interns under their supervision.
     // Let's allow assigning if they are ADMIN or the designated supervisor, or standard program mentors.
-    if (user.role !== "ADMIN" && user.role !== "MENTOR") {
+    if (user.role !== "FOUNDER" && user.role !== "HR" && user.role !== "TEAM_LEAD") {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to assign tasks." }, { status: 403 });
     }
 
-    if (user.role === "MENTOR" && intern.supervisorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden. Mentors can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
+    if (user.role === "TEAM_LEAD" && intern.supervisorId !== user.id) {
+      return NextResponse.json({ error: "Forbidden. Team Leads can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
     }
 
     // Create the task in a database transaction along with the audit log
@@ -136,8 +136,8 @@ export async function PATCH(req: Request) {
     }
 
     // Mentor authorization validation:
-    // Mentors can only update tasks they assigned OR tasks belonging to interns they supervise.
-    if (user.role !== "ADMIN") {
+    // Team Leads can only update tasks they assigned OR tasks belonging to interns they supervise. Founder and HR can update any task.
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
       const isAssigner = task.assignedById === user.id;
       const isSupervisor = task.intern.supervisorId === user.id;
 
