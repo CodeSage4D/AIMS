@@ -29,17 +29,17 @@ interface SidebarProps {
 export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
-  // Navigation Links Schema
+  // Dynamic Navigation Links Schema based on 4-tier roles
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
-    { label: "Intern Directory", href: "/interns", icon: Users },
-    { label: "Attendance Roll", href: "/attendance", icon: Calendar },
+    ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
+    ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
-    { label: "Document Vault", href: "/documents", icon: FileText },
+    ...(user.role !== "TEAM_LEAD" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
   ];
 
-  // Secure admin-only routing checks
-  const isAdmin = user.role === "ADMIN";
+  // Secure super-admin / administrative log view
+  const isLogAllowed = user.role === "FOUNDER" || user.role === "HR";
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -95,8 +95,8 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
             );
           })}
 
-          {/* Secure Admin Only Activity Log View */}
-          {isAdmin && (
+          {/* Secure Administrative-Only Activity Log View */}
+          {isLogAllowed && (
             <Link
               href="/logs"
               onClick={onClose}
