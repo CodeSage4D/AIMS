@@ -14,9 +14,9 @@ export default async function LogsPage() {
 
   const userRole = (session.user as any).role || "MENTOR";
 
-  // Strict Security Check: ADMIN ONLY!
-  if (userRole !== "ADMIN") {
-    return <AccessDeniedShield requiredRole="ADMIN" currentRole={userRole} />;
+  // Strict Security Check: FOUNDER ONLY!
+  if (userRole !== "FOUNDER") {
+    return <AccessDeniedShield requiredRole="FOUNDER" currentRole={userRole} />;
   }
 
   let logs: any[] = [];
