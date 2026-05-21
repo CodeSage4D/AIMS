@@ -51,13 +51,31 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         }
 
         // DEV-ONLY Fallback (Requested by User for local testing during DB outage)
-        if (process.env.NODE_ENV !== "production" && email === "aurxon" && password === "AurxonFuture#136") {
-          return {
-            id: "dev-aurxon-admin",
-            email: "aurxon@aurxon.demo",
-            name: "Aurxon Admin (Dev Override)",
-            role: "ADMIN",
-          };
+        if (process.env.NODE_ENV !== "production") {
+          if (email === "aurxon" && password === "AurxonFuture#136") {
+            return {
+              id: "dev-aurxon-admin",
+              email: "aurxon@aurxon.demo",
+              name: "Aurxon Admin (Dev Override)",
+              role: "ADMIN",
+            };
+          }
+          if (email === "admin@aurxon.demo" && password === "aims-demo-admin-2026") {
+            return {
+              id: "demo-admin-user",
+              email: "admin@aurxon.demo",
+              name: "AIMS Demo Administrator (Dev Override)",
+              role: "ADMIN",
+            };
+          }
+          if (email === "mentor@aurxon.demo" && password === "aims-demo-mentor-2026") {
+            return {
+              id: "demo-mentor-user",
+              email: "mentor@aurxon.demo",
+              name: "AIMS Demo Mentor (Dev Override)",
+              role: "MENTOR",
+            };
+          }
         }
 
         return null;
