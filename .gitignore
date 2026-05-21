@@ -49,3 +49,6 @@ yarn-error.log*
 
 # Ignore some folders
 New folder/
+
+# Secrets & Local credentials files
+credentials.txt
