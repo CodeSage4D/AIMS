@@ -69,6 +69,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
         roleDomain: "Software Engineer",
         startDate: new Date("2026-05-01"),
         status: "ACTIVE",
+        employmentType: "PERMANENT",
         supervisor: { fullName: "Karan Patel" },
       },
       {
@@ -80,6 +81,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
         roleDomain: "UI/UX Design",
         startDate: new Date("2026-05-15"),
         status: "ONBOARDING",
+        employmentType: "INTERN",
         supervisor: { fullName: "Sarah Connor" },
       },
     ];
@@ -109,16 +111,16 @@ export default async function InternsPage({ searchParams }: PageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h2 className="text-xl font-heading font-extrabold text-foreground tracking-tight">
-            Intern Roster Directory
+            Workspace Roster Directory
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Query, manage, onboard, and verify AURXON intern files.
+            Query, manage, onboard, and verify AURXON employee and intern records.
           </p>
         </div>
         <Link href="/interns/add">
           <Button variant="primary" size="sm" className="h-10 text-xs font-semibold font-heading flex items-center space-x-1.5">
             <PlusCircle className="h-4.5 w-4.5" />
-            <span>Onboard New Intern</span>
+            <span>Onboard New Roster File</span>
           </Button>
         </Link>
       </div>
@@ -140,10 +142,11 @@ export default async function InternsPage({ searchParams }: PageProps) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border/60 bg-secondary/15 text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest select-none">
-                <th className="py-4.5 px-6">Intern ID</th>
-                <th className="py-4.5 px-6">Intern Name</th>
+                <th className="py-4.5 px-6">ID</th>
+                <th className="py-4.5 px-6">Name</th>
                 <th className="py-4.5 px-6">Role & Department</th>
-                <th className="py-4.5 px-6">Onboarding Date</th>
+                <th className="py-4.5 px-6">Type</th>
+                <th className="py-4.5 px-6">Joining Date</th>
                 <th className="py-4.5 px-6">SSIDN</th>
                 <th className="py-4.5 px-6">Mapped Mentor</th>
                 <th className="py-4.5 px-6">Status</th>
@@ -153,7 +156,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
             <tbody className="divide-y divide-border/40 text-xs font-medium text-muted-foreground">
               {interns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-sm font-semibold text-muted-foreground select-none">
+                  <td colSpan={9} className="py-12 text-center text-sm font-semibold text-muted-foreground select-none">
                     <div className="flex flex-col items-center space-y-2.5">
                       <BadgeAlert className="h-8 w-8 text-muted-foreground/50" />
                       <span>No enrollees match your active search filters.</span>
@@ -180,6 +183,11 @@ export default async function InternsPage({ searchParams }: PageProps) {
                         <span className="text-foreground">{intern.roleDomain}</span>
                         <span className="text-[10px] text-muted-foreground/80 mt-0.5">{intern.department}</span>
                       </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-heading font-semibold bg-secondary/80 text-muted-foreground border border-border/60 uppercase tracking-wider">
+                        {intern.employmentType || "INTERN"}
+                      </span>
                     </td>
                     <td className="py-4 px-6 font-medium">
                       {formatDate(intern.startDate)}
