@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getSafeUserId } from "@/lib/safeUser";
 
 /**
  * REST Endpoint for onboarding a new intern profile record.
@@ -55,12 +56,47 @@ export async function POST(req: Request) {
       notes,
       supervisorId,
       ssidn,
+      employmentType,
     } = body;
 
-    // 4. Basic parameter validations
-    if (!fullName || !email || !phoneNumber || !startDate || !endDate) {
+    const parsedEmploymentType = employmentType || "INTERN";
+
+    // 4. Basic parameter validations (endDate is optional for PERMANENT/CONTRACT employee types)
+    if (!fullName || !email || !phoneNumber || !startDate || (parsedEmploymentType === "INTERN" && !endDate)) {
       return NextResponse.json(
         { error: "Missing required onboarding parameters (Name, Email, Phone, Dates)." },
+        { status: 400 }
+      );
+    }
+
+    // Strict input validation for Names and Phone Numbers
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+
+    if (!nameRegex.test(fullName?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Full Name must contain alphabetical letters and spaces only." },
+        { status: 400 }
+      );
+    }
+
+    if (!nameRegex.test(emergencyContactName?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Emergency Contact Name must contain alphabetical letters and spaces only." },
+        { status: 400 }
+      );
+    }
+
+    if (!phoneRegex.test(phoneNumber?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Primary Phone Number must be a valid number containing between 7 and 15 digits." },
+        { status: 400 }
+      );
+    }
+
+    if (!phoneRegex.test(emergencyContactNumber?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Emergency Contact Number must be a valid number containing between 7 and 15 digits." },
         { status: 400 }
       );
     }
@@ -121,7 +157,8 @@ export async function POST(req: Request) {
               roleDomain,
               batchSemester: batchSemester || "",
               startDate: new Date(startDate),
-              endDate: new Date(endDate),
+              endDate: endDate ? new Date(endDate) : null,
+              employmentType: parsedEmploymentType as any,
               stipendAmount: parsedStipend,
               paymentStatus: paymentStatus || "UNPAID",
               emergencyContactName,
@@ -166,11 +203,12 @@ export async function POST(req: Request) {
     }
 
     // 9. Register administrative security log
+    const safeUserId = await getSafeUserId(userId);
     await db.activityLog.create({
       data: {
-        userId: userId,
+        userId: safeUserId,
         action: "CREATE_INTERN",
-        description: `Successfully onboarded new intern ${fullName} with active branded ID ${finalAssignedId}`,
+        description: `Successfully onboarded new employee/intern ${fullName} with active branded ID ${finalAssignedId}`,
       },
     });
 
@@ -239,11 +277,12 @@ export async function DELETE(req: Request) {
     });
 
     // 6. Register administrative security log
+    const safeUserIdDel = await getSafeUserId(userId);
     await db.activityLog.create({
       data: {
-        userId: userId,
+        userId: safeUserIdDel,
         action: "DELETE_INTERN",
-        description: `Successfully removed intern ${intern.fullName} (ID: ${intern.internId})`,
+        description: `Successfully removed employee/intern ${intern.fullName} (ID: ${intern.internId})`,
       },
     });
 
@@ -296,6 +335,38 @@ export async function PUT(req: Request) {
       );
     }
 
+    // Strict input validation for updates if provided
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+
+    if (updateData.fullName !== undefined && !nameRegex.test(updateData.fullName?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Full Name must contain alphabetical letters and spaces only." },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.emergencyContactName !== undefined && !nameRegex.test(updateData.emergencyContactName?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Emergency Contact Name must contain alphabetical letters and spaces only." },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.phoneNumber !== undefined && !phoneRegex.test(updateData.phoneNumber?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Primary Phone Number must be a valid number containing between 7 and 15 digits." },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.emergencyContactNumber !== undefined && !phoneRegex.test(updateData.emergencyContactNumber?.trim() || "")) {
+      return NextResponse.json(
+        { error: "Emergency Contact Number must be a valid number containing between 7 and 15 digits." },
+        { status: 400 }
+      );
+    }
+
     // 4. Build selective update payload
     const dataToUpdate: any = {};
     if (updateData.fullName !== undefined) dataToUpdate.fullName = updateData.fullName;
@@ -313,7 +384,8 @@ export async function PUT(req: Request) {
     if (updateData.roleDomain !== undefined) dataToUpdate.roleDomain = updateData.roleDomain;
     if (updateData.batchSemester !== undefined) dataToUpdate.batchSemester = updateData.batchSemester;
     if (updateData.startDate !== undefined) dataToUpdate.startDate = new Date(updateData.startDate);
-    if (updateData.endDate !== undefined) dataToUpdate.endDate = new Date(updateData.endDate);
+    if (updateData.endDate !== undefined) dataToUpdate.endDate = updateData.endDate ? new Date(updateData.endDate) : null;
+    if (updateData.employmentType !== undefined) dataToUpdate.employmentType = updateData.employmentType;
     if (updateData.stipendAmount !== undefined) dataToUpdate.stipendAmount = Number(updateData.stipendAmount);
     if (updateData.paymentStatus !== undefined) dataToUpdate.paymentStatus = updateData.paymentStatus;
     if (updateData.emergencyContactName !== undefined) dataToUpdate.emergencyContactName = updateData.emergencyContactName;
@@ -360,11 +432,12 @@ export async function PUT(req: Request) {
     });
 
     // 7. Register administrative audit log
+    const safeUserIdPut = await getSafeUserId(userId);
     await db.activityLog.create({
       data: {
-        userId: userId,
+        userId: safeUserIdPut,
         action: "UPDATE_INTERN",
-        description: `Successfully updated intern file for ${updated.fullName} (ID: ${updated.internId})`,
+        description: `Successfully updated profile for ${updated.fullName} (ID: ${updated.internId})`,
       },
     });
 
