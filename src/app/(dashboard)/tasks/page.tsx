@@ -12,85 +12,77 @@ export default async function TasksPage() {
   }
 
   const userId = (session.user as any).id;
-  const userRole = (session.user as any).role || "MENTOR";
+  const userRole = (session.user as any).role || "INTERN";
 
   let interns: any[] = [];
   let tasks: any[] = [];
 
   try {
-    // 1. Fetch only ACTIVE interns to populate the assign-task selection dropdown
-    const internWhere: any = {
-      status: "ACTIVE",
-    };
-    if (userRole !== "ADMIN") {
-      internWhere.supervisorId = userId;
+    // 1. Fetch interns for the assignment selection dropdown based on role permissions
+    if (userRole === "FOUNDER" || userRole === "HR") {
+      interns = await db.intern.findMany({
+        where: { status: "ACTIVE" },
+        select: { id: true, internId: true, fullName: true },
+        orderBy: { fullName: "asc" },
+      });
+    } else if (userRole === "TEAM_LEAD") {
+      interns = await db.intern.findMany({
+        where: { status: "ACTIVE", supervisorId: userId },
+        select: { id: true, internId: true, fullName: true },
+        orderBy: { fullName: "asc" },
+      });
     }
 
-    interns = await db.intern.findMany({
-      where: internWhere,
-      select: {
-        id: true,
-        internId: true,
-        fullName: true,
-      },
-      orderBy: {
-        fullName: "asc",
-      },
-    });
-
-    // 2. Fetch tasks based on the user's role:
-    // - ADMIN: Views all tasks
-    // - MENTOR: Views tasks they assigned OR tasks of interns they supervise
-    if (userRole === "ADMIN") {
+    // 2. Fetch tasks based on the 4 roles:
+    if (userRole === "FOUNDER" || userRole === "HR") {
       tasks = await db.task.findMany({
         include: {
           intern: {
-            select: {
-              id: true,
-              internId: true,
-              fullName: true,
-            },
+            select: { id: true, internId: true, fullName: true },
           },
           assigner: {
-            select: {
-              fullName: true,
-            },
+            select: { fullName: true },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       });
-    } else {
+    } else if (userRole === "TEAM_LEAD") {
       tasks = await db.task.findMany({
         where: {
           OR: [
             { assignedById: userId },
-            {
-              intern: {
-                supervisorId: userId,
-              },
-            },
+            { intern: { supervisorId: userId } },
           ],
         },
         include: {
           intern: {
-            select: {
-              id: true,
-              internId: true,
-              fullName: true,
-            },
+            select: { id: true, internId: true, fullName: true },
           },
           assigner: {
-            select: {
-              fullName: true,
-            },
+            select: { fullName: true },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       });
+    } else if (userRole === "INTERN") {
+      const internProfile = await db.intern.findUnique({
+        where: { userId },
+      });
+
+      if (internProfile) {
+        tasks = await db.task.findMany({
+          where: { internId: internProfile.id },
+          include: {
+            intern: {
+              select: { id: true, internId: true, fullName: true },
+            },
+            assigner: {
+              select: { fullName: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+      }
     }
   } catch (err) {
     console.error("Database connection failed, using high-fidelity mock data fallback inside /tasks server wrapper:", err);
