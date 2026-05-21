@@ -38,7 +38,10 @@ export default async function InternWorkspacePage({ params }: PageProps) {
     return notFound();
   }
 
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const userRole = (session?.user as any)?.role || "INTERN";
+  const isFounder = userRole === "FOUNDER";
+  const isHr = userRole === "HR";
+  const isAdmin = isFounder || isHr;
 
   // Fetch supervisors/mentors list for the update profile dropdown list
   const mentors = await db.user.findMany({
@@ -170,6 +173,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           intern={intern as any}
           mentors={mentors}
           isAdmin={isAdmin}
+          isFounder={isFounder}
         />
       </div>
 
