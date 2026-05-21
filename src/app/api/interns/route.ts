@@ -21,10 +21,10 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (Only ADMINs/HR operations can onboard new interns)
-    if (userRole !== "ADMIN") {
+    // 2. Strict Access Control (Only FOUNDER/HR operations can onboard new interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Onboarding privileges restricted strictly to Administrator role." },
+        { error: "Access Denied. Onboarding privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
@@ -239,10 +239,10 @@ export async function DELETE(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (Only ADMINs can delete/remove interns)
-    if (userRole !== "ADMIN") {
+    // 2. Strict Access Control (FOUNDER and HR can delete/remove interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Deletion privileges restricted strictly to Administrator role." },
+        { error: "Access Denied. Deletion privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
@@ -313,10 +313,10 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
 
-    // 2. Strict Access Control (Only ADMINs can update interns)
-    if (userRole !== "ADMIN") {
+    // 2. Strict Access Control (Only FOUNDER and HR can update interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Profile modification privileges restricted strictly to Administrator role." },
+        { error: "Access Denied. Profile modification privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
