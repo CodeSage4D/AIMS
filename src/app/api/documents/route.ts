@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { put } from "@vercel/blob";
 import { DocType } from "@prisma/client";
+import { getSafeUserId } from "@/lib/safeUser";
 
 // helper to authenticate and check roles
 async function getAuthenticatedUser() {
@@ -100,7 +101,7 @@ export async function POST(req: Request) {
 
       await tx.activityLog.create({
         data: {
-          userId: user.id,
+          userId: await getSafeUserId(user.id, tx),
           action: "UPLOAD_DOCUMENT",
           description: `Uploaded compliance ${type} file "${file.name}" for intern ${intern.fullName}`,
         },
@@ -173,7 +174,7 @@ export async function PATCH(req: Request) {
 
       await tx.activityLog.create({
         data: {
-          userId: user.id,
+          userId: await getSafeUserId(user.id, tx),
           action: "VERIFY_DOCUMENT",
           description: `Audited and verified document "${document.fileName}" (${document.type}) for intern ${document.intern.fullName}`,
         },
@@ -232,7 +233,7 @@ export async function DELETE(req: Request) {
 
       await tx.activityLog.create({
         data: {
-          userId: user.id,
+          userId: await getSafeUserId(user.id, tx),
           action: "DELETE_DOCUMENT",
           description: `Wiped compliance ${document.type} file "${document.fileName}" for intern ${document.intern.fullName}`,
         },
