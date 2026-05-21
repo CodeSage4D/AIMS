@@ -220,31 +220,35 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* 1. Onboard Intern button */}
-      <Link href="/interns/add">
+      {isAdmin && (
+        <Link href="/interns/add">
+          <Button
+            variant="primary"
+            size="sm"
+            className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5 bg-secondary/80 hover:bg-secondary border border-border/80 text-foreground"
+          >
+            <PlusCircle className="h-4 w-4 text-primary shrink-0" />
+            <span>{intern.employmentType === "INTERN" ? "Onboard Intern" : "Onboard Employee"}</span>
+          </Button>
+        </Link>
+      )}
+
+      {/* 2. Update Intern Profile button */}
+      {isAdmin && (
         <Button
           variant="primary"
           size="sm"
-          className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5 bg-secondary/80 hover:bg-secondary border border-border/80 text-foreground"
+          onClick={() => {
+            setError(null);
+            setActiveTab(1);
+            setIsUpdateOpen(true);
+          }}
+          className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5"
         >
-          <PlusCircle className="h-4 w-4 text-primary shrink-0" />
-          <span>{intern.employmentType === "INTERN" ? "Onboard Intern" : "Onboard Employee"}</span>
+          <Edit className="h-4 w-4 text-primary-foreground shrink-0" />
+          <span>{intern.employmentType === "INTERN" ? "Update Intern Profile" : "Update Profile"}</span>
         </Button>
-      </Link>
-
-      {/* 2. Update Intern Profile button */}
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={() => {
-          setError(null);
-          setActiveTab(1);
-          setIsUpdateOpen(true);
-        }}
-        className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5"
-      >
-        <Edit className="h-4 w-4 text-primary-foreground shrink-0" />
-        <span>{intern.employmentType === "INTERN" ? "Update Intern Profile" : "Update Profile"}</span>
-      </Button>
+      )}
 
       {/* 3. Remove Intern button */}
       {isAdmin && (
