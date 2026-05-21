@@ -21,6 +21,13 @@ enum InternStatus {
   ARCHIVED
 }
 
+enum EmploymentType {
+  INTERN
+  PERMANENT
+  CONTRACT
+}
+
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -76,7 +83,8 @@ model Intern {
   roleDomain             String           @map("role_domain")
   batchSemester          String           @map("batch_semester")
   startDate              DateTime         @map("start_date")
-  endDate                DateTime         @map("end_date")
+  endDate                DateTime?        @map("end_date")
+  employmentType         EmploymentType   @default(INTERN) @map("employment_type")
   status                 InternStatus     @default(ONBOARDING)
   stipendAmount          Decimal          @default(0.00) @map("stipend_amount")
   paymentStatus          String           @default("UNPAID") @map("payment_status")
