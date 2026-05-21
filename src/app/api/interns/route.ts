@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSafeUserId } from "@/lib/safeUser";
+import bcrypt from "bcryptjs";
 
 /**
  * REST Endpoint for onboarding a new intern profile record.
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
       supervisorId,
       ssidn,
       employmentType,
+      username,
     } = body;
 
     const parsedEmploymentType = employmentType || "INTERN";
@@ -103,7 +105,7 @@ export async function POST(req: Request) {
 
     const cleanEmail = String(email).toLowerCase().trim();
 
-    // 5. Verify email uniqueness
+    // 5. Verify email or username uniqueness
     const existingEmail = await db.intern.findUnique({
       where: { email: cleanEmail },
     });
@@ -112,6 +114,24 @@ export async function POST(req: Request) {
         { error: "An intern file with this email address already exists." },
         { status: 400 }
       );
+    }
+
+    if (username) {
+      const cleanUsername = String(username).trim();
+      const existingUser = await db.user.findFirst({
+        where: {
+          OR: [
+            { username: { equals: cleanUsername, mode: "insensitive" } },
+            { email: { equals: cleanEmail, mode: "insensitive" } }
+          ]
+        }
+      });
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "A user account with this username or email already exists." },
+          { status: 400 }
+        );
+      }
     }
 
     // 6. Verify Custom ID uniqueness - Disabled (Pure System Auto-Generation Only)
@@ -126,7 +146,7 @@ export async function POST(req: Request) {
 
     const parsedStipend = stipendAmount ? Number(stipendAmount) : 0.00;
 
-    // 8. Create intern record in a transactional, collision-safe retry wrapper
+    // 8. Create intern and user records in a transactional, collision-safe retry wrapper
     const { generateInternId } = await import("@/lib/generateInternId");
     
     let retries = 3;
@@ -139,6 +159,22 @@ export async function POST(req: Request) {
           const computedId = await generateInternId(tx, fullName, department, roleDomain, startDate);
           finalAssignedId = computedId;
 
+          // Create linked User account for the intern/employee
+          const defaultPassword = "aims-demo-intern-2026";
+          const passwordHash = bcrypt.hashSync(defaultPassword, 10);
+          
+          const createdUser = await tx.user.create({
+            data: {
+              email: cleanEmail,
+              username: username?.trim() || computedId,
+              passwordHash,
+              fullName,
+              role: "INTERN",
+              changePasswordRequired: true,
+            },
+          });
+
+          // Create corresponding Intern record
           return await tx.intern.create({
             data: {
               internId: computedId,
@@ -168,19 +204,20 @@ export async function POST(req: Request) {
               ssidn: ssidn || null,
               supervisorId: supervisorId || null,
               status: "ACTIVE", // Onboards directly into active list
+              userId: createdUser.id,
             },
           });
         });
         break; // Successfully inserted!
       } catch (error: any) {
         const isUniqueConstraint = error.code === "P2002" && 
-          (error.meta?.target?.includes("intern_id") || error.meta?.target?.includes("internId") || error.message?.includes("intern_id"));
+          (error.meta?.target?.includes("intern_id") || error.meta?.target?.includes("internId") || error.message?.includes("intern_id") || error.meta?.target?.includes("username") || error.message?.includes("username"));
 
         if (isUniqueConstraint) {
           retries--;
           if (retries === 0) {
             return NextResponse.json(
-              { error: "Concurrency conflict: Unable to allocate a unique Intern ID prefix. Please retry." },
+              { error: "Concurrency conflict: Unable to allocate a unique Intern ID or Username. Please retry." },
               { status: 409 }
             );
           }
@@ -261,7 +298,7 @@ export async function DELETE(req: Request) {
     // 4. Check if intern exists
     const intern = await db.intern.findUnique({
       where: { id },
-      select: { fullName: true, internId: true },
+      select: { fullName: true, internId: true, userId: true },
     });
 
     if (!intern) {
@@ -271,10 +308,16 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // 5. Delete intern (cascade deletes attendance, tasks, documents automatically)
-    await db.intern.delete({
-      where: { id },
-    });
+    // 5. Delete intern (deleting the linked user cascades and deletes the intern record)
+    if (intern.userId) {
+      await db.user.delete({
+        where: { id: intern.userId },
+      });
+    } else {
+      await db.intern.delete({
+        where: { id },
+      });
+    }
 
     // 6. Register administrative security log
     const safeUserIdDel = await getSafeUserId(userId);
@@ -434,10 +477,27 @@ export async function PUT(req: Request) {
       dataToUpdate.internId = updateData.internId;
     }
 
-    // 6. Execute update in database
-    const updated = await db.intern.update({
-      where: { id },
-      data: dataToUpdate,
+    // 6. Execute update in database (transactional update for both User and Intern)
+    const updated = await db.$transaction(async (tx) => {
+      // If the intern has a linked user, update their account details in sync
+      if (existing.userId) {
+        const userUpdateData: any = {};
+        if (updateData.fullName !== undefined) userUpdateData.fullName = updateData.fullName;
+        if (updateData.email !== undefined) userUpdateData.email = String(updateData.email).toLowerCase().trim();
+        if (updateData.username !== undefined) userUpdateData.username = String(updateData.username).trim() || null;
+
+        if (Object.keys(userUpdateData).length > 0) {
+          await tx.user.update({
+            where: { id: existing.userId },
+            data: userUpdateData,
+          });
+        }
+      }
+
+      return await tx.intern.update({
+        where: { id },
+        data: dataToUpdate,
+      });
     });
 
     // 7. Register administrative audit log
