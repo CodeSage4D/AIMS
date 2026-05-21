@@ -11,19 +11,31 @@ export default function InternsFilter() {
 
   // Local Input States
   const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [status, setStatus] = useState(searchParams.get("status") || "");
   const [department, setDepartment] = useState(searchParams.get("department") || "");
+
+  // Debounce search input to 300ms to restrict router pushes to typing pauses
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
 
   // Handles input triggers by pushing custom URL search params
   useEffect(() => {
     const params = new URLSearchParams();
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (status) params.set("status", status);
     if (department) params.set("department", department);
 
     const query = params.toString();
     router.push(`/interns${query ? `?${query}` : ""}`);
-  }, [search, status, department, router]);
+  }, [debouncedSearch, status, department, router]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-secondary/10 p-4 rounded-lg border border-border/40 select-none">
