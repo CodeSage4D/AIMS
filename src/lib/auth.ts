@@ -24,12 +24,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const email = String(credentials.email).toLowerCase().trim();
+        const input = String(credentials.email).trim();
         const password = String(credentials.password);
 
         try {
-          const user = await db.user.findUnique({
-            where: { email },
+          const user = await db.user.findFirst({
+            where: {
+              OR: [
+                { email: input.toLowerCase() },
+                { username: input },
+                { username: input.toUpperCase() },
+              ],
+            },
           });
 
           if (user) {
@@ -40,6 +46,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 email: user.email,
                 name: user.fullName,
                 role: user.role,
+                changePasswordRequired: user.changePasswordRequired,
               };
             }
           }
@@ -52,28 +59,41 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         // DEV-ONLY Fallback (Requested by User for local testing during DB outage)
         if (process.env.NODE_ENV !== "production") {
-          if (email === "aurxon" && password === "AurxonFuture#136") {
+          const inputLower = input.toLowerCase();
+          if (inputLower === "founder@aurxon.demo" && password === "aims-demo-founder-2026") {
             return {
-              id: "dev-aurxon-admin",
-              email: "aurxon@aurxon.demo",
-              name: "Aurxon Admin (Dev Override)",
-              role: "ADMIN",
+              id: "dev-founder",
+              email: "founder@aurxon.demo",
+              name: "Aurxon Founder (Elite)",
+              role: "FOUNDER",
+              changePasswordRequired: false,
             };
           }
-          if (email === "admin@aurxon.demo" && password === "aims-demo-admin-2026") {
+          if (inputLower === "hr@aurxon.demo" && password === "aims-demo-hr-2026") {
             return {
-              id: "demo-admin-user",
-              email: "admin@aurxon.demo",
-              name: "AIMS Demo Administrator (Dev Override)",
-              role: "ADMIN",
+              id: "dev-hr",
+              email: "hr@aurxon.demo",
+              name: "Aurxon HR Manager",
+              role: "HR",
+              changePasswordRequired: false,
             };
           }
-          if (email === "mentor@aurxon.demo" && password === "aims-demo-mentor-2026") {
+          if (inputLower === "lead@aurxon.demo" && password === "aims-demo-lead-2026") {
             return {
-              id: "demo-mentor-user",
-              email: "mentor@aurxon.demo",
-              name: "AIMS Demo Mentor (Dev Override)",
-              role: "MENTOR",
+              id: "dev-lead",
+              email: "lead@aurxon.demo",
+              name: "Aurxon Team Lead",
+              role: "TEAM_LEAD",
+              changePasswordRequired: false,
+            };
+          }
+          if ((inputLower === "aarav@aurxon.demo" || input === "AXN-SWE-2605-AS01" || inputLower === "axn-swe-2605-as01") && password === "aims-demo-intern-2026") {
+            return {
+              id: "dev-intern",
+              email: "aarav@aurxon.demo",
+              name: "Aarav Sharma",
+              role: "INTERN",
+              changePasswordRequired: true,
             };
           }
         }
@@ -87,6 +107,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (user) {
         token.role = (user as any).role;
         token.id = user.id;
+        token.changePasswordRequired = (user as any).changePasswordRequired;
       }
       return token;
     },
@@ -94,6 +115,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
+        (session.user as any).changePasswordRequired = token.changePasswordRequired;
       }
       return session;
     },
