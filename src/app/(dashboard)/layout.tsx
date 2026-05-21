@@ -2,6 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ForcePasswordChange from "@/components/layout/ForcePasswordChange";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,11 +17,16 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
     redirect("/login");
   }
 
-  // 3. Fallback default metadata object to prevent TypeScript signatures errors
+  // 3. First Login Force Password Reset Interceptor
+  if ((session.user as any).changePasswordRequired) {
+    return <ForcePasswordChange />;
+  }
+
+  // 4. Fallback default metadata object to prevent TypeScript signatures errors
   const safeUser = {
     name: session.user.name || "AURXON User",
     email: session.user.email || "",
-    role: (session.user as any).role || "MENTOR",
+    role: (session.user as any).role || "INTERN",
   };
 
   return (
