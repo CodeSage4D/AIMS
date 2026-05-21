@@ -27,8 +27,8 @@ export async function POST(req: Request) {
     }
     const { user } = authResult;
 
-    // Authorize: Users must be MENTOR or ADMIN to upload files
-    if (user.role !== "ADMIN" && user.role !== "MENTOR") {
+    // Authorize: Users must be FOUNDER, HR, or TEAM_LEAD to upload files
+    if (user.role !== "FOUNDER" && user.role !== "HR" && user.role !== "TEAM_LEAD") {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to upload compliance forms." }, { status: 403 });
     }
 
@@ -146,9 +146,9 @@ export async function PATCH(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Admin users can verify documents!
-    if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Administrators can audit/verify documents." }, { status: 403 });
+    // Strict Authorization Check: ONLY Founder or HR can verify documents!
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders or HR can audit/verify documents." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -219,9 +219,9 @@ export async function DELETE(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Admin users can wipe vault records!
-    if (user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Administrators can wipe document items." }, { status: 403 });
+    // Strict Authorization Check: ONLY Founder or HR can wipe vault records!
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders or HR can wipe document items." }, { status: 403 });
     }
 
     // Extract ID from query search parameters
