@@ -35,7 +35,7 @@ interface InternData {
   roleDomain: string;
   batchSemester: string;
   startDate: Date | string;
-  endDate: Date | string;
+  endDate: Date | string | null;
   stipendAmount: any;
   paymentStatus: string;
   emergencyContactName: string;
@@ -45,6 +45,7 @@ interface InternData {
   ssidn: string | null;
   supervisorId: string | null;
   status: string;
+  employmentType?: string;
 }
 
 interface WorkspaceHeaderActionsProps {
@@ -80,7 +81,8 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
     roleDomain: intern.roleDomain,
     batchSemester: intern.batchSemester || "",
     startDate: new Date(intern.startDate).toISOString().split("T")[0],
-    endDate: new Date(intern.endDate).toISOString().split("T")[0],
+    endDate: intern.endDate ? new Date(intern.endDate).toISOString().split("T")[0] : "",
+    employmentType: intern.employmentType || "INTERN",
     stipendAmount: String(intern.stipendAmount),
     paymentStatus: intern.paymentStatus || "UNPAID",
     emergencyContactName: intern.emergencyContactName,
@@ -105,9 +107,30 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
         setError("Please complete all required personal fields.");
         return;
       }
+      const nameRegex = /^[a-zA-Z\s]+$/;
+      const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+      if (!nameRegex.test(formData.fullName.trim())) {
+        setError("Full Name must contain alphabetical letters and spaces only.");
+        return;
+      }
+      if (!phoneRegex.test(formData.phoneNumber.trim())) {
+        setError("Primary Phone Number must be a valid number containing between 7 and 15 digits.");
+        return;
+      }
     } else if (activeTab === 2) {
-      if (!formData.university || !formData.degree || !formData.roleDomain || !formData.startDate || !formData.endDate) {
-        setError("Please complete all required educational and internship fields.");
+      const isIntern = formData.employmentType === "INTERN";
+      if (
+        !formData.university ||
+        !formData.degree ||
+        !formData.roleDomain ||
+        !formData.startDate ||
+        (isIntern && !formData.endDate)
+      ) {
+        setError(
+          `Please complete all required educational and ${
+            isIntern ? "internship" : "employment"
+          } fields.`
+        );
         return;
       }
     }
@@ -155,16 +178,34 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
       return;
     }
 
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+    if (!nameRegex.test(formData.emergencyContactName.trim())) {
+      setError("Emergency Contact Name must contain alphabetical letters and spaces only.");
+      setLoading(false);
+      return;
+    }
+    if (!phoneRegex.test(formData.emergencyContactNumber.trim())) {
+      setError("Emergency Contact Number must be a valid number containing between 7 and 15 digits.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      const payload = {
+        ...formData,
+        endDate: formData.employmentType !== "INTERN" && !formData.endDate ? null : formData.endDate,
+      };
+
       const res = await fetch("/api/interns", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update intern profile.");
+        throw new Error(data.error || "Failed to update profile.");
       }
 
       setIsUpdateOpen(false);
@@ -186,7 +227,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
           className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5 bg-secondary/80 hover:bg-secondary border border-border/80 text-foreground"
         >
           <PlusCircle className="h-4 w-4 text-primary shrink-0" />
-          <span>Onboard Intern</span>
+          <span>{intern.employmentType === "INTERN" ? "Onboard Intern" : "Onboard Employee"}</span>
         </Button>
       </Link>
 
@@ -202,7 +243,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
         className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5"
       >
         <Edit className="h-4 w-4 text-primary-foreground shrink-0" />
-        <span>Update Intern Profile</span>
+        <span>{intern.employmentType === "INTERN" ? "Update Intern Profile" : "Update Profile"}</span>
       </Button>
 
       {/* 3. Remove Intern button */}
@@ -217,7 +258,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
           className="h-9 text-xs font-semibold font-heading flex items-center space-x-1.5 border-destructive/40 hover:border-destructive/80 hover:bg-destructive/5 text-destructive"
         >
           <Trash2 className="h-4 w-4 shrink-0" />
-          <span>Remove Intern</span>
+          <span>{intern.employmentType === "INTERN" ? "Remove Intern" : "Remove Employee"}</span>
         </Button>
       )}
 
@@ -235,7 +276,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
               </div>
               <div className="space-y-1.5 min-w-0">
                 <h3 className="text-sm font-heading font-extrabold text-foreground tracking-tight">
-                  Remove Intern Profile
+                  {intern.employmentType === "INTERN" ? "Remove Intern Profile" : "Remove Employee Profile"}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Are you sure you want to permanently remove <span className="font-semibold text-foreground">{intern.fullName}</span> (<span className="font-mono text-cyan-400 font-bold">{intern.internId}</span>) from the AIMS roster?
@@ -289,7 +330,11 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
               <div>
                 <h3 className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
                   <Edit className="h-4.5 w-4.5 text-primary" />
-                  <span>Update Intern Workspace Profile</span>
+                  <span>
+                    {formData.employmentType === "INTERN"
+                      ? "Update Intern Workspace Profile"
+                      : "Update Employee Workspace Profile"}
+                  </span>
                 </h3>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   Update database records for {intern.fullName} &bull; ID: <span className="font-mono text-cyan-400 font-bold">{intern.internId}</span>
@@ -304,7 +349,11 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
             <div className="flex border-b border-border/45 bg-secondary/5 p-3 space-x-2 shrink-0">
               {[
                 { step: 1, label: "Personal", icon: User },
-                { step: 2, label: "Internship", icon: School },
+                {
+                  step: 2,
+                  label: formData.employmentType === "INTERN" ? "Internship" : "Employment",
+                  icon: School,
+                },
                 { step: 3, label: "Emergency & Skills", icon: Heart },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -427,7 +476,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                   </div>
                 )}
 
-                {/* TAB 2: Internship Details */}
+                {/* TAB 2: Internship / Employment Details */}
                 {activeTab === 2 && (
                   <div className="space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -447,7 +496,31 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                          Employment Type
+                        </label>
+                        <select
+                          name="employmentType"
+                          value={formData.employmentType}
+                          onChange={handleChange}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                        >
+                          <option value="INTERN">Intern</option>
+                          <option value="PERMANENT">Permanent / Full-Time</option>
+                          <option value="CONTRACT">Contract</option>
+                        </select>
+                      </div>
+                      <Input
+                        label="Batch / Semester"
+                        name="batchSemester"
+                        value={formData.batchSemester}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
                           Department
@@ -467,7 +540,6 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                       </div>
 
                       <div className="flex flex-col space-y-1.5">
-                        {/* Real-time reactive role code badge displayed next to the label */}
                         <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                           <span>Role Domain</span>
                           <span className="text-[9px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1 py-0.5 rounded">
@@ -487,18 +559,11 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                           ))}
                         </select>
                       </div>
-
-                      <Input
-                        label="Batch / Semester"
-                        name="batchSemester"
-                        value={formData.batchSemester}
-                        onChange={handleChange}
-                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
-                        label="Start Date"
+                        label={formData.employmentType === "INTERN" ? "Start Date" : "Joining Date"}
                         name="startDate"
                         type="date"
                         value={formData.startDate}
@@ -506,12 +571,12 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                         required
                       />
                       <Input
-                        label="End Date"
+                        label={formData.employmentType === "INTERN" ? "End Date" : "Ending Date"}
                         name="endDate"
                         type="date"
                         value={formData.endDate}
                         onChange={handleChange}
-                        required
+                        required={formData.employmentType === "INTERN"}
                       />
                     </div>
 
