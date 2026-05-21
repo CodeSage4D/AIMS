@@ -8,8 +8,10 @@ generator client {
 }
 
 enum Role {
-  ADMIN
-  MENTOR
+  FOUNDER
+  HR
+  TEAM_LEAD
+  INTERN
 }
 
 enum InternStatus {
@@ -32,6 +34,8 @@ enum AttendanceStatus {
   ABSENT
   LATE
   LEAVE
+  HALF_DAY_1ST_HALF
+  HALF_DAY_2ND_HALF
 }
 
 enum TaskStatus {
@@ -50,16 +54,19 @@ enum DocType {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String        @map("password_hash")
-  fullName     String        @map("full_name")
-  role         Role          @default(MENTOR)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  interns      Intern[]      @relation("SupervisorRelation")
-  tasks        Task[]
-  logs         ActivityLog[]
+  id                     String                 @id @default(uuid())
+  email                  String                 @unique
+  username               String?                @unique
+  passwordHash           String                 @map("password_hash")
+  fullName               String                 @map("full_name")
+  role                   Role                   @default(INTERN)
+  changePasswordRequired Boolean                @default(false) @map("change_password_required")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  interns                Intern[]               @relation("SupervisorRelation")
+  tasks                  Task[]
+  logs                   ActivityLog[]
+  internProfile          Intern?                @relation("InternUserRelation")
 
   @@map("users")
 }
@@ -97,11 +104,14 @@ model Intern {
   ssidn                  String?          @map("ssidn")
   supervisorId           String?          @map("supervisor_id")
   supervisor             User?            @relation("SupervisorRelation", fields: [supervisorId], references: [id], onDelete: SetNull)
+  userId                 String?          @unique @map("user_id")
+  user                   User?            @relation("InternUserRelation", fields: [userId], references: [id], onDelete: Cascade)
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
   attendance             Attendance[]
   tasks                  Task[]
   documents              Document[]
+  leaves                 LeaveApplication[]
 
   @@index([fullName])
   @@index([status])
@@ -163,4 +173,32 @@ model ActivityLog {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("activity_logs")
+}
+
+model LeaveApplication {
+  id          String   @id @default(uuid())
+  internId    String   @map("intern_id")
+  intern      Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  type        String   @default("FULL_DAY") // FULL_DAY, HALF_DAY_1ST_HALF, HALF_DAY_2ND_HALF
+  reason      String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("leave_applications")
+}
+
+model PasswordResetRequest {
+  id           String    @id @default(uuid())
+  internId     String    @map("intern_id")
+  internName   String    @map("intern_name")
+  internEmail  String    @map("intern_email")
+  status       String    @default("PENDING") // PENDING, RESOLVED
+  tempPassword String?   @map("temp_password")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  resolvedAt   DateTime? @map("resolved_at")
+
+  @@map("password_reset_requests")
 }
