@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TaskStatus } from "@prisma/client";
+import { getSafeUserId } from "@/lib/safeUser";
 
 // helper to authenticate and check roles
 async function getAuthenticatedUser() {
@@ -65,20 +66,21 @@ export async function POST(req: Request) {
 
     // Create the task in a database transaction along with the audit log
     const newTask = await db.$transaction(async (tx) => {
+      const safeUserId = await getSafeUserId(user.id, tx);
       const task = await tx.task.create({
         data: {
           title: title.trim(),
           description: description.trim(),
           deadline: deadlineDate,
           internId,
-          assignedById: user.id,
+          assignedById: safeUserId,
           status: TaskStatus.PENDING,
         },
       });
 
       await tx.activityLog.create({
         data: {
-          userId: user.id,
+          userId: safeUserId,
           action: "ASSIGN_TASK",
           description: `Assigned task "${title.trim()}" to intern (ID: ${internId})`,
         },
@@ -142,6 +144,7 @@ export async function PATCH(req: Request) {
 
     // Perform database status update and audit log in a safe transaction
     const updatedTask = await db.$transaction(async (tx) => {
+      const safeUserId = await getSafeUserId(user.id, tx);
       const updated = await tx.task.update({
         where: { id: taskId },
         data: {
@@ -152,7 +155,7 @@ export async function PATCH(req: Request) {
 
       await tx.activityLog.create({
         data: {
-          userId: user.id,
+          userId: safeUserId,
           action: "UPDATE_TASK_STATUS",
           description: `Updated status of task "${task.title}" to ${status}`,
         },
