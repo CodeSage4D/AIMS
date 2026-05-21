@@ -75,6 +75,11 @@ export default async function InternWorkspacePage({ params }: PageProps) {
       documents: {
         orderBy: { createdAt: "desc" },
       },
+      user: {
+        select: {
+          username: true,
+        },
+      },
     },
   });
 
