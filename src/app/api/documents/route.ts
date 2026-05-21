@@ -48,6 +48,23 @@ export async function POST(req: Request) {
       );
     }
 
+    // Strict file upload security checks
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File size exceeds the maximum allowed limit of 5MB." },
+        { status: 400 }
+      );
+    }
+
+    const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only PDF, JPEG, and PNG files are permitted." },
+        { status: 400 }
+      );
+    }
+
     // Validate that the document type matches the DocType enum values
     if (!Object.values(DocType).includes(type as any)) {
       return NextResponse.json({ error: `Validation failed. Invalid document type. Must be one of: ${Object.values(DocType).join(", ")}` }, { status: 400 });
