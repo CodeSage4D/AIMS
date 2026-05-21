@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getSafeUserId } from "@/lib/safeUser";
 
 /**
  * REST Endpoint for querying daily attendance records.
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
     // 4. Register security log
     await db.activityLog.create({
       data: {
-        userId,
+        userId: await getSafeUserId(userId),
         action: "LOG_ATTENDANCE",
         description: `Committed bulk daily attendance sheet for date ${date} across ${records.length} active intern files`,
       },
