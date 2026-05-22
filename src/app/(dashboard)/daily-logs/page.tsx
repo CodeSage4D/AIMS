@@ -47,7 +47,7 @@ export default async function DailyLogsPage() {
           orderBy: { createdAt: "desc" },
         });
       }
-    } else if (userRole === "FOUNDER" || userRole === "HR") {
+    } else if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
       // Fetch all logs for admins
       initialLogs = await db.dailyLog.findMany({
         include: {
@@ -60,7 +60,7 @@ export default async function DailyLogsPage() {
         },
         orderBy: { createdAt: "desc" },
       });
-    } else if (userRole === "TEAM_LEAD") {
+    } else if (userRole === "ADMIN" || userRole === "TEAM_LEAD") {
       // Fetch logs for interns under supervision
       initialLogs = await db.dailyLog.findMany({
         where: {
