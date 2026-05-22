@@ -387,19 +387,37 @@ export default function InternDashboard({
   const handleUpdateTaskStatus = async (taskId: string, currentStatus: string) => {
     setError(null);
     setSuccess(null);
-    setUpdatingTaskId(taskId);
 
-    // Progression: PENDING -> IN_PROGRESS -> IN_REVIEW -> COMPLETED
+    // Progression: PENDING -> IN_PROGRESS -> IN_REVIEW
+    if (currentStatus === "IN_REVIEW" || currentStatus === "COMPLETED") {
+      setError("This task is locked and cannot be updated.");
+      return;
+    }
+
     let nextStatus = "IN_PROGRESS";
     if (currentStatus === "IN_PROGRESS") nextStatus = "IN_REVIEW";
-    if (currentStatus === "IN_REVIEW") nextStatus = "COMPLETED";
-    if (currentStatus === "COMPLETED") nextStatus = "PENDING"; // Wrap around / Reset
+
+    let submissionComment = "";
+    if (nextStatus === "IN_REVIEW") {
+      const userInput = prompt("Please enter a submission comment detailing your work (required):");
+      if (userInput === null) {
+        // User cancelled the prompt
+        return;
+      }
+      if (!userInput.trim()) {
+        setError("A submission comment is required to submit this task for review.");
+        return;
+      }
+      submissionComment = userInput.trim();
+    }
+
+    setUpdatingTaskId(taskId);
 
     try {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, status: nextStatus })
+        body: JSON.stringify({ taskId, status: nextStatus, submissionComment })
       });
 
       const data = await res.json();
@@ -1115,13 +1133,13 @@ export default function InternDashboard({
                     <Button
                       size="sm"
                       onClick={() => handleUpdateTaskStatus(task.id, task.status)}
-                      disabled={updatingTaskId === task.id}
+                      disabled={updatingTaskId === task.id || task.status === "IN_REVIEW" || task.status === "COMPLETED"}
                       className={cn(
                         "h-8.5 rounded-xl text-[10px] font-extrabold uppercase px-3 flex items-center justify-center space-x-1.5 transition-all select-none border",
                         task.status === "COMPLETED"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                          ? "bg-emerald-500/5 text-emerald-500 border-emerald-500/10 cursor-not-allowed"
                           : task.status === "IN_REVIEW"
-                          ? "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
+                          ? "bg-blue-500/5 text-blue-500 border-blue-500/10 cursor-not-allowed animate-none"
                           : task.status === "IN_PROGRESS"
                           ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500/20"
                           : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
@@ -1132,7 +1150,12 @@ export default function InternDashboard({
                       ) : task.status === "COMPLETED" ? (
                         <>
                           <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                          <span>Restart</span>
+                          <span>Completed</span>
+                        </>
+                      ) : task.status === "IN_REVIEW" ? (
+                        <>
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
+                          <span>Under Review</span>
                         </>
                       ) : (
                         <>
