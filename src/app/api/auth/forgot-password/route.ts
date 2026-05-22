@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     }
 
     const role = (session.user as any).role;
-    if (role !== "FOUNDER" && role !== "HR") {
+    if (role !== "FOUNDER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { message: "Reset request successfully filed. Please contact the Founder or HR for approval." },
+      { message: "Reset request successfully filed. Please contact the Founder for approval." },
       { status: 200 }
     );
   } catch (error) {

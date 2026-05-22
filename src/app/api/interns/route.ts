@@ -22,10 +22,10 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (Only FOUNDER/HR operations can onboard new interns)
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
+    // 2. Strict Access Control (Only FOUNDER operations can onboard new interns)
+    if (userRole !== "FOUNDER") {
       return NextResponse.json(
-        { error: "Access Denied. Onboarding privileges restricted strictly to Founder and HR roles." },
+        { error: "Access Denied. Onboarding privileges restricted strictly to Founder role." },
         { status: 403 }
       );
     }
@@ -276,10 +276,10 @@ export async function DELETE(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (FOUNDER and HR can delete/remove interns)
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
+    // 2. Strict Access Control (Only FOUNDER can delete/remove interns)
+    if (userRole !== "FOUNDER") {
       return NextResponse.json(
-        { error: "Access Denied. Deletion privileges restricted strictly to Founder and HR roles." },
+        { error: "Access Denied. Deletion privileges restricted strictly to Founder role." },
         { status: 403 }
       );
     }
@@ -356,10 +356,10 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
 
-    // 2. Strict Access Control (Only FOUNDER and HR can update interns)
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
+    // 2. Strict Access Control (Only FOUNDER can update interns)
+    if (userRole !== "FOUNDER") {
       return NextResponse.json(
-        { error: "Access Denied. Profile modification privileges restricted strictly to Founder and HR roles." },
+        { error: "Access Denied. Profile modification privileges restricted strictly to Founder role." },
         { status: 403 }
       );
     }

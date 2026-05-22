@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     }
 
     const role = (session.user as any).role;
-    if (role !== "FOUNDER" && role !== "HR") {
-      return NextResponse.json({ error: "Only the Founder or HR can resolve password reset requests." }, { status: 403 });
+    if (role !== "FOUNDER") {
+      return NextResponse.json({ error: "Only the Founder can resolve password reset requests." }, { status: 403 });
     }
 
     const { requestId, action } = await request.json();

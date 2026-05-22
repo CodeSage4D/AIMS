@@ -13,7 +13,8 @@ import {
   FileText,
   ShieldAlert,
   LogOut,
-  X
+  X,
+  Layers
 } from "lucide-react";
 
 interface SidebarProps {
@@ -35,11 +36,12 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
+    { label: "Teams & Members", href: "/teams", icon: Layers },
     ...(user.role !== "TEAM_LEAD" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
   ];
 
-  // Secure super-admin / administrative log view
-  const isLogAllowed = user.role === "FOUNDER" || user.role === "HR";
+  // Secure super-admin / administrative log view (Founder-Only)
+  const isLogAllowed = user.role === "FOUNDER";
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });

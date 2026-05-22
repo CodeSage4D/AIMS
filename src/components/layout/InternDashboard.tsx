@@ -122,6 +122,92 @@ export default function InternDashboard({
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  // Self-Service Attendance States
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Dynamic Indian Standard Time (IST = UTC + 5.5 Hours) check-in helper
+  const getTodayRecord = () => {
+    const today = new Date();
+    const offsetIST = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(today.getTime() + offsetIST);
+    
+    // YYYY-MM-DD IST signature
+    const dateStringIST = `${todayIST.getUTCFullYear()}-${(todayIST.getUTCMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${todayIST.getUTCDate().toString().padStart(2, "0")}`;
+
+    return attendance.find((att) => {
+      const attDate = new Date(att.date);
+      // Prisma DateTime objects are returned in UTC. Align their date signature.
+      const attYear = attDate.getUTCFullYear();
+      const attMonth = attDate.getUTCMonth() + 1;
+      const attDay = attDate.getUTCDate();
+      const attString = `${attYear}-${attMonth.toString().padStart(2, "0")}-${attDay
+        .toString()
+        .padStart(2, "0")}`;
+      return attString === dateStringIST;
+    });
+  };
+
+  const todayRecord = getTodayRecord();
+
+  // Refreshes client-side logs without complete page reloads
+  const refreshAttendanceLogs = async () => {
+    try {
+      const res = await fetch("/api/attendance/history");
+      if (res.ok) {
+        const data = await res.json();
+        setAttendance(data.history);
+      }
+    } catch (err) {
+      console.error("Failed to refresh client attendance logs:", err);
+    }
+  };
+
+  const handleSelfCheckIn = async () => {
+    setActionLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/check-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to log check-in.");
+      }
+      setSuccess(data.message || "Checked in successfully!");
+      await refreshAttendanceLogs();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during check-in.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSelfCheckOut = async () => {
+    setActionLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/check-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to log check-out.");
+      }
+      setSuccess(data.message || "Checked out successfully!");
+      await refreshAttendanceLogs();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during check-out.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Fetch Leaves and refresh data on mount
   const fetchLeaves = async () => {
     try {
@@ -407,6 +493,95 @@ export default function InternDashboard({
               <FileCheck className="h-4.5 w-4.5 text-cyan-400" />
               <span>Upload Document</span>
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Self-Service Check-In Widget */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0c1220] via-[#0d1629] to-[#050b18] p-5 sm:p-6 shadow-2xl backdrop-blur-md select-none">
+        <div className="absolute -right-20 -bottom-20 h-40 w-40 rounded-full bg-cyan-500/10 blur-[60px] pointer-events-none" />
+        <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2.5">
+            <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <Clock className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-emerald-300">
+                Daily Check-In Station
+              </span>
+            </div>
+            <h3 className="text-lg font-heading font-extrabold text-white">
+              Self-Service Attendance Portal
+            </h3>
+            <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-xl">
+              Log your daily attendance directly from your portal. The daily check-in window closes at <span className="text-cyan-400 font-bold">11:00 AM IST</span>. Checks-in after <span className="text-amber-400 font-bold">9:30 AM IST</span> are logged as <span className="text-amber-400 font-bold">LATE</span>.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+            {/* Status Indicator */}
+            <div className="flex flex-col space-y-1">
+              <span className="text-[9px] uppercase font-bold tracking-widest text-gray-400">Current Status</span>
+              {!todayRecord ? (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Not Checked In</span>
+                </div>
+              ) : todayRecord.status === "ABSENT" ? (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Absent (Overridable)</span>
+                </div>
+              ) : todayRecord.checkOut ? (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Checked Out</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                  <CheckCircle className="h-4 w-4 animate-bounce" />
+                  <span>Checked In {todayRecord.status === "LATE" && "(Late)"}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center">
+              {!todayRecord || todayRecord.status === "ABSENT" ? (
+                <Button
+                  onClick={handleSelfCheckIn}
+                  disabled={actionLoading}
+                  variant="primary"
+                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                >
+                  {actionLoading ? (
+                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>Clock In Now</span>
+                </Button>
+              ) : !todayRecord.checkOut ? (
+                <Button
+                  onClick={handleSelfCheckOut}
+                  disabled={actionLoading}
+                  variant="primary"
+                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
+                >
+                  {actionLoading ? (
+                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>Clock Out Now</span>
+                </Button>
+              ) : (
+                <div className="flex items-center space-x-2 text-xs text-gray-400 font-bold px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl select-none">
+                  <CheckCircle className="h-4 w-4 text-emerald-400" />
+                  <span>Attendance Complete</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

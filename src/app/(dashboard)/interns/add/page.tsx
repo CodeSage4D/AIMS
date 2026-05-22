@@ -14,9 +14,9 @@ export default async function AddInternPage() {
 
   const userRole = (session.user as any).role || "INTERN";
 
-  // Strict Security Check: FOUNDER or HR ONLY!
-  if (userRole !== "FOUNDER" && userRole !== "HR") {
-    return <AccessDeniedShield requiredRole="FOUNDER / HR" currentRole={userRole} />;
+  // Strict Security Check: FOUNDER ONLY!
+  if (userRole !== "FOUNDER") {
+    return <AccessDeniedShield requiredRole="FOUNDER" currentRole={userRole} />;
   }
 
   let mentors: any[] = [];

@@ -22,6 +22,14 @@ import FounderDashboardQueues from "@/components/layout/FounderDashboardQueues";
 import InternDashboard from "@/components/layout/InternDashboard";
 
 export default async function DashboardPage() {
+  // Dynamic background sweep to mark absent active interns on daily shifts
+  try {
+    const { autoMarkAbsent } = await import("@/lib/attendanceScheduler");
+    await autoMarkAbsent();
+  } catch (schedErr) {
+    console.warn("[Dashboard Page Loader] Dynamic auto-absent sweep skipped:", schedErr);
+  }
+
   const session = await auth();
   const userRole = (session?.user as any)?.role || "INTERN";
   const userId = (session?.user as any)?.id;
@@ -245,7 +253,7 @@ export default async function DashboardPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {(userRole === "FOUNDER" || userRole === "HR") && (
+            {userRole === "FOUNDER" && (
               <Link href="/interns/add" className="w-full sm:w-auto">
                 <Button variant="primary" size="sm" className="w-full h-11 text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl px-5 border border-white/5 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 transition-all duration-300">
                   <PlusCircle className="h-4 w-4" />
@@ -289,7 +297,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* 3. Founder Operations Queue (Rendered for Founders/HR to resolve requests) */}
-      {(userRole === "FOUNDER" || userRole === "HR") && (
+      {userRole === "FOUNDER" && (
         <div className="space-y-6">
           <div className="border-t border-border/40 my-8" />
           <h3 className="text-lg font-heading font-extrabold text-white tracking-tight">

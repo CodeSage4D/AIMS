@@ -194,3 +194,28 @@ input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--foreground) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Mobile-Specific Design & Spacing Optimizations */
+@media (max-width: 640px) {
+  /* Enhance readability of gray text on dark cards for strong contrast */
+  .text-muted-foreground {
+    color: #94a3b8 !important; 
+  }
+  
+  /* Compact layout spacing for smaller mobile screens */
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+  .space-y-8 > * + * {
+    margin-top: 1.25rem !important;
+  }
+  
+  /* Responsive card padding refinements */
+  .p-6 {
+    padding: 1.25rem !important;
+  }
+  .p-8 {
+    padding: 1.5rem !important;
+  }
+}
+

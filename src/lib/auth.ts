@@ -28,15 +28,32 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const password = String(credentials.password);
 
         try {
-          const user = await db.user.findFirst({
-            where: {
-              OR: [
-                { email: input.toLowerCase() },
-                { username: input },
-                { username: input.toUpperCase() },
-              ],
-            },
-          });
+          let user = null;
+          
+          if (input.includes("@")) {
+            // Unambiguous Email Address Lookup
+            user = await db.user.findUnique({
+              where: { email: input.toLowerCase() },
+            });
+          } else if (input.toLowerCase().startsWith("axn-")) {
+            // Unambiguous Intern ID Lookup
+            const intern = await db.intern.findUnique({
+              where: { internId: input.toUpperCase() },
+              include: { user: true },
+            });
+            user = intern?.user || null;
+          } else {
+            // Unambiguous Username Lookup
+            user = await db.user.findFirst({
+              where: {
+                OR: [
+                  { username: input },
+                  { username: input.toLowerCase() },
+                  { username: input.toUpperCase() },
+                ],
+              },
+            });
+          }
 
           if (user) {
             const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);

@@ -146,9 +146,9 @@ export async function PATCH(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Founder or HR can verify documents!
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Founders or HR can audit/verify documents." }, { status: 403 });
+    // Strict Authorization Check: ONLY Founder can verify documents!
+    if (user.role !== "FOUNDER") {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders can audit/verify documents." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -219,9 +219,9 @@ export async function DELETE(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Founder or HR can wipe vault records!
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Founders or HR can wipe document items." }, { status: 403 });
+    // Strict Authorization Check: ONLY Founder can wipe vault records!
+    if (user.role !== "FOUNDER") {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders can wipe document items." }, { status: 403 });
     }
 
     // Extract ID from query search parameters

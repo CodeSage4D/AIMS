@@ -61,7 +61,7 @@ const REQUIRED_DOCS = [
 
 export default function DocumentVaultClient({ initialInterns, role }: DocumentVaultClientProps) {
   const router = useRouter();
-  const isSuperUser = role === "FOUNDER" || role === "HR";
+  const isSuperUser = role === "FOUNDER";
 
   // State Management
   const [search, setSearch] = useState("");

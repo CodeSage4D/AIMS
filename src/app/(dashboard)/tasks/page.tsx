@@ -19,7 +19,7 @@ export default async function TasksPage() {
 
   try {
     // 1. Fetch interns for the assignment selection dropdown based on role permissions
-    if (userRole === "FOUNDER" || userRole === "HR") {
+    if (userRole === "FOUNDER") {
       interns = await db.intern.findMany({
         where: { status: "ACTIVE" },
         select: { id: true, internId: true, fullName: true },
@@ -34,7 +34,7 @@ export default async function TasksPage() {
     }
 
     // 2. Fetch tasks based on the 4 roles:
-    if (userRole === "FOUNDER" || userRole === "HR") {
+    if (userRole === "FOUNDER") {
       tasks = await db.task.findMany({
         include: {
           intern: {

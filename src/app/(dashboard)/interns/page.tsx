@@ -27,7 +27,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
     return <AccessDeniedShield requiredRole="TEAM_LEAD / HR / FOUNDER" currentRole={userRole} />;
   }
 
-  const isSuperUser = userRole === "FOUNDER" || userRole === "HR";
+  const isSuperUser = userRole === "FOUNDER";
   
   // Resolve Next.js 16 SearchParams safely
   const resolvedParams = await searchParams;
