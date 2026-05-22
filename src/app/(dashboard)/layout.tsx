@@ -24,6 +24,7 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
 
   // 4. Fallback default metadata object to prevent TypeScript signatures errors
   const safeUser = {
+    id: (session.user as any).id || "",
     name: session.user.name || "AURXON User",
     email: session.user.email || "",
     role: (session.user as any).role || "INTERN",
