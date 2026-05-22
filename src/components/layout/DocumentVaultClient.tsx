@@ -31,6 +31,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import { useCurrency } from "@/lib/useCurrency";
 
 interface DocumentItem {
   id: string;
@@ -86,6 +87,15 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"compliance" | "approvals">("compliance");
+
+  // Currency Hook
+  const { currency } = useCurrency();
+
+  // Real-time customizer preview states (Phase 10)
+  const [selectedCardTheme, setSelectedCardTheme] = useState<"glacial" | "gold" | "matrix" | "cyber" | "orange">("glacial");
+  const [selectedCertTheme, setSelectedCertTheme] = useState<"gold" | "glacial" | "emerald" | "royal">("gold");
+  const [previewMode, setPreviewMode] = useState<"letter" | "certificate">("certificate");
+  const [isDoubleSided, setIsDoubleSided] = useState<boolean>(true);
 
   // State Management
   const [search, setSearch] = useState("");
@@ -714,7 +724,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
       const res = await fetch("/api/documents/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ internId, type }),
+        body: JSON.stringify({ internId, type, preferredCurrency: currency }),
       });
 
       const data = await res.json();
@@ -1813,9 +1823,177 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
       window.print();
     };
 
+    // ID Card fallbacks & variables
+    const fullName = content.fullName || "";
+    const monogram = fullName
+      ? fullName
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()
+      : "AX";
+
+    // Theme style matrices for ID Card (Phase 10)
+    const cardThemes = {
+      glacial: {
+        bgStart: "#050811",
+        bgMid: "#0b132b",
+        bgEnd: "#1c2541",
+        gradStart: "#3b82f6",
+        gradEnd: "#06b6d4",
+        accentColor: "#06b6d4",
+        glowColor: "rgba(6, 182, 212, 0.2)",
+        textColor: "#06b6d4",
+        borderColor: "rgba(6, 182, 212, 0.4)",
+        patternColor: "rgba(6, 182, 212, 0.05)"
+      },
+      gold: {
+        bgStart: "#09090b",
+        bgMid: "#18181b",
+        bgEnd: "#27272a",
+        gradStart: "#f59e0b",
+        gradEnd: "#fbbf24",
+        accentColor: "#fbbf24",
+        glowColor: "rgba(251, 191, 36, 0.2)",
+        textColor: "#fbbf24",
+        borderColor: "rgba(251, 191, 36, 0.4)",
+        patternColor: "rgba(251, 191, 36, 0.05)"
+      },
+      matrix: {
+        bgStart: "#010702",
+        bgMid: "#022c06",
+        bgEnd: "#010702",
+        gradStart: "#10b981",
+        gradEnd: "#34d399",
+        accentColor: "#34d399",
+        glowColor: "rgba(52, 211, 153, 0.2)",
+        textColor: "#34d399",
+        borderColor: "rgba(52, 211, 153, 0.4)",
+        patternColor: "rgba(52, 211, 153, 0.05)"
+      },
+      cyber: {
+        bgStart: "#0f081c",
+        bgMid: "#250b38",
+        bgEnd: "#0f081c",
+        gradStart: "#a855f7",
+        gradEnd: "#e879f9",
+        accentColor: "#e879f9",
+        glowColor: "rgba(232, 121, 249, 0.2)",
+        textColor: "#e879f9",
+        borderColor: "rgba(232, 121, 249, 0.4)",
+        patternColor: "rgba(232, 121, 249, 0.05)"
+      },
+      orange: {
+        bgStart: "#140e0a",
+        bgMid: "#2b1c11",
+        bgEnd: "#140e0a",
+        gradStart: "#ea580c",
+        gradEnd: "#fb923c",
+        accentColor: "#fb923c",
+        glowColor: "rgba(251, 146, 60, 0.2)",
+        textColor: "#fb923c",
+        borderColor: "rgba(251, 146, 60, 0.4)",
+        patternColor: "rgba(251, 146, 60, 0.05)"
+      }
+    };
+
+    const cardTheme = cardThemes[selectedCardTheme];
+
+    // Theme style matrices for Completion Certificate (Phase 10)
+    const certThemes = {
+      gold: {
+        bgStart: "#070a13",
+        bgEnd: "#111625",
+        frameColor: "#d4af37",
+        goldLine: "#fbbf24",
+        sealBgStart: "#ffe69c",
+        sealBgEnd: "#805d15",
+        accentColor: "#d4af37",
+        bodyColor: "#e4e4e7",
+        sigColor: "#fbbf24",
+        guillocheColor: "rgba(212, 175, 55, 0.15)",
+        paperBg: "#0d1326"
+      },
+      glacial: {
+        bgStart: "#f0f9ff",
+        bgEnd: "#ffffff",
+        frameColor: "#0284c7",
+        goldLine: "#38bdf8",
+        sealBgStart: "#e0f2fe",
+        sealBgEnd: "#0284c7",
+        accentColor: "#0c4a6e",
+        bodyColor: "#334155",
+        sigColor: "#0284c7",
+        guillocheColor: "rgba(2, 132, 199, 0.1)",
+        paperBg: "#ffffff"
+      },
+      emerald: {
+        bgStart: "#fcfbf7",
+        bgEnd: "#f7f5ed",
+        frameColor: "#065f46",
+        goldLine: "#d4af37",
+        sealBgStart: "#d1fae5",
+        sealBgEnd: "#047857",
+        accentColor: "#065f46",
+        bodyColor: "#1e293b",
+        sigColor: "#047857",
+        guillocheColor: "rgba(6, 95, 70, 0.1)",
+        paperBg: "#faf9f5"
+      },
+      royal: {
+        bgStart: "#0b132b",
+        bgEnd: "#1e293b",
+        frameColor: "#eab308",
+        goldLine: "#fbbf24",
+        sealBgStart: "#fef08a",
+        sealBgEnd: "#a16207",
+        accentColor: "#eab308",
+        bodyColor: "#f8fafc",
+        sigColor: "#fbbf24",
+        guillocheColor: "rgba(234, 179, 8, 0.15)",
+        paperBg: "#0f172a"
+      }
+    };
+
+    const certTheme = certThemes[selectedCertTheme];
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 transition-opacity animate-fadeIn overflow-y-auto select-none print:p-0 print:bg-white print:backdrop-blur-none">
-        <div className="w-full max-w-4xl flex flex-col md:flex-row bg-card border border-border shadow-2xl rounded-2xl overflow-hidden max-h-[90vh] md:max-h-[85vh] print:max-h-none print:border-none print:shadow-none print:rounded-none">
+        {/* Dynamic stylesheet injection for isolated print styling */}
+        <style>{`
+          @media print {
+            body * {
+              visibility: hidden !important;
+            }
+            #aims-print-root, #aims-print-root * {
+              visibility: visible !important;
+            }
+            #aims-print-root {
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              z-index: 99999 !important;
+              display: flex !important;
+              justify-content: center !important;
+              align-items: center !important;
+            }
+            .print-hide {
+              display: none !important;
+            }
+            @page {
+              size: ${isIdCard ? "portrait" : doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate" ? "landscape" : "portrait"} !important;
+              margin: 0 !important;
+            }
+          }
+        `}</style>
+
+        <div className="w-full max-w-5xl flex flex-col md:flex-row bg-card border border-border shadow-2xl rounded-2xl overflow-hidden max-h-[90vh] md:max-h-[85vh] print:max-h-none print:border-none print:shadow-none print:rounded-none">
           {/* Close button inside modal */}
           <button
             onClick={() => setSelectedGeneratedDoc(null)}
@@ -1825,291 +2003,667 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
           </button>
 
           {/* Left Column: Premium Preview Element */}
-          <div className="flex-1 p-6 md:p-10 flex items-center justify-center bg-secondary/10 overflow-y-auto select-text print:bg-white print:p-0">
-            {isIdCard ? (
-              /* Sleek Vertical Digital ID Card Preview */
-              <div id="aims-id-card-print" className="w-[300px] h-[480px] bg-gradient-to-b from-[#050811] via-[#0b132b] to-[#1c2541] border border-cyan-500/30 rounded-2xl relative shadow-2xl overflow-hidden p-6 flex flex-col items-center justify-between text-white border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.15)] select-none print:shadow-none print:border print:border-cyan-500/40">
-                {/* Hologram Gradient background overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
-                
-                {/* Header */}
-                <div className="w-full flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center space-x-1.5">
-                    {/* Holograph Logo SVG */}
-                    <svg className="h-5 w-5 text-cyan-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#logoGrad)" />
-                      <path d="M2 17L12 22L22 17M2 12L17L22 12" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <defs>
-                        <linearGradient id="logoGrad" x1="2" y1="2" x2="22" y2="12" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#3b82f6" />
-                          <stop offset="1" stopColor="#06b6d4" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <span className="font-heading font-extrabold text-xs tracking-widest text-cyan-400 uppercase">
-                      {content.companyName || "AURXON"}
-                    </span>
-                  </div>
-                  <span className="text-[7.5px] font-heading font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
-                    Official Pass
-                  </span>
-                </div>
-
-                {/* Photo / Initial SVG */}
-                <div className="my-3.5 relative flex flex-col items-center">
-                  <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 p-0.5 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                    <div className="h-full w-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden">
-                      {content.avatarUrl ? (
-                        <img src={content.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="font-heading font-extrabold text-3xl text-cyan-400 tracking-tight select-none">
-                          {content.fullName ? content.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : "AX"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {/* Holographic Security Overlay Seal */}
-                  <div className="absolute -bottom-1 -right-1 p-1 bg-[#0b132b] rounded-full border border-cyan-500/30">
-                    <ShieldCheck className="h-4.5 w-4.5 text-cyan-400" />
-                  </div>
-                </div>
-
-                {/* Info block */}
-                <div className="text-center space-y-1 w-full">
-                  <h3 className="font-heading font-extrabold text-lg text-white tracking-tight leading-snug">
-                    {content.fullName}
-                  </h3>
-                  <span className="text-[10px] font-heading font-bold text-cyan-400 uppercase tracking-widest block">
-                    {content.role || "Engineering Intern"}
-                  </span>
-                  <p className="text-[9px] text-gray-400 font-semibold">{content.department} Department</p>
-                </div>
-
-                {/* ID & Dates Grid */}
-                <div className="grid grid-cols-2 gap-3 w-full bg-white/[0.02] border border-white/5 rounded-xl p-3 text-left my-2">
-                  <div>
-                    <span className="text-[7.5px] text-gray-500 font-bold uppercase tracking-wider block">Program ID</span>
-                    <span className="text-[10px] font-bold font-mono text-white tracking-wide">{content.internId}</span>
-                  </div>
-                  <div>
-                    <span className="text-[7.5px] text-gray-500 font-bold uppercase tracking-wider block">Valid Until</span>
-                    <span className="text-[10px] font-bold font-mono text-white tracking-wide">{content.validUntil || "PERMANENT"}</span>
-                  </div>
-                </div>
-
-                {/* Footer security features */}
-                <div className="w-full flex flex-col items-center space-y-2 border-t border-white/5 pt-3">
-                  {/* Barcode SVG */}
-                  <div className="w-full flex justify-center py-1 bg-white/5 border border-white/10 rounded-lg select-none">
-                    <svg className="h-6 w-44 text-gray-300" viewBox="0 0 100 20" fill="currentColor">
-                      <rect x="5" y="2" width="2" height="16" />
-                      <rect x="9" y="2" width="1" height="16" />
-                      <rect x="12" y="2" width="3" height="16" />
-                      <rect x="17" y="2" width="1" height="16" />
-                      <rect x="20" y="2" width="2" height="16" />
-                      <rect x="24" y="2" width="1" height="16" />
-                      <rect x="27" y="2" width="4" height="16" />
-                      <rect x="33" y="2" width="1" height="16" />
-                      <rect x="36" y="2" width="2" height="16" />
-                      <rect x="40" y="2" width="1" height="16" />
-                      <rect x="43" y="2" width="3" height="16" />
-                      <rect x="48" y="2" width="1" height="16" />
-                      <rect x="51" y="2" width="2" height="16" />
-                      <rect x="55" y="2" width="1" height="16" />
-                      <rect x="58" y="2" width="4" height="16" />
-                      <rect x="64" y="2" width="1" height="16" />
-                      <rect x="67" y="2" width="2" height="16" />
-                      <rect x="71" y="2" width="1" height="16" />
-                      <rect x="74" y="2" width="3" height="16" />
-                      <rect x="79" y="2" width="1" height="16" />
-                      <rect x="82" y="2" width="2" height="16" />
-                      <rect x="86" y="2" width="4" height="16" />
-                      <rect x="92" y="2" width="2" height="16" />
-                    </svg>
-                  </div>
-
-                  {/* Verification SHA256 string stamp */}
-                  {doc.signature ? (
-                    <div className="w-full text-center">
-                      <span className="text-[6.5px] font-mono text-cyan-400 break-all select-all block leading-tight">
-                        {doc.signature}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[7px] text-amber-400 font-bold uppercase tracking-widest animate-pulse">
-                      Awaiting Digital Signature
-                    </span>
+          <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center bg-secondary/10 overflow-y-auto select-text print:bg-white print:p-0">
+            
+            {/* Top Selector pill only for Experience Letters */}
+            {doc.type === "EXPERIENCE_LETTER" && (
+              <div className="flex items-center space-x-1.5 bg-secondary/20 border border-border/40 p-1 rounded-xl mb-4.5 print:hidden shrink-0">
+                <button
+                  onClick={() => setPreviewMode("letter")}
+                  className={cn(
+                    "px-4 py-1.5 rounded-lg text-xs font-bold font-heading transition-all",
+                    previewMode === "letter"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-                </div>
-              </div>
-            ) : (
-              /* High-Fidelity Professional Letter / NDA / Experience Letter */
-              <div id="aims-document-print" className="w-full max-w-xl min-h-[720px] bg-white border border-gray-200 shadow-2xl p-8 sm:p-12 flex flex-col justify-between text-slate-800 relative font-sans leading-relaxed text-sm select-text rounded-xl print:shadow-none print:border-none print:p-0">
-                
-                {/* Background Watermark */}
-                {isApproved && (
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] select-none pointer-events-none z-0">
-                    <svg className="h-[350px] w-[350px] text-cyan-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z" />
-                    </svg>
-                  </div>
-                )}
-
-                <div className="space-y-6 z-10 relative">
-                  {/* Company Letterhead */}
-                  <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4 mb-6">
-                    <div>
-                      <h2 className="text-base font-extrabold text-slate-900 tracking-tight font-heading">
-                        {content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
-                      </h2>
-                      <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
-                        Enterprise Databases • API Orchestrations • Automated Operations
-                      </p>
-                    </div>
-                    <div className="text-right text-[8px] text-slate-400 font-bold uppercase">
-                      <span>Ref: AXN-DOC-{doc.intern?.internId || "DRAFT"}</span>
-                    </div>
-                  </div>
-
-                  {/* Document Title */}
-                  <div className="text-center py-2.5">
-                    <h3 className="text-base font-heading font-extrabold uppercase text-slate-900 tracking-wide border-y border-slate-200 py-1.5">
-                      {content.title || doc.type.replace(/_/g, " ")}
-                    </h3>
-                  </div>
-
-                  {/* Recipient / Body content */}
-                  {doc.type === "OFFER_LETTER" && (
-                    <div className="space-y-4 text-xs text-slate-700">
-                      <p className="font-bold">{content.salutation}</p>
-                      <p>{content.introduction}</p>
-                      
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4.5 space-y-2.5 my-3">
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Position Role:</span>
-                          <span className="font-semibold text-slate-700">{content.role}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Business Department:</span>
-                          <span>{content.department}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Commencement Date:</span>
-                          <span>{content.startDate}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Tenure Endpoint:</span>
-                          <span>{content.endDate}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Stipend Allocation:</span>
-                          <span className="font-extrabold text-primary">{content.stipend}</span>
-                        </div>
-                      </div>
-
-                      {content.terms && content.terms.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <span className="font-bold text-slate-900 block">Terms & Service Regulations:</span>
-                          <ul className="list-decimal pl-5 space-y-1.5">
-                            {content.terms.map((t: string, i: number) => (
-                              <li key={i} className="leading-relaxed">{t}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      <p className="pt-2">{content.closing}</p>
-                    </div>
+                >
+                  Plain Letter
+                </button>
+                <button
+                  onClick={() => setPreviewMode("certificate")}
+                  className={cn(
+                    "px-4 py-1.5 rounded-lg text-xs font-bold font-heading transition-all flex items-center space-x-1.5",
+                    previewMode === "certificate"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-
-                  {doc.type === "NDA" && (
-                    <div className="space-y-4 text-xs text-slate-700">
-                      <p className="leading-relaxed">
-                        This Non-Disclosure Agreement (the "Agreement") is executed on <span className="font-bold text-slate-900">{content.effectiveDate}</span>, between <span className="font-bold text-slate-900">{content.partyA}</span> (the "Company") and <span className="font-bold text-slate-900">{content.partyB}</span> (the "Recipient").
-                      </p>
-
-                      {content.clauses && content.clauses.map((c: any, i: number) => (
-                        <div key={i} className="space-y-1">
-                          <h4 className="font-bold text-slate-900">{c.title}</h4>
-                          <p className="leading-relaxed pl-2.5 text-[11px] text-slate-600">{c.text}</p>
-                        </div>
-                      ))}
-
-                      <div className="pt-2 text-[10px]">
-                        <span className="font-bold text-slate-900 block">Governing Jurisdiction:</span>
-                        <p>{content.governingLaw}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {doc.type === "EXPERIENCE_LETTER" && (
-                    <div className="space-y-4 text-xs text-slate-700">
-                      <p className="font-heading font-extrabold text-slate-900 py-1">{content.salutation}</p>
-                      <p className="leading-relaxed">{content.body}</p>
-                      
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4.5 space-y-2.5 my-3">
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Assigned Domain:</span>
-                          <span className="font-semibold">{content.role}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Assigned Department:</span>
-                          <span>{content.department}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">Tenure Window:</span>
-                          <span>{content.startDate} to {content.endDate}</span>
-                        </div>
-                      </div>
-
-                      <p className="leading-relaxed">{content.performanceNotes}</p>
-                      <p className="pt-2">{content.closing}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Signature Section */}
-                <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 z-10 relative">
-                  <div className="text-[10px] text-slate-500">
-                    <span className="font-bold block uppercase tracking-wider text-slate-700">Audit Compliance Guard</span>
-                    <span>AURXON AIMS document generation node.</span>
-                  </div>
-                  
-                  {isApproved ? (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 w-full sm:max-w-xs space-y-1 text-left select-text">
-                      <div className="flex items-center space-x-1 text-emerald-700 font-heading font-extrabold text-[8px] uppercase tracking-wider">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                        <span>AURXON SECURE SEAL VERIFIED</span>
-                      </div>
-                      <p className="text-[9px] text-slate-600 leading-tight">
-                        Signed & authorized under SUPER-ADMIN credentials
-                      </p>
-                      <span className="block text-[7.5px] font-mono text-cyan-700 dark:text-cyan-600 break-all select-all leading-none mt-1.5">
-                        {doc.signature}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-amber-500 font-bold uppercase tracking-widest text-[9px] border border-dashed border-amber-300 rounded px-2.5 py-1.5 animate-pulse bg-amber-50/50">
-                      Unsigned Draft Copy
-                    </div>
-                  )}
-                </div>
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                  <span>Certificate Copy</span>
+                </button>
               </div>
             )}
+
+            {/* Print Isolation Root Element */}
+            <div id="aims-print-root" className="w-full flex items-center justify-center print:p-0">
+              {isIdCard ? (
+                /* High-Fidelity Double-Sided SVG ID Card Preview */
+                <div className={cn(
+                  "flex items-center justify-center gap-6 select-none max-w-full",
+                  isDoubleSided ? "flex-col lg:flex-row flex-wrap" : "flex-row"
+                )}>
+                  {/* CARD FRONT SIDE */}
+                  <svg width="320" height="480" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg" className="shadow-2xl rounded-2xl shrink-0 max-w-[320px] transition-transform duration-300 hover:scale-[1.01] print:shadow-none print:border print:border-neutral-200">
+                    <defs>
+                      <linearGradient id={`bgGradFront-${doc.id}`} x1="160" y1="0" x2="160" y2="480" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor={cardTheme.bgStart} />
+                        <stop offset="50%" stopColor={cardTheme.bgMid} />
+                        <stop offset="100%" stopColor={cardTheme.bgEnd} />
+                      </linearGradient>
+                      <linearGradient id={`primaryGradFront-${doc.id}`} x1="0" y1="0" x2="320" y2="480" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor={cardTheme.gradStart} />
+                        <stop offset="100%" stopColor={cardTheme.gradEnd} />
+                      </linearGradient>
+                      <linearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#ffe69c" />
+                        <stop offset="50%" stopColor="#d3a237" />
+                        <stop offset="100%" stopColor="#805d15" />
+                      </linearGradient>
+                      <clipPath id={`avatarCircle-${doc.id}`}>
+                        <circle cx="160" cy="170" r="48" />
+                      </clipPath>
+                    </defs>
+
+                    {/* Outer Card frame */}
+                    <rect width="320" height="480" fill={`url(#bgGradFront-${doc.id})`} rx="16" stroke={cardTheme.borderColor} strokeWidth="1.5" />
+                    
+                    {/* Tech grids overlays */}
+                    <path d="M 0 60 L 320 60 M 0 420 L 320 420" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+                    <circle cx="160" cy="240" r="140" stroke={cardTheme.accentColor} strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4 4" />
+                    
+                    {/* Header brand section */}
+                    <g transform="translate(20, 20)">
+                      <path d="M12 2L2 7L12 12L22 7L12 2Z" fill={`url(#primaryGradFront-${doc.id})`} />
+                      <path d="M2 17L12 22L22 17" stroke={cardTheme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <text x="32" y="15" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="12" letterSpacing="3" textAnchor="start">AURXON</text>
+                      
+                      <rect x="220" y="0" width="60" height="16" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />
+                      <text x="250" y="10.5" fill={cardTheme.textColor} fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="1" textAnchor="middle" dominantBaseline="middle">OFFICIAL</text>
+                    </g>
+
+                    {/* Secure Microchip detailing */}
+                    <g transform="translate(20, 75)">
+                      <rect width="36" height="26" rx="4" fill="url(#chipGrad)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+                      <path d="M9 0v26M18 0v26M27 0v26M0 8.5h36M0 17.5h36" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+                      <rect x="13" y="8" width="10" height="10" rx="1.5" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
+                    </g>
+
+                    {/* Member photo with neon ring */}
+                    <circle cx="160" cy="170" r="54" fill="none" stroke={`url(#primaryGradFront-${doc.id})`} strokeWidth="2.5" />
+                    <circle cx="160" cy="170" r="50" fill="#050811" />
+                    
+                    {content.avatarUrl ? (
+                      <image href={content.avatarUrl} x="112" y="122" width="96" height="96" clipPath={`url(#avatarCircle-${doc.id})`} preserveAspectRatio="xMidYMid slice" />
+                    ) : (
+                      <g clipPath={`url(#avatarCircle-${doc.id})`}>
+                        <text x="160" y="180" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="30" textAnchor="middle">{monogram}</text>
+                      </g>
+                    )}
+
+                    {/* Holographic Security Overlay Seal */}
+                    <g transform="translate(192, 192)">
+                      <circle cx="10" cy="10" r="13" fill="#0b132b" stroke={cardTheme.borderColor} strokeWidth="1.5" />
+                      <path d="M10 5.5l-4.5 1.8v4.5c0 2.7 4.5 4.5 4.5 4.5s4.5-1.8 4.5-4.5v-4.5l-4.5-1.8z" fill={cardTheme.accentColor} opacity="0.8" />
+                    </g>
+
+                    {/* User Identity Info */}
+                    <text x="160" y="262" fill="#ffffff" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="16" textAnchor="middle" letterSpacing="-0.5">{content.fullName}</text>
+                    <text x="160" y="279" fill={cardTheme.textColor} fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="9.5" letterSpacing="2.5" textAnchor="middle">{content.role?.toUpperCase() || "ENGINEERING INTERN"}</text>
+                    <text x="160" y="293" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="600" fontSize="8.5" textAnchor="middle">{content.department} Department</text>
+
+                    {/* Credentials block */}
+                    <g transform="translate(20, 315)">
+                      <rect width="280" height="45" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" />
+                      
+                      <text x="20" y="16" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="850" fontSize="7" letterSpacing="1">MEMBER ID</text>
+                      <text x="20" y="32" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="11">{content.internId || "AX-9999"}</text>
+                      
+                      <text x="160" y="16" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="850" fontSize="7" letterSpacing="1">VALID UNTIL</text>
+                      <text x="160" y="32" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="11">{content.validUntil || "PERMANENT"}</text>
+                    </g>
+
+                    {/* Barcode representation */}
+                    <g transform="translate(30, 380)">
+                      <rect width="260" height="24" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+                      <g fill={cardTheme.accentColor}>
+                        <rect x="15" y="4" width="2" height="16" />
+                        <rect x="19" y="4" width="1" height="16" />
+                        <rect x="22" y="4" width="3" height="16" />
+                        <rect x="27" y="4" width="1" height="16" />
+                        <rect x="30" y="4" width="2" height="16" />
+                        <rect x="34" y="4" width="1" height="16" />
+                        <rect x="37" y="4" width="4" height="16" />
+                        <rect x="43" y="4" width="1" height="16" />
+                        <rect x="46" y="4" width="2" height="16" />
+                        <rect x="50" y="4" width="1" height="16" />
+                        <rect x="53" y="4" width="3" height="16" />
+                        <rect x="58" y="4" width="1" height="16" />
+                        <rect x="61" y="4" width="2" height="16" />
+                        <rect x="65" y="4" width="1" height="16" />
+                        <rect x="68" y="4" width="4" height="16" />
+                        <rect x="74" y="4" width="1" height="16" />
+                        <rect x="77" y="4" width="2" height="16" />
+                        <rect x="81" y="4" width="1" height="16" />
+                        <rect x="84" y="4" width="3" height="16" />
+                        <rect x="89" y="4" width="1" height="16" />
+                        <rect x="92" y="4" width="2" height="16" />
+                        <rect x="96" y="4" width="4" height="16" />
+                        <rect x="102" y="4" width="1" height="16" />
+                        <rect x="110" y="4" width="2" height="16" />
+                        <rect x="114" y="4" width="1" height="16" />
+                        <rect x="117" y="4" width="3" height="16" />
+                        <rect x="122" y="4" width="1" height="16" />
+                        <rect x="125" y="4" width="2" height="16" />
+                        <rect x="129" y="4" width="1" height="16" />
+                        <rect x="132" y="4" width="4" height="16" />
+                        <rect x="138" y="4" width="1" height="16" />
+                        <rect x="141" y="4" width="2" height="16" />
+                        <rect x="145" y="4" width="1" height="16" />
+                        <rect x="148" y="4" width="3" height="16" />
+                        <rect x="153" y="4" width="1" height="16" />
+                        <rect x="156" y="4" width="2" height="16" />
+                        <rect x="160" y="4" width="1" height="16" />
+                        <rect x="163" y="4" width="4" height="16" />
+                        <rect x="169" y="4" width="1" height="16" />
+                        <rect x="172" y="4" width="2" height="16" />
+                        <rect x="176" y="4" width="1" height="16" />
+                        <rect x="179" y="4" width="3" height="16" />
+                        <rect x="184" y="4" width="1" height="16" />
+                        <rect x="187" y="4" width="2" height="16" />
+                        <rect x="191" y="4" width="4" height="16" />
+                        <rect x="197" y="4" width="1" height="16" />
+                        <rect x="200" y="4" width="2" height="16" />
+                        <rect x="204" y="4" width="1" height="16" />
+                        <rect x="207" y="4" width="3" height="16" />
+                        <rect x="212" y="4" width="1" height="16" />
+                        <rect x="215" y="4" width="2" height="16" />
+                        <rect x="219" y="4" width="4" height="16" />
+                        <rect x="225" y="4" width="1" height="16" />
+                        <rect x="228" y="4" width="2" height="16" />
+                        <rect x="232" y="4" width="1" height="16" />
+                        <rect x="235" y="4" width="3" height="16" />
+                        <rect x="240" y="4" width="1" height="16" />
+                        <rect x="243" y="4" width="2" height="16" />
+                      </g>
+                    </g>
+
+                    {/* Monospace signature block */}
+                    <text x="160" y="450" fill="rgba(255,255,255,0.25)" fontFamily="monospace" fontSize="5" textAnchor="middle">{doc.signature || "AWAITING DIGITAL SIGNATURE"}</text>
+                    
+                    {/* Subtle Holographic reflection */}
+                    <rect width="320" height="480" fill={`url(#primaryGradFront-${doc.id})`} opacity="0.02" pointerEvents="none" />
+                  </svg>
+
+                  {/* CARD BACK SIDE */}
+                  {isDoubleSided && (
+                    <svg width="320" height="480" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg" className="shadow-2xl rounded-2xl shrink-0 max-w-[320px] transition-transform duration-300 hover:scale-[1.01] print:shadow-none print:border print:border-neutral-200">
+                      <defs>
+                        <linearGradient id={`bgGradBack-${doc.id}`} x1="160" y1="0" x2="160" y2="480" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor={cardTheme.bgStart} />
+                          <stop offset="50%" stopColor={cardTheme.bgMid} />
+                          <stop offset="100%" stopColor={cardTheme.bgEnd} />
+                        </linearGradient>
+                        <linearGradient id={`primaryGradBack-${doc.id}`} x1="0" y1="0" x2="320" y2="480" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor={cardTheme.gradStart} />
+                          <stop offset="100%" stopColor={cardTheme.gradEnd} />
+                        </linearGradient>
+                      </defs>
+
+                      <rect width="320" height="480" fill={`url(#bgGradBack-${doc.id})`} rx="16" stroke={cardTheme.borderColor} strokeWidth="1.5" />
+                      
+                      {/* Magnetic strip mock */}
+                      <rect y="40" width="320" height="45" fill="#0f0f12" />
+                      <rect y="42" width="320" height="4" fill="rgba(255,255,255,0.03)" />
+                      
+                      {/* Card Guidelines */}
+                      <g transform="translate(20, 105)">
+                        <text y="0" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="0.8">TERMS OF COMPLIANCE & RULES</text>
+                        <text y="14" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="600" fontSize="6.2" letterSpacing="0.1">
+                          <tspan x="0" dy="0">1. This pass is official property of Aurxon DB & Systems.</tspan>
+                          <tspan x="0" dy="9">2. It must be displayed prominently at all times.</tspan>
+                          <tspan x="0" dy="9">3. Non-transferable. Loss must be reported immediately.</tspan>
+                          <tspan x="0" dy="9">4. Holder agrees to the internal NDA provisions.</tspan>
+                          <tspan x="0" dy="9">5. Duplication or misuse will trigger compliance audits.</tspan>
+                        </text>
+                      </g>
+
+                      {/* Technical Scanner target */}
+                      <g transform="translate(20, 175)">
+                        <rect width="280" height="110" rx="8" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.05)" />
+                        
+                        {/* Mock QR Code in SVG */}
+                        <g transform="translate(15, 15)">
+                          <rect width="80" height="80" rx="4" fill="#ffffff" />
+                          <g fill="#0b132b">
+                            <rect x="6" y="6" width="22" height="22" rx="2" />
+                            <rect x="9" y="9" width="16" height="16" rx="1" fill="#ffffff" />
+                            <rect x="12" y="12" width="10" height="10" rx="0.5" />
+                            
+                            <rect x="52" y="6" width="22" height="22" rx="2" />
+                            <rect x="55" y="9" width="16" height="16" rx="1" fill="#ffffff" />
+                            <rect x="58" y="12" width="10" height="10" rx="0.5" />
+                            
+                            <rect x="6" y="52" width="22" height="22" rx="2" />
+                            <rect x="9" y="55" width="16" height="16" rx="1" fill="#ffffff" />
+                            <rect x="12" y="58" width="10" height="10" rx="0.5" />
+                            
+                            <rect x="34" y="6" width="6" height="12" />
+                            <rect x="34" y="24" width="6" height="6" />
+                            <rect x="42" y="16" width="8" height="6" />
+                            <rect x="6" y="34" width="12" height="6" />
+                            <rect x="24" y="34" width="6" height="6" />
+                            <rect x="16" y="42" width="6" height="6" />
+                            
+                            <rect x="34" y="34" width="12" height="12" />
+                            <rect x="40" y="34" width="6" height="6" fill="#ffffff" />
+                            
+                            <rect x="52" y="34" width="6" height="12" />
+                            <rect x="52" y="52" width="12" height="6" />
+                            <rect x="34" y="52" width="6" height="18" />
+                            <rect x="40" y="64" width="12" height="6" />
+                            <rect x="64" y="40" width="8" height="8" />
+                            <rect x="64" y="56" width="8" height="18" />
+                          </g>
+                          <circle cx="40" cy="40" r="1.5" fill={cardTheme.accentColor} />
+                        </g>
+
+                        {/* Scanner Metadata parameters */}
+                        <g transform="translate(110, 20)">
+                          <text y="0" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="1">SECURE ENCRYPT</text>
+                          <text y="12" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="8">AIMS SYSTEM SEAL</text>
+                          
+                          {/* Pulsing visual guide laser path */}
+                          <line x1="0" y1="20" x2="150" y2="20" stroke={cardTheme.accentColor} strokeWidth="1" strokeDasharray="2 3" opacity="0.8" />
+                          
+                          <text x="0" y="38" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">EMERGENCY LINE</text>
+                          <text x="0" y="48" fill="#ffffff" fontFamily="monospace" fontWeight="700" fontSize="8.5">+91 99999-XXXXX</text>
+                          
+                          <text x="0" y="62" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">SERVER NODE</text>
+                          <text x="0" y="71" fill={cardTheme.textColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">aims.aurxon.com</text>
+                        </g>
+                      </g>
+
+                      {/* Founder handwritten signature path */}
+                      <g transform="translate(20, 310)">
+                        <line x1="0" y1="42" x2="135" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+                        <text x="0" y="52" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="6.5" letterSpacing="0.5">AUTHORIZED SIGNATURE</text>
+                        
+                        {/* Fluid elegant custom vector cursive */}
+                        <path d="M10 38 c6 -10, 16 -30, 24 -15 c8,12, -4,22, 10,12 c12 -8, 18 -32, 22 -22 c5,10, 0,15, 12,5 c8-8, 16-20, 22-10" stroke={cardTheme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.9" />
+                        <text x="5" y="32" fill="rgba(255,255,255,0.2)" fontFamily="monospace" fontSize="6.5">Founder & CEO</text>
+                      </g>
+
+                      {/* Biometric validation layout */}
+                      <g transform="translate(195, 310)">
+                        <rect width="105" height="58" rx="8" fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.05)" />
+                        <g stroke={cardTheme.accentColor} strokeOpacity="0.25" strokeWidth="1" fill="none" transform="translate(37, 8)">
+                          <path d="M15,30 C15,18 20,8 30,8 C40,8 45,18 45,30" />
+                          <path d="M10,30 C10,13 17,4 30,4 C43,4 50,13 50,30" />
+                          <path d="M5,30 C5,8 14,0 30,0 C46,0 55,8 55,30" />
+                          <path d="M20,30 C20,20 24,12 30,12 C36,12 40,20 40,30" strokeOpacity="0.6" />
+                          <circle cx="30" cy="22" r="1.8" fill={cardTheme.accentColor} fillOpacity="0.6" stroke="none" />
+                        </g>
+                        <text x="52.5" y="50" fill="rgba(255,255,255,0.35)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="6.5" textAnchor="middle" letterSpacing="0.8">BIOMETRIC OK</text>
+                      </g>
+
+                      {/* Footer AIMS compliance stamp */}
+                      <g transform="translate(20, 420)">
+                        <line x1="0" y1="0" x2="280" y2="0" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                        <text x="140" y="16" fill="rgba(255,255,255,0.2)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7" letterSpacing="3.2" textAnchor="middle">AURXON ADMINISTRATIVE SECURE</text>
+                        <text x="140" y="27" fill="rgba(255,255,255,0.15)" fontFamily="monospace" fontSize="6" textAnchor="middle">AIMS v3.4 // COMPLIANT PASS</text>
+                      </g>
+                    </svg>
+                  )}
+                </div>
+              ) : doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate" ? (
+                /* Phase 10: Elite Landscape Completion Certificate SVG Generator */
+                <svg width="842" height="595" viewBox="0 0 842 595" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto max-w-full aspect-[1.414] select-none shadow-2xl rounded-xl transition-all duration-300 print:shadow-none print:rounded-none print:border-none">
+                  <defs>
+                    <style>{`
+                      @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;800&family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
+                      .cert-title-cinzel { font-family: 'Cinzel', serif; font-weight: 800; }
+                      .cert-font-inter { font-family: 'Inter', sans-serif; }
+                      .cert-font-playfair { font-family: 'Playfair Display', serif; font-style: italic; }
+                    `}</style>
+                    <linearGradient id={`bgGradCert-${doc.id}`} x1="421" y1="0" x2="421" y2="595" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor={certTheme.bgStart} />
+                      <stop offset="100%" stopColor={certTheme.bgEnd} />
+                    </linearGradient>
+                    <linearGradient id="sealGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor={certTheme.sealBgStart} />
+                      <stop offset="100%" stopColor={certTheme.sealBgEnd} />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Certificate Base Layer */}
+                  <rect width="842" height="595" fill={`url(#bgGradCert-${doc.id})`} rx="12" />
+                  
+                  {/* Watermark Logo Background */}
+                  <g opacity="0.02" transform="translate(421, 297) scale(2.8)">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill={certTheme.goldLine} />
+                    <path d="M2 17L12 22L22 17M2 12L22 12" stroke={certTheme.frameColor} strokeWidth="1.5" />
+                  </g>
+
+                  {/* Intricate Corner Guilloche Overlays */}
+                  {/* Top-Left */}
+                  <path d="M 20 60 C 60 60, 60 20, 60 20 C 60 20, 20 20, 20 60 Z" stroke={certTheme.guillocheColor} strokeWidth="0.8" fill="none" />
+                  <path d="M 15 70 C 70 70, 70 15, 70 15 C 70 15, 15 15, 15 70 Z" stroke={certTheme.guillocheColor} strokeDasharray="3 3" strokeWidth="0.8" fill="none" />
+                  {/* Top-Right */}
+                  <path d="M 822 60 C 782 60, 782 20, 782 20 C 782 20, 822 20, 822 60 Z" stroke={certTheme.guillocheColor} strokeWidth="0.8" fill="none" />
+                  <path d="M 827 70 C 772 70, 772 15, 772 15 C 772 15, 827 15, 827 70 Z" stroke={certTheme.guillocheColor} strokeDasharray="3 3" strokeWidth="0.8" fill="none" />
+                  {/* Bottom-Left */}
+                  <path d="M 20 535 C 60 535, 60 575, 60 575 C 60 575, 20 575, 20 535 Z" stroke={certTheme.guillocheColor} strokeWidth="0.8" fill="none" />
+                  <path d="M 15 525 C 70 525, 70 580, 70 580 C 70 580, 15 580, 15 525 Z" stroke={certTheme.guillocheColor} strokeDasharray="3 3" strokeWidth="0.8" fill="none" />
+                  {/* Bottom-Right */}
+                  <path d="M 822 535 C 782 535, 782 575, 782 575 C 782 575, 822 575, 822 535 Z" stroke={certTheme.guillocheColor} strokeWidth="0.8" fill="none" />
+                  <path d="M 827 525 C 772 525, 772 580, 772 580 C 772 580, 827 580, 827 525 Z" stroke={certTheme.guillocheColor} strokeDasharray="3 3" strokeWidth="0.8" fill="none" />
+
+                  {/* Dynamic Ornate Frame Borders */}
+                  <rect x="20" y="20" width="802" height="555" rx="8" fill="none" stroke={certTheme.frameColor} strokeWidth="2.5" />
+                  <rect x="28" y="28" width="786" height="539" rx="6" fill="none" stroke={certTheme.goldLine} strokeDasharray="8 4" strokeWidth="1" opacity="0.75" />
+
+                  {/* Header Typography */}
+                  <text x="421" y="80" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="23" letterSpacing="4" textAnchor="middle">CERTIFICATE OF WORK EXPERIENCE</text>
+                  <text x="421" y="112" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="16" letterSpacing="8" textAnchor="middle">& COMPLETION</text>
+                  
+                  <line x1="320" y1="130" x2="522" y2="130" stroke={certTheme.goldLine} strokeWidth="1" opacity="0.5" />
+                  
+                  <text x="421" y="165" fill={certTheme.bodyColor} opacity="0.7" className="cert-font-inter" fontWeight="600" fontSize="9.5" letterSpacing="3.5" textAnchor="middle">THIS IS PROUDLY PRESENTED TO</text>
+                  
+                  {/* Recipient Cursive/Serif styling */}
+                  <text x="421" y="222" fill="#ffffff" className="cert-font-playfair" fontWeight="700" fontSize="36" textAnchor="middle">{fullName}</text>
+                  
+                  <path d="M 370 240 L 400 240 L 410 245 L 421 240 L 432 245 L 442 240 L 472 240" stroke={certTheme.goldLine} strokeWidth="1.5" opacity="0.6" fill="none" />
+
+                  {/* Certificate Narrative Paragraph */}
+                  <g className="cert-font-inter" fontSize="12" fill={certTheme.bodyColor} textAnchor="middle">
+                    <text x="421" y="290" fontWeight="400" opacity="0.85">for outstanding professional performance, dedicated execution, and corporate contributions</text>
+                    <text x="421" y="315" fontWeight="400" opacity="0.85">
+                      demonstrated during their tenure as a <tspan fill={certTheme.accentColor} fontWeight="800">{content.role || "Software Engineering Intern"}</tspan> in the
+                    </text>
+                    <text x="421" y="340" fontWeight="400" opacity="0.85">
+                      domain of <tspan fill={certTheme.accentColor} fontWeight="800">{content.department || "Development"}</tspan> at <tspan fontWeight="800" fill="#ffffff">{content.companyName || "AURXON SYSTEMS"}</tspan>
+                    </text>
+                    <text x="421" y="365" fontWeight="400" opacity="0.85">
+                      spanning the program window from <tspan fontWeight="600" fill="#ffffff">{content.startDate || "N/A"}</tspan> to <tspan fontWeight="600" fill="#ffffff">{content.endDate || "N/A"}</tspan>.
+                    </text>
+                    <text x="421" y="398" fontWeight="500" fontSize="10.5" opacity="0.65" fontStyle="italic">This credential verifies direct alignment with all enterprise standards and execution guidelines.</text>
+                  </g>
+
+                  {/* Secure verification cryptography hash */}
+                  <g transform="translate(65, 475)">
+                    <text x="0" y="0" fill={certTheme.bodyColor} opacity="0.4" className="cert-font-inter" fontWeight="800" fontSize="7" letterSpacing="1">VERIFICATION STAMP</text>
+                    <text x="0" y="14" fill={certTheme.accentColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">{doc.signature ? doc.signature.substring(0, 32) : "UNAUTHORIZED DRAFT KEY"}</text>
+                    <text x="0" y="24" fill={certTheme.accentColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">{doc.signature ? doc.signature.substring(32, 64) : ""}</text>
+                    <text x="0" y="35" fill={certTheme.bodyColor} opacity="0.3" className="cert-font-inter" fontSize="6.5">AIMS dynamic tamper-proof compliance secure seal.</text>
+                  </g>
+
+                  {/* Grand Gold Security Seal */}
+                  <g transform="translate(421, 480)">
+                    {/* Double ribbon tails */}
+                    <path d="M -12 25 L -20 72 L 0 58 L 20 72 L 12 25 Z" fill="url(#sealGrad)" opacity="0.8" />
+                    
+                    {/* Scalloped edge base */}
+                    <circle cx="0" cy="0" r="35" fill="url(#sealGrad)" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))" />
+                    
+                    {/* Inner layers */}
+                    <circle cx="0" cy="0" r="29" fill="none" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="3 2" />
+                    <circle cx="0" cy="0" r="25" fill="url(#sealGrad)" />
+                    <circle cx="0" cy="0" r="22" fill="none" stroke="#ffffff" strokeWidth="0.6" strokeOpacity="0.3" />
+                    
+                    {/* Verification star */}
+                    <path d="M 0 -6.5 L 2 -1.5 L 7 -1.5 L 3 1.5 L 4.5 6.5 L 0 3.5 L -4.5 6.5 L -3 1.5 L -7 -1.5 L -2 -1.5 Z" fill="#ffffff" fillOpacity="0.9" />
+                    
+                    {/* Circular border text mock */}
+                    <circle cx="0" cy="0" r="18" fill="none" stroke="#ffffff" strokeWidth="0.5" strokeOpacity="0.15" />
+                  </g>
+
+                  {/* Founder Signature Section */}
+                  <g transform="translate(615, 475)">
+                    <line x1="0" y1="28" x2="160" y2="28" stroke={certTheme.goldLine} strokeWidth="1" opacity="0.4" />
+                    <text x="80" y="42" fill={certTheme.accentColor} className="cert-font-inter" fontWeight="800" fontSize="9" letterSpacing="1" textAnchor="middle">FOUNDER & CEO</text>
+                    <text x="80" y="53" fill={certTheme.bodyColor} opacity="0.4" className="cert-font-inter" fontSize="7.5" textAnchor="middle">{content.companyName || "AURXON DB SYSTEMS"}</text>
+                    
+                    {/* Signature cursive path overlay */}
+                    {isApproved && (
+                      <path d="M 25 24 c 10 -25, 22 -42, 38 -12 c 12,24, -14,10, 18 -8 c 20,-12, 8 -28, 18 -10 c 8,10, -5,18, 14,8 c 18,-8, 25 -32, 35 -8" stroke={certTheme.sigColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.9" />
+                    )}
+                  </g>
+                </svg>
+              ) : (
+                /* Standard High-Fidelity Letter / NDA Layout */
+                <div id="aims-document-print" className="w-full max-w-xl min-h-[720px] bg-white border border-gray-200 shadow-2xl p-8 sm:p-12 flex flex-col justify-between text-slate-800 relative font-sans leading-relaxed text-sm select-text rounded-xl print:shadow-none print:border-none print:p-0 print:my-0">
+                  
+                  {/* Background Watermark */}
+                  {isApproved && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] select-none pointer-events-none z-0">
+                      <svg className="h-[350px] w-[350px] text-cyan-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z" />
+                      </svg>
+                    </div>
+                  )}
+
+                  <div className="space-y-6 z-10 relative text-left">
+                    {/* Company Letterhead */}
+                    <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4 mb-6">
+                      <div>
+                        <h2 className="text-base font-extrabold text-slate-900 tracking-tight font-heading">
+                          {content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
+                        </h2>
+                        <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
+                          Enterprise Databases • API Orchestrations • Automated Operations
+                        </p>
+                      </div>
+                      <div className="text-right text-[8px] text-slate-400 font-bold uppercase">
+                        <span>Ref: AXN-DOC-{doc.intern?.internId || "DRAFT"}</span>
+                      </div>
+                    </div>
+
+                    {/* Document Title */}
+                    <div className="text-center py-2.5">
+                      <h3 className="text-base font-heading font-extrabold uppercase text-slate-900 tracking-wide border-y border-slate-200 py-1.5">
+                        {content.title || doc.type.replace(/_/g, " ")}
+                      </h3>
+                    </div>
+
+                    {/* Content forms */}
+                    {doc.type === "OFFER_LETTER" && (
+                      <div className="space-y-4 text-xs text-slate-700">
+                        <p className="font-bold">{content.salutation}</p>
+                        <p>{content.introduction}</p>
+                        
+                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4.5 space-y-2.5 my-3 text-left">
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Position Role:</span>
+                            <span className="font-semibold text-slate-700">{content.role}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Business Department:</span>
+                            <span>{content.department}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Commencement Date:</span>
+                            <span>{content.startDate}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Tenure Endpoint:</span>
+                            <span>{content.endDate}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Stipend Allocation:</span>
+                            <span className="font-extrabold text-primary">{content.stipend}</span>
+                          </div>
+                        </div>
+
+                        {content.terms && content.terms.length > 0 && (
+                          <div className="space-y-2 pt-2 text-left">
+                            <span className="font-bold text-slate-900 block">Terms & Service Regulations:</span>
+                            <ul className="list-decimal pl-5 space-y-1.5">
+                              {content.terms.map((t: string, i: number) => (
+                                <li key={i} className="leading-relaxed">{t}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <p className="pt-2">{content.closing}</p>
+                      </div>
+                    )}
+
+                    {doc.type === "NDA" && (
+                      <div className="space-y-4 text-xs text-slate-700">
+                        <p className="leading-relaxed">
+                          This Non-Disclosure Agreement (the "Agreement") is executed on <span className="font-bold text-slate-900">{content.effectiveDate}</span>, between <span className="font-bold text-slate-900">{content.partyA}</span> (the "Company") and <span className="font-bold text-slate-900">{content.partyB}</span> (the "Recipient").
+                        </p>
+
+                        {content.clauses && content.clauses.map((c: any, i: number) => (
+                          <div key={i} className="space-y-1 text-left">
+                            <h4 className="font-bold text-slate-900">{c.title}</h4>
+                            <p className="leading-relaxed pl-2.5 text-[11px] text-slate-600">{c.text}</p>
+                          </div>
+                        ))}
+
+                        <div className="pt-2 text-[10px] text-left">
+                          <span className="font-bold text-slate-900 block">Governing Jurisdiction:</span>
+                          <p>{content.governingLaw}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {doc.type === "EXPERIENCE_LETTER" && (
+                      <div className="space-y-4 text-xs text-slate-700">
+                        <p className="font-heading font-extrabold text-slate-900 py-1">{content.salutation}</p>
+                        <p className="leading-relaxed">{content.body}</p>
+                        
+                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4.5 space-y-2.5 my-3 text-left">
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Assigned Domain:</span>
+                            <span className="font-semibold">{content.role}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Assigned Department:</span>
+                            <span>{content.department}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">Tenure Window:</span>
+                            <span>{content.startDate} to {content.endDate}</span>
+                          </div>
+                        </div>
+
+                        <p className="leading-relaxed">{content.performanceNotes}</p>
+                        <p className="pt-2">{content.closing}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Signature Box */}
+                  <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 z-10 relative">
+                    <div className="text-[10px] text-slate-500 text-left">
+                      <span className="font-bold block uppercase tracking-wider text-slate-700">Audit Compliance Guard</span>
+                      <span>AURXON AIMS document generation node.</span>
+                    </div>
+                    
+                    {isApproved ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 w-full sm:max-w-xs space-y-1 text-left select-text">
+                        <div className="flex items-center space-x-1 text-emerald-700 font-heading font-extrabold text-[8px] uppercase tracking-wider">
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>AURXON SECURE SEAL VERIFIED</span>
+                        </div>
+                        <p className="text-[9px] text-slate-600 leading-tight">
+                          Signed & authorized under SUPER-ADMIN credentials
+                        </p>
+                        <span className="block text-[7.5px] font-mono text-cyan-700 dark:text-cyan-600 break-all select-all leading-none mt-1.5">
+                          {doc.signature}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-amber-500 font-bold uppercase tracking-widest text-[9px] border border-dashed border-amber-300 rounded px-2.5 py-1.5 animate-pulse bg-amber-50/50">
+                        Unsigned Draft Copy
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Right Column: Dynamic Credentials Metadata Panel */}
+          {/* Right Column: Dynamic Credentials Customization & Metadata Panel */}
           <div className="w-full md:w-80 bg-card p-6 md:p-8 border-t md:border-t-0 md:border-l border-border/40 flex flex-col justify-between shrink-0 max-h-[45vh] md:max-h-none overflow-y-auto select-none print:hidden">
             <div className="space-y-6">
               <div>
                 <span className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                  Metadata & Audit Log
+                  Customizer & Audit
                 </span>
-                <h4 className="text-base font-extrabold text-foreground mt-1.5">Document Audit Panel</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">Secure verification parameters tracked by AIMS blockchain-style log.</p>
+                <h4 className="text-base font-extrabold text-foreground mt-1.5">Administrative Panel</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">Control live presentation and security approval parameters.</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
+                
+                {/* 1. Real-time Design Parameter Customization Suite */}
+                {isIdCard && (
+                  <div className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-3">
+                    <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
+                      Badge Design Options
+                    </span>
+                    <div className="space-y-2">
+                      <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Theme Style</label>
+                      <div className="grid grid-cols-5 gap-1">
+                        {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => setSelectedCardTheme(t)}
+                            className={cn(
+                              "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
+                              selectedCardTheme === t
+                                ? "bg-primary border-primary text-white"
+                                : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
+                            )}
+                            title={t}
+                          >
+                            {t[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between border-t border-border/20 pt-2.5 mt-1">
+                      <span className="text-[9.5px] font-bold text-muted-foreground">Show Back Badge</span>
+                      <input
+                        type="checkbox"
+                        checked={isDoubleSided}
+                        onChange={(e) => setIsDoubleSided(e.target.checked)}
+                        className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate" && (
+                  <div className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-3">
+                    <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
+                      Certificate Theme Style
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(["gold", "glacial", "emerald", "royal"] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setSelectedCertTheme(t)}
+                          className={cn(
+                            "py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border text-center",
+                            selectedCertTheme === t
+                              ? "bg-primary border-primary text-white"
+                              : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
+                          )}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audit Parameters Logging */}
                 <div className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-2">
                   <div className="flex flex-col">
                     <span className="text-[8px] text-muted-foreground font-bold uppercase">Associated Profile</span>
@@ -2128,7 +2682,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       {isApproved ? (
                         <>
                           <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          <span className="text-emerald-500">Approved & Cryptographically Signed</span>
+                          <span className="text-emerald-500">Approved & Signed</span>
                         </>
                       ) : doc.status === "REJECTED" ? (
                         <>
@@ -2138,7 +2692,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       ) : (
                         <>
                           <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0 animate-pulse" />
-                          <span className="text-amber-500">Draft Awaiting Verification</span>
+                          <span className="text-amber-500">Awaiting Verification</span>
                         </>
                       )}
                     </span>
@@ -2146,19 +2700,19 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 </div>
 
                 {isApproved && (
-                  <div className="p-3.5 bg-emerald-500/[0.02] border border-emerald-500/20 rounded-xl space-y-2 text-xs">
-                    <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-heading font-extrabold text-[9px] uppercase tracking-wider">
-                      <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
-                      <span>Security Stamps verified</span>
+                  <div className="p-3 bg-emerald-500/[0.02] border border-emerald-500/20 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-heading font-bold text-[9px] uppercase tracking-wider">
+                      <ShieldCheck className="h-4 w-4 shrink-0" />
+                      <span>Authorized Security Stamps</span>
                     </div>
                     
-                    <div className="space-y-1.5 text-[10px]">
+                    <div className="space-y-1.5 text-[9.5px]">
                       <div>
-                        <span className="text-muted-foreground font-semibold block">Signed On:</span>
+                        <span className="text-muted-foreground font-medium block">Signed On:</span>
                         <span className="font-bold text-foreground">{formatDate(doc.approvedAt)}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground font-semibold block">Signed By:</span>
+                        <span className="text-muted-foreground font-medium block">Signed By:</span>
                         <span className="font-bold text-foreground">{doc.approvedBy?.fullName || "AIMS Founder"}</span>
                       </div>
                     </div>
@@ -2167,6 +2721,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
               </div>
             </div>
 
+            {/* Print & Action Controls (Phase 10 Print Styles Isolated) */}
             <div className="space-y-3 pt-6 border-t border-border/40 select-none">
               <Button
                 onClick={handlePrint}
@@ -2175,7 +2730,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 className="w-full h-10 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-1.5 border-border/40 hover:bg-secondary/15"
               >
                 <Printer className="h-4 w-4" />
-                <span>Print Official Badge</span>
+                <span>{isIdCard ? "Print Cards (A4)" : "Print Credential (A4)"}</span>
               </Button>
 
               {!isApproved && (
@@ -2189,11 +2744,11 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       isLoading={actionLoading === doc.id}
                     >
                       <Sparkles className="h-4 w-4 mr-1.5" />
-                      <span>Sign & Authorize</span>
+                      <span>Sign & Approve</span>
                     </Button>
                   ) : (
-                    <div className="flex-1 text-center bg-secondary border border-border/30 rounded-xl py-2 text-xs font-bold text-muted-foreground uppercase">
-                      Lock Signature
+                    <div className="flex-1 text-center bg-secondary border border-border/30 rounded-xl py-2.5 text-xs font-bold text-muted-foreground uppercase">
+                      Awaiting Sign
                     </div>
                   )}
 
