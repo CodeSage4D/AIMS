@@ -1,5 +1,5 @@
 # <p align="center"><img src="https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png" width="40" height="40" valign="middle" alt="AIMS Logo" /> <b>A I M S</b></p>
-<p align="center"><b>Aurxon Intern Management System</b></p>
+<p align="center"><b>Aurxon Internal Management System</b></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-16.2.6-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
@@ -14,7 +14,7 @@
 
 ## 🌟 The Heart of AIMS
 
-Welcome to **AIMS (Aurxon Intern Management System)**—the official internal nerve center for managing administrative and educational life cycles at **AURXON**.
+Welcome to **AIMS (Aurxon Internal Management System)**—the official internal nerve center for managing administrative and educational life cycles at **AURXON**.
 
 AIMS isn't just another database spreadsheet in disguise. We engineered it to solve a very human problem: **onboarding, tracking, and elevating real human talent without drowning in spreadsheets.** It provides mentors, administrators, and coordinators with a seamless, lag-free administrative workspace built on premium **aurxon-brand ergonomics**.
 
