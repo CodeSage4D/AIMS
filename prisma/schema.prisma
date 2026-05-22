@@ -34,8 +34,11 @@ enum AttendanceStatus {
   ABSENT
   LATE
   LEAVE
+  EMERGENCY_LEAVE
   HALF_DAY_1ST_HALF
   HALF_DAY_2ND_HALF
+  WORK_PAUSED
+  WORK_RESUMED
 }
 
 enum TaskStatus {
@@ -70,6 +73,11 @@ model User {
   logs                   ActivityLog[]
   internProfile          Intern?                @relation("InternUserRelation")
   approvedDocuments      GeneratedDocument[]    @relation("ApprovedDocuments")
+  createdEvents          Event[]                @relation("CreatedEvents")
+  sentMessages           Message[]              @relation("SentMessages")
+  receivedMessages       Message[]              @relation("ReceivedMessages")
+  reviewedLeaves         LeaveApplication[]     @relation("ReviewedLeaves")
+  updatedSettings        SystemSetting[]        @relation("SystemSettingsUpdatedBy")
 
   @@map("users")
 }
@@ -119,6 +127,7 @@ model Intern {
   generatedDocuments     GeneratedDocument[]
   dailyLogs              DailyLog[]
   profileUpdateRequests  ProfileUpdateRequest[]
+  events                 Event[]
 
   @@index([fullName])
   @@index([status])
@@ -127,27 +136,32 @@ model Intern {
 }
 
 model Attendance {
-  id           String           @id @default(uuid())
-  internId     String           @map("intern_id")
-  intern       Intern           @relation(fields: [internId], references: [id], onDelete: Cascade)
-  date         DateTime
-  status       AttendanceStatus @default(PRESENT)
-  checkIn      DateTime?        @map("check_in")
-  checkOut     DateTime?        @map("check_out")
-  remarks      String?
-  createdAt    DateTime         @default(now()) @map("created_at")
+  id                 String           @id @default(uuid())
+  internId           String           @map("intern_id")
+  intern             Intern           @relation(fields: [internId], references: [id], onDelete: Cascade)
+  date               DateTime
+  status             AttendanceStatus @default(PRESENT)
+  checkIn            DateTime?        @map("check_in")
+  checkOut           DateTime?        @map("check_out")
+  breakDuration      Int              @default(0) @map("break_duration")
+  totalWorkDuration  Int              @default(0) @map("total_work_duration")
+  loginTimestamps    String[]         @default([]) @map("login_timestamps")
+  activityTimestamps String[]         @default([]) @map("activity_timestamps")
+  remarks            String?
+  workSessions       WorkSession[]
+  createdAt          DateTime         @default(now()) @map("created_at")
 
   @@unique([internId, date])
   @@map("attendance")
 }
 
 model Task {
-  id          String     @id @default(uuid())
-  internId    String     @map("intern_id")
-  intern      Intern     @relation(fields: [internId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  deadline    DateTime
+  id                String     @id @default(uuid())
+  internId          String     @map("intern_id")
+  intern            Intern     @relation(fields: [internId], references: [id], onDelete: Cascade)
+  title             String
+  description       String
+  deadline          DateTime
   status            TaskStatus @default(PENDING)
   assignedById      String?    @map("assigned_by_id")
   assigner          User?      @relation(fields: [assignedById], references: [id], onDelete: SetNull)
@@ -155,6 +169,7 @@ model Task {
   submissionComment String?    @map("submission_comment")
   feedbackComment   String?    @map("feedback_comment")
   dailyLogs         DailyLog[]
+  messages          Message[]
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
@@ -186,16 +201,20 @@ model ActivityLog {
 }
 
 model LeaveApplication {
-  id          String   @id @default(uuid())
-  internId    String   @map("intern_id")
-  intern      Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
-  startDate   DateTime @map("start_date")
-  endDate     DateTime @map("end_date")
-  type        String   @default("FULL_DAY") // FULL_DAY, HALF_DAY_1ST_HALF, HALF_DAY_2ND_HALF
-  reason      String
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String    @id @default(uuid())
+  internId     String    @map("intern_id")
+  intern       Intern    @relation(fields: [internId], references: [id], onDelete: Cascade)
+  startDate    DateTime  @map("start_date")
+  endDate      DateTime  @map("end_date")
+  type         String    @default("FULL_DAY") // FULL_DAY, HALF_DAY_1ST_HALF, HALF_DAY_2ND_HALF, URGENT_LEAVE, EMERGENCY_LEAVE, WORK_PAUSE, WORK_RESUME
+  reason       String
+  status       String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestTime  DateTime  @default(now()) @map("request_time")
+  reviewedById String?   @map("reviewed_by_id")
+  reviewedBy   User?     @relation("ReviewedLeaves", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes  String?   @map("review_notes")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("leave_applications")
 }
@@ -287,6 +306,73 @@ model ProfileUpdateRequest {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("profile_update_requests")
+}
+
+model WorkSession {
+  id           String     @id @default(uuid())
+  attendanceId String     @map("attendance_id")
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  startTime    DateTime   @map("start_time")
+  endTime      DateTime?  @map("end_time")
+  isPaused     Boolean    @default(false) @map("is_paused")
+  pauseReason  String?    @map("pause_reason")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("work_sessions")
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  type        String   @default("MEETING") // MEETING, DEADLINE, ONBOARDING, REMINDER, EVENT
+  targetRole  String?  @map("target_role")  // Target role (e.g. "INTERN", "ALL")
+  internId    String?  @map("intern_id")
+  intern      Intern?  @relation(fields: [internId], references: [id], onDelete: Cascade)
+  createdById String   @map("created_by_id")
+  creator     User     @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("events")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  senderId   String   @map("sender_id")
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String?  @map("receiver_id") // Null for general channel discussions
+  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: SetNull)
+  taskId     String?  @map("task_id")
+  task       Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model Holiday {
+  id        String   @id @default(uuid())
+  title     String
+  date      DateTime @unique
+  isCustom  Boolean  @default(false) @map("is_custom")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("holidays")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   // JSON string of settings (e.g. weeklyOffs: [0, 6], halfDays: [5])
+  updatedById String?  @map("updated_by_id")
+  updatedBy   User?    @relation("SystemSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
 }
 
 
