@@ -68,18 +68,54 @@ export async function POST() {
       );
     }
 
-    // 5. Update attendance record with checkout timestamp
+    // 4.5. Close any open WorkSession
+    const openSession = await db.workSession.findFirst({
+      where: {
+        attendanceId: attendance.id,
+        endTime: null,
+      },
+    });
+
+    if (openSession) {
+      await db.workSession.update({
+        where: { id: openSession.id },
+        data: { endTime: now },
+      });
+    }
+
+    // 4.6. Compute total work duration from all closed sessions
+    const allSessions = await db.workSession.findMany({
+      where: { attendanceId: attendance.id },
+    });
+
+    let totalWorkDuration = 0;
+    allSessions.forEach((session) => {
+      const end = session.endTime || now;
+      const durationMs = end.getTime() - session.startTime.getTime();
+      totalWorkDuration += Math.round(durationMs / (1000 * 60)); // in minutes
+    });
+
+    // 5. Update attendance record with checkout timestamp and total work duration
     const hourIST = nowIST.getUTCHours();
     const minuteIST = nowIST.getUTCMinutes();
     const currentRemarks = attendance.remarks ? `${attendance.remarks} | ` : "";
+
+    // Restore correct final status badge (LATE if checked in past 9:30 AM, else PRESENT)
+    const checkInIST = new Date(attendance.checkIn.getTime() + offsetIST);
+    const checkInHour = checkInIST.getUTCHours();
+    const checkInMin = checkInIST.getUTCMinutes();
+    const wasLate = checkInHour > 9 || (checkInHour === 9 && checkInMin > 30);
+    const finalStatus = wasLate ? "LATE" : "PRESENT";
 
     const updatedAttendance = await db.attendance.update({
       where: { id: attendance.id },
       data: {
         checkOut: now,
+        status: finalStatus,
+        totalWorkDuration,
         remarks: `${currentRemarks}Checked out via portal at ${hourIST
           .toString()
-          .padStart(2, "0")}:${minuteIST.toString().padStart(2, "0")} IST.`,
+          .padStart(2, "0")}:${minuteIST.toString().padStart(2, "0")} IST. Total session time: ${totalWorkDuration} mins.`,
       },
     });
 
