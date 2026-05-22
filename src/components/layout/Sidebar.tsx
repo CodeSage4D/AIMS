@@ -15,7 +15,8 @@ import {
   LogOut,
   X,
   Layers,
-  ClipboardList
+  ClipboardList,
+  Fingerprint
 } from "lucide-react";
 
 interface SidebarProps {
@@ -31,7 +32,7 @@ interface SidebarProps {
 export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
-  // Dynamic Navigation Links Schema based on 4-tier roles
+  // Dynamic Navigation Links Schema based on roles
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
@@ -39,7 +40,8 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
     { label: "Daily Logs", href: "/daily-logs", icon: ClipboardList },
     { label: "Teams & Members", href: "/teams", icon: Layers },
-    ...(user.role === "FOUNDER" || user.role === "HR" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
+    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
+    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
   ];
 
   // Secure super-admin / administrative log view (Founder-Only)
