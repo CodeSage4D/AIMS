@@ -9,6 +9,8 @@ generator client {
 
 enum Role {
   FOUNDER
+  SUPER_ADMIN
+  ADMIN
   HR
   TEAM_LEAD
   INTERN
@@ -78,6 +80,7 @@ model User {
   receivedMessages       Message[]              @relation("ReceivedMessages")
   reviewedLeaves         LeaveApplication[]     @relation("ReviewedLeaves")
   updatedSettings        SystemSetting[]        @relation("SystemSettingsUpdatedBy")
+  permission             UserPermission?
 
   @@map("users")
 }
@@ -373,6 +376,24 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+model UserPermission {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dashboardAccess  Boolean  @default(true) @map("dashboard_access")
+  attendanceAccess Boolean  @default(true) @map("attendance_access")
+  taskAccess       Boolean  @default(true) @map("task_access")
+  documentAccess   Boolean  @default(true) @map("document_access")
+  approvalAccess   Boolean  @default(true) @map("approval_access")
+  settingsAccess   Boolean  @default(true) @map("settings_access")
+  analyticsAccess  Boolean  @default(true) @map("analytics_access")
+  onboardingAccess Boolean  @default(true) @map("onboarding_access")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("user_permissions")
 }
 
 
