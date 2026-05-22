@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { signOut } from "next-auth/react";
+import { CurrencyProvider } from "@/lib/useCurrency";
 
 interface DashboardLayoutProps {
   user: {
+    id?: string;
     name?: string | null;
     email?: string | null;
     role?: string;
@@ -147,28 +149,30 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* 1. Backdrop Overlay for Mobile Sidebar */}
-      {isSidebarOpen && (
-        <div
-          onClick={closeSidebar}
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden transition-opacity duration-300"
-        />
-      )}
+    <CurrencyProvider>
+      <div className="min-h-screen flex bg-background">
+        {/* 1. Backdrop Overlay for Mobile Sidebar */}
+        {isSidebarOpen && (
+          <div
+            onClick={closeSidebar}
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-xs lg:hidden transition-opacity duration-300"
+          />
+        )}
 
-      {/* 2. Navigation Sidebar Column */}
-      <Sidebar user={user} isOpen={isSidebarOpen} onClose={closeSidebar} />
+        {/* 2. Navigation Sidebar Column */}
+        <Sidebar user={user} isOpen={isSidebarOpen} onClose={closeSidebar} />
 
-      {/* 3. Right Hand Main Viewport Column */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Top Header bar */}
-        <Header user={user} onMenuToggle={toggleSidebar} />
+        {/* 3. Right Hand Main Viewport Column */}
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+          {/* Top Header bar */}
+          <Header user={user} onMenuToggle={toggleSidebar} />
 
-        {/* Scrollable Content Workspace */}
-        <main className="flex-1 overflow-y-auto px-6 py-8 relative">
-          {children}
-        </main>
+          {/* Scrollable Content Workspace */}
+          <main className="flex-1 overflow-y-auto px-6 py-8 relative">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </CurrencyProvider>
   );
 }
