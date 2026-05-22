@@ -27,11 +27,12 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import NoticeBoard from "@/components/layout/NoticeBoard";
 
 interface AttendanceRecord {
   id: string;
   date: string;
-  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | "HALF_DAY_1ST_HALF" | "HALF_DAY_2ND_HALF";
+  status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | "EMERGENCY_LEAVE" | "HALF_DAY_1ST_HALF" | "HALF_DAY_2ND_HALF" | "WORK_PAUSED" | "WORK_RESUMED";
   checkIn?: string | null;
   checkOut?: string | null;
   remarks?: string | null;
@@ -73,6 +74,8 @@ interface InternDashboardProps {
   initialAttendance: AttendanceRecord[];
   initialTasks: TaskItem[];
   initialDocuments: DocumentItem[];
+  announcements: any[];
+  anniversaries: any[];
 }
 
 const REQUIRED_DOCS = [
@@ -89,7 +92,9 @@ export default function InternDashboard({
   internProfile,
   initialAttendance,
   initialTasks,
-  initialDocuments
+  initialDocuments,
+  announcements,
+  anniversaries
 }: InternDashboardProps) {
   const router = useRouter();
 
@@ -209,6 +214,87 @@ export default function InternDashboard({
       setActionLoading(false);
     }
   };
+
+  const handlePauseWork = async (reason: string = "Break") => {
+    setActionLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/pause", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to pause work session.");
+      }
+      setSuccess(data.message || "Work session paused successfully!");
+      await refreshAttendanceLogs();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during work pause.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResumeWork = async () => {
+    setActionLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to resume work session.");
+      }
+      setSuccess(data.message || "Work session resumed successfully!");
+      await refreshAttendanceLogs();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during work resume.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Keyboard and mouse tracking activity telemetry (restricted strictly to keydown and mousemove only)
+  const lastTelemetrySent = React.useRef<number>(0);
+
+  useEffect(() => {
+    if (!todayRecord || todayRecord.checkOut || todayRecord.status === "WORK_PAUSED") {
+      return;
+    }
+
+    const sendTelemetry = async () => {
+      const now = Date.now();
+      const fiveMinutesMs = 5 * 60 * 1000;
+      if (now - lastTelemetrySent.current < fiveMinutesMs) {
+        return;
+      }
+      
+      lastTelemetrySent.current = now;
+      try {
+        await fetch("/api/attendance/telemetry", { method: "POST" });
+      } catch (err) {
+        console.error("Low-overhead telemetry heartbeat dispatch failed:", err);
+      }
+    };
+
+    const handleUserActivity = () => {
+      sendTelemetry();
+    };
+
+    window.addEventListener("mousemove", handleUserActivity);
+    window.addEventListener("keydown", handleUserActivity);
+
+    return () => {
+      window.removeEventListener("mousemove", handleUserActivity);
+      window.removeEventListener("keydown", handleUserActivity);
+    };
+  }, [todayRecord]);
 
   // Fetch Leaves and refresh data on mount
   const fetchLeaves = async () => {
@@ -406,6 +492,12 @@ export default function InternDashboard({
         return "bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shadow-[0_0_10px_rgba(6,182,212,0.05)]";
       case "HALF_DAY_2ND_HALF":
         return "bg-blue-500/10 text-blue-400 border border-blue-500/25 shadow-[0_0_10px_rgba(59,130,246,0.05)]";
+      case "EMERGENCY_LEAVE":
+        return "bg-rose-500/10 text-rose-400 border border-rose-500/25 shadow-[0_0_10px_rgba(244,63,94,0.05)]";
+      case "WORK_PAUSED":
+        return "bg-amber-600/10 text-amber-400 border border-amber-500/25 shadow-[0_0_10px_rgba(245,158,11,0.05)]";
+      case "WORK_RESUMED":
+        return "bg-emerald-600/10 text-emerald-400 border border-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.05)]";
       default:
         return "bg-white/[0.02] border-white/[0.05] text-gray-500";
     }
@@ -540,6 +632,11 @@ export default function InternDashboard({
                   <AlertTriangle className="h-4 w-4" />
                   <span>Absent (Overridable)</span>
                 </div>
+              ) : todayRecord.status === "WORK_PAUSED" ? (
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                  <AlertTriangle className="h-4 w-4 animate-pulse" />
+                  <span>Work Paused (Break)</span>
+                </div>
               ) : todayRecord.checkOut ? (
                 <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(6,182,212,0.1)]">
                   <ShieldCheck className="h-4 w-4" />
@@ -554,7 +651,7 @@ export default function InternDashboard({
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center">
+            <div className="flex items-center space-x-3">
               {!todayRecord || todayRecord.status === "ABSENT" ? (
                 <Button
                   onClick={handleSelfCheckIn}
@@ -569,25 +666,58 @@ export default function InternDashboard({
                   )}
                   <span>Clock In Now</span>
                 </Button>
-              ) : !todayRecord.checkOut ? (
-                <Button
-                  onClick={handleSelfCheckOut}
-                  disabled={actionLoading}
-                  variant="primary"
-                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
-                >
-                  {actionLoading ? (
-                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <Clock className="h-4 w-4 shrink-0" />
-                  )}
-                  <span>Clock Out Now</span>
-                </Button>
-              ) : (
+              ) : todayRecord.checkOut ? (
                 <div className="flex items-center space-x-2 text-xs text-gray-400 font-bold px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl select-none">
                   <CheckCircle className="h-4 w-4 text-emerald-400" />
                   <span>Attendance Complete</span>
                 </div>
+              ) : todayRecord.status === "WORK_PAUSED" ? (
+                <Button
+                  onClick={handleResumeWork}
+                  disabled={actionLoading}
+                  variant="primary"
+                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                >
+                  {actionLoading ? (
+                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <Unlock className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>Resume Work</span>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => {
+                      const reason = prompt("Enter pause reason (e.g. Lunch Break, Meeting):", "Break");
+                      if (reason !== null) handlePauseWork(reason);
+                    }}
+                    disabled={actionLoading}
+                    variant="secondary"
+                    className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/30 text-amber-400 shadow-md shadow-amber-600/15"
+                  >
+                    {actionLoading ? (
+                      <span className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <Lock className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>Pause Work</span>
+                  </Button>
+
+                  <Button
+                    onClick={handleSelfCheckOut}
+                    disabled={actionLoading}
+                    variant="primary"
+                    className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
+                  >
+                    {actionLoading ? (
+                      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <Clock className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>Clock Out Now</span>
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -686,6 +816,9 @@ export default function InternDashboard({
         </Card>
 
       </div>
+
+      {/* Announcements & Cheers */}
+      <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
 
       {/* 3. Leave Calendar & Tasks split screen */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1069,6 +1202,10 @@ export default function InternDashboard({
                       <option value="FULL_DAY" className="bg-[#0b0f19] text-white">Full Day Leave</option>
                       <option value="HALF_DAY_1ST_HALF" className="bg-[#0b0f19] text-white">Half Day (1st Half)</option>
                       <option value="HALF_DAY_2ND_HALF" className="bg-[#0b0f19] text-white">Half Day (2nd Half)</option>
+                      <option value="URGENT_LEAVE" className="bg-[#0b0f19] text-white">Urgent Leave</option>
+                      <option value="EMERGENCY_LEAVE" className="bg-[#0b0f19] text-white">Emergency Leave</option>
+                      <option value="WORK_PAUSE" className="bg-[#0b0f19] text-white">Temporary Work Pause</option>
+                      <option value="WORK_RESUME" className="bg-[#0b0f19] text-white">Work Resume Request</option>
                     </select>
                   </div>
 
