@@ -54,7 +54,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
   const router = useRouter();
 
   // Role validation helpers
-  const isManager = userRole === "FOUNDER" || userRole === "HR" || userRole === "TEAM_LEAD";
+  const isManager = userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR" || userRole === "TEAM_LEAD";
   const isIntern = userRole === "INTERN";
 
   // Modal open/close state
