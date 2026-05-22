@@ -51,6 +51,8 @@ enum DocType {
   ID_PROOF
   AGREEMENT
   CERTIFICATE
+  NDA
+  EXPERIENCE_LETTER
 }
 
 model User {
@@ -112,6 +114,7 @@ model Intern {
   tasks                  Task[]
   documents              Document[]
   leaves                 LeaveApplication[]
+  certificates           Certificate[]
 
   @@index([fullName])
   @@index([status])
@@ -202,3 +205,18 @@ model PasswordResetRequest {
 
   @@map("password_reset_requests")
 }
+
+model Certificate {
+  id                String   @id @default(uuid())
+  certificateId     String   @unique @map("certificate_id") // e.g. AXN-CERT-2026-XXXX
+  verificationToken String   @unique @map("verification_token")
+  holderName        String   @map("holder_name")
+  internId          String?  @map("intern_id")
+  intern            Intern?  @relation(fields: [internId], references: [id], onDelete: SetNull)
+  type              String   // e.g. "INTERNSHIP_COMPLETION", "EXCELLENCE", "APPRECIATION"
+  issueDate         DateTime @default(now()) @map("issue_date")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("certificates")
+}
+

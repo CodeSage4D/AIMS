@@ -17,7 +17,8 @@ import {
   RotateCcw,
   UserCheck,
   Send,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -41,9 +42,10 @@ interface InternOption {
 interface TasksManagerProps {
   tasks: TaskItem[];
   interns: InternOption[];
+  userRole?: string;
 }
 
-export default function TasksManager({ tasks, interns }: TasksManagerProps) {
+export default function TasksManager({ tasks, interns, userRole = "INTERN" }: TasksManagerProps) {
   const router = useRouter();
 
   // Modal open/close state
@@ -111,6 +113,29 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Could not save task update.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this task goal?")) {
+      return;
+    }
+    setUpdatingId(taskId);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/tasks?id=${taskId}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete task.");
+
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Could not delete task.");
     } finally {
       setUpdatingId(null);
     }
@@ -263,6 +288,19 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                                 <span>Approved</span>
                               </div>
                             )}
+
+                            {(userRole === "FOUNDER" || userRole === "HR") && (
+                              <Button
+                                onClick={() => handleDeleteTask(task.id)}
+                                disabled={updatingId === task.id}
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-rose-500 border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-400 shrink-0"
+                                title="Delete Task"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -322,46 +360,58 @@ export default function TasksManager({ tasks, interns }: TasksManagerProps) {
                 </div>
 
                 {/* Mobile Touch Action Button */}
-                <div className="flex items-center justify-end pt-2 border-t border-white/[0.04]">
-                  {task.status !== "COMPLETED" ? (
-                    <>
-                      {task.status === "PENDING" && (
-                        <Button
-                          onClick={() => handleUpdateStatus(task.id, "IN_PROGRESS")}
-                          disabled={updatingId === task.id}
-                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
-                        >
-                          <Send className="h-4 w-4" />
-                          <span>Start Work Goal</span>
-                        </Button>
-                      )}
-                      {task.status === "IN_PROGRESS" && (
-                        <Button
-                          onClick={() => handleUpdateStatus(task.id, "IN_REVIEW")}
-                          disabled={updatingId === task.id}
-                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
-                        >
-                          <Send className="h-4 w-4" />
-                          <span>Submit Work for Review</span>
-                        </Button>
-                      )}
-                      {task.status === "IN_REVIEW" && (
-                        <Button
-                          onClick={() => handleUpdateStatus(task.id, "COMPLETED")}
-                          disabled={updatingId === task.id}
-                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
-                        >
-                          <ShieldCheck className="h-4 w-4" />
-                          <span>Approve & Complete Goal</span>
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center space-x-1 text-emerald-400 font-bold select-none text-[10px] tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl w-full justify-center">
-                      <CheckCircle className="h-4 w-4 shrink-0" />
-                      <span>Approved Work Goal</span>
-                    </div>
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.04] gap-2">
+                  {(userRole === "FOUNDER" || userRole === "HR") && (
+                    <Button
+                      onClick={() => handleDeleteTask(task.id)}
+                      disabled={updatingId === task.id}
+                      className="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-400 active:scale-95 transition-all flex items-center justify-center shrink-0"
+                      title="Delete Task"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
+                  <div className="flex-1">
+                    {task.status !== "COMPLETED" ? (
+                      <>
+                        {task.status === "PENDING" && (
+                          <Button
+                            onClick={() => handleUpdateStatus(task.id, "IN_PROGRESS")}
+                            disabled={updatingId === task.id}
+                            className="w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                          >
+                            <Send className="h-4 w-4" />
+                            <span>Start Work Goal</span>
+                          </Button>
+                        )}
+                        {task.status === "IN_PROGRESS" && (
+                          <Button
+                            onClick={() => handleUpdateStatus(task.id, "IN_REVIEW")}
+                            disabled={updatingId === task.id}
+                            className="w-full py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                          >
+                            <Send className="h-4 w-4" />
+                            <span>Submit Work for Review</span>
+                          </Button>
+                        )}
+                        {task.status === "IN_REVIEW" && (
+                          <Button
+                            onClick={() => handleUpdateStatus(task.id, "COMPLETED")}
+                            disabled={updatingId === task.id}
+                            className="w-full py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 border border-white/5 text-white active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                            <span>Approve & Complete Goal</span>
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex items-center space-x-1 text-emerald-400 font-bold select-none text-[10px] tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl w-full justify-center text-center">
+                        <CheckCircle className="h-4 w-4 shrink-0 inline-block mr-1" />
+                        <span>Approved Work Goal</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))

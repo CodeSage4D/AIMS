@@ -4,6 +4,13 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
 
+  const isVerifyPage = req.nextUrl.pathname.startsWith("/verify");
+
+  // 0. Public certificate verification page is accessible without authentication
+  if (isVerifyPage) {
+    return;
+  }
+
   // 1. If accessing the login page and already logged in, redirect to dashboard
   if (isAuthPage) {
     if (isLoggedIn) {

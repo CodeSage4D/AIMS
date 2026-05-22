@@ -49,7 +49,7 @@ interface TaskItem {
 
 interface DocumentItem {
   id: string;
-  type: "OFFER_LETTER" | "RESUME" | "ID_PROOF" | "AGREEMENT" | "CERTIFICATE";
+  type: "OFFER_LETTER" | "RESUME" | "ID_PROOF" | "AGREEMENT" | "CERTIFICATE" | "NDA" | "EXPERIENCE_LETTER";
   fileName: string;
   fileUrl: string;
   verified: boolean;
@@ -79,8 +79,10 @@ const REQUIRED_DOCS = [
   { type: "OFFER_LETTER", label: "Offer Letter" },
   { type: "RESUME", label: "Resume" },
   { type: "ID_PROOF", label: "ID Proof / SSN" },
-  { type: "AGREEMENT", label: "NDA Agreement" },
-  { type: "CERTIFICATE", label: "Program Certificate" }
+  { type: "AGREEMENT", label: "Signed Agreement" },
+  { type: "CERTIFICATE", label: "Program Certificate" },
+  { type: "NDA", label: "NDA (Non-Disclosure Agreement)" },
+  { type: "EXPERIENCE_LETTER", label: "Experience Letter" }
 ];
 
 export default function InternDashboard({
@@ -341,6 +343,12 @@ export default function InternDashboard({
 
     if (!attachedFile) {
       setError("Please attach a document file to upload.");
+      setLoading(false);
+      return;
+    }
+
+    if (attachedFile.size > 100 * 1024) {
+      setError("Rejected: Selected file exceeds the strict maximum limit of 100 KB. Please compress the file.");
       setLoading(false);
       return;
     }
@@ -1113,7 +1121,7 @@ export default function InternDashboard({
             <Card className="border-white/10 bg-[#0b0f19]/80 backdrop-blur-xl shadow-2xl relative">
               <CardHeader className="pb-4">
                 <CardTitle>Upload Vault Document</CardTitle>
-                <CardDescription>Upload compliance files. Maximum size: 10MB. Formats accepted: PDF, JPG, PNG.</CardDescription>
+                <CardDescription>Upload compliance files. Preferred: &lt; 10 KB. Strict Limit: 100 KB. Formats: PDF, JPG, PNG.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleUploadDocument} className="space-y-4.5">
@@ -1144,10 +1152,49 @@ export default function InternDashboard({
                       type="file"
                       onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
                       required
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      accept=".pdf,.jpg,.jpeg,.png"
                       className="flex w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-heading file:font-bold file:bg-cyan-500/10 file:text-cyan-400 file:cursor-pointer hover:file:bg-cyan-500/20 border border-white/10 rounded-xl p-1 bg-white/5"
                     />
                   </div>
+
+                  {attachedFile && (
+                    <div className="p-3.5 rounded-xl border bg-white/2 border-white/5 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-400 font-semibold truncate">Selected Size:</span>
+                        <span className={cn(
+                          "font-bold font-mono",
+                          attachedFile.size > 100 * 1024
+                            ? "text-rose-400 animate-pulse"
+                            : attachedFile.size > 10 * 1024
+                            ? "text-amber-400"
+                            : "text-emerald-400"
+                        )}>
+                          {(attachedFile.size / 1024).toFixed(2)} KB
+                        </span>
+                      </div>
+                      
+                      {attachedFile.size > 100 * 1024 && (
+                        <p className="text-[10px] text-rose-400 font-bold leading-tight flex items-start space-x-1 mt-1.5 animate-pulse">
+                          <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>REJECTED: File size exceeds the strict 100 KB hard limit.</span>
+                        </p>
+                      )}
+                      
+                      {attachedFile.size <= 100 * 1024 && attachedFile.size > 10 * 1024 && (
+                        <p className="text-[10px] text-amber-400 font-bold leading-tight flex items-start space-x-1 mt-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>WARNING: File is heavier than the preferred 10 KB size. We recommend optimization.</span>
+                        </p>
+                      )}
+
+                      {attachedFile.size <= 10 * 1024 && (
+                        <p className="text-[10px] text-emerald-400 font-bold leading-tight flex items-start space-x-1 mt-1.5">
+                          <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-400" />
+                          <span>EXCELLENT: File size is perfectly optimized under 10 KB.</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-end space-x-3.5 pt-4 border-t border-white/[0.08] select-none">
                     <Button

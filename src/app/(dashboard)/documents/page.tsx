@@ -11,8 +11,12 @@ export default async function DocumentsPage() {
     redirect("/login");
   }
 
-  const userRole = (session.user as any).role || "MENTOR";
+  const userRole = (session.user as any).role || "INTERN";
   const userId = (session.user as any).id;
+
+  if (userRole !== "FOUNDER" && userRole !== "HR") {
+    redirect("/");
+  }
 
   let interns: any[] = [];
   try {

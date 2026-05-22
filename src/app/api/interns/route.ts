@@ -22,10 +22,10 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (Only FOUNDER operations can onboard new interns)
-    if (userRole !== "FOUNDER") {
+    // 2. Strict Access Control (Founder and HR can onboard new interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Onboarding privileges restricted strictly to Founder role." },
+        { error: "Access Denied. Onboarding privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
@@ -276,10 +276,10 @@ export async function DELETE(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // 2. Strict Access Control (Only FOUNDER can delete/remove interns)
-    if (userRole !== "FOUNDER") {
+    // 2. Strict Access Control (Founder and HR can delete/remove interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Deletion privileges restricted strictly to Founder role." },
+        { error: "Access Denied. Deletion privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
@@ -298,13 +298,28 @@ export async function DELETE(req: Request) {
     // 4. Check if intern exists
     const intern = await db.intern.findUnique({
       where: { id },
-      select: { fullName: true, internId: true, userId: true },
+      select: { 
+        fullName: true, 
+        internId: true, 
+        userId: true,
+        user: {
+          select: { role: true }
+        }
+      },
     });
 
     if (!intern) {
       return NextResponse.json(
         { error: "Intern file not found." },
         { status: 404 }
+      );
+    }
+
+    // HR cannot remove Founder accounts
+    if (intern.user?.role === "FOUNDER" && userRole !== "FOUNDER") {
+      return NextResponse.json(
+        { error: "Access Denied. HR cannot remove Founder accounts." },
+        { status: 403 }
       );
     }
 
@@ -356,10 +371,10 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
 
-    // 2. Strict Access Control (Only FOUNDER can update interns)
-    if (userRole !== "FOUNDER") {
+    // 2. Strict Access Control (Founder and HR can update interns)
+    if (userRole !== "FOUNDER" && userRole !== "HR") {
       return NextResponse.json(
-        { error: "Access Denied. Profile modification privileges restricted strictly to Founder role." },
+        { error: "Access Denied. Profile modification privileges restricted strictly to Founder and HR roles." },
         { status: 403 }
       );
     }
@@ -378,12 +393,21 @@ export async function PUT(req: Request) {
     // 3. Verify intern exists
     const existing = await db.intern.findUnique({
       where: { id },
+      include: { user: true }
     });
 
     if (!existing) {
       return NextResponse.json(
         { error: "Intern file not found." },
         { status: 404 }
+      );
+    }
+
+    // HR cannot modify Founder accounts
+    if (existing.user?.role === "FOUNDER" && userRole !== "FOUNDER") {
+      return NextResponse.json(
+        { error: "Access Denied. HR cannot modify Founder records." },
+        { status: 403 }
       );
     }
 

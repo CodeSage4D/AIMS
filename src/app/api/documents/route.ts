@@ -27,11 +27,6 @@ export async function POST(req: Request) {
     }
     const { user } = authResult;
 
-    // Authorize: Users must be FOUNDER, HR, or TEAM_LEAD to upload files
-    if (user.role !== "FOUNDER" && user.role !== "HR" && user.role !== "TEAM_LEAD") {
-      return NextResponse.json({ error: "Forbidden. Insufficient permissions to upload compliance forms." }, { status: 403 });
-    }
-
     const formData = await req.formData().catch(() => null);
     if (!formData) {
       return NextResponse.json({ error: "Validation failed. Missing form data." }, { status: 400 });
@@ -49,10 +44,10 @@ export async function POST(req: Request) {
     }
 
     // Strict file upload security checks
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const MAX_FILE_SIZE = 100 * 1024; // 100 KB maximum limit
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "File size exceeds the maximum allowed limit of 5MB." },
+        { error: "File size exceeds the strict maximum allowed limit of 100 KB." },
         { status: 400 }
       );
     }
@@ -73,11 +68,26 @@ export async function POST(req: Request) {
     // Verify target intern exists
     const intern = await db.intern.findUnique({
       where: { id: internId },
-      select: { id: true, fullName: true },
+      select: { id: true, fullName: true, userId: true, supervisorId: true },
     });
 
     if (!intern) {
       return NextResponse.json({ error: "Validation failed. Target enrollee does not exist." }, { status: 400 });
+    }
+
+    // Role-based document access controls
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
+      if (user.role === "TEAM_LEAD") {
+        if (intern.supervisorId !== user.id) {
+          return NextResponse.json({ error: "Forbidden. Team Leads can only upload files for supervised enrollees." }, { status: 403 });
+        }
+      } else if (user.role === "INTERN") {
+        if (intern.userId !== user.id) {
+          return NextResponse.json({ error: "Forbidden. You can only upload compliance files for your own profile." }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: "Forbidden. Insufficient permissions." }, { status: 403 });
+      }
     }
 
     // Upload to Vercel Blob
@@ -146,9 +156,9 @@ export async function PATCH(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Founder can verify documents!
-    if (user.role !== "FOUNDER") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Founders can audit/verify documents." }, { status: 403 });
+    // Strict Authorization Check: Both Founder and HR can verify documents!
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders and HR managers can audit/verify documents." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -181,7 +191,7 @@ export async function PATCH(req: Request) {
         where: { internId: document.internId },
       });
 
-      const allVerified = allDocs.length >= 5 && allDocs.every((d) => d.verified);
+      const allVerified = allDocs.length >= 7 && allDocs.every((d) => d.verified);
       const docStatus = allVerified ? "VERIFIED" : "UNDER_REVIEW";
 
       await tx.intern.update({

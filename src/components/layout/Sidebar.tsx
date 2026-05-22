@@ -37,7 +37,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
     { label: "Teams & Members", href: "/teams", icon: Layers },
-    ...(user.role !== "TEAM_LEAD" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
+    ...(user.role === "FOUNDER" || user.role === "HR" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
   ];
 
   // Secure super-admin / administrative log view (Founder-Only)

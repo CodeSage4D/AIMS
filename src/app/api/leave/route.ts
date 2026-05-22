@@ -130,9 +130,9 @@ export async function PATCH(request: Request) {
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
 
-    // Only Founder is authorized to approve leaves
-    if (role !== "FOUNDER") {
-      return NextResponse.json({ error: "Only the Founder can resolve leave requests." }, { status: 403 });
+    // Only Founder and HR are authorized to approve leaves
+    if (role !== "FOUNDER" && role !== "HR") {
+      return NextResponse.json({ error: "Only the Founder and HR managers can resolve leave requests." }, { status: 403 });
     }
 
     const { id, status } = await request.json();

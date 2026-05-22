@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     }
 
     const role = (session.user as any).role;
-    if (role !== "FOUNDER") {
-      return NextResponse.json({ error: "Only the Founder can resolve password reset requests." }, { status: 403 });
+    if (role !== "FOUNDER" && role !== "HR") {
+      return NextResponse.json({ error: "Only the Founder and HR managers can resolve password reset requests." }, { status: 403 });
     }
 
     const { requestId, action } = await request.json();
@@ -26,6 +26,21 @@ export async function POST(request: Request) {
 
     if (!reqRecord) {
       return NextResponse.json({ error: "Reset request not found." }, { status: 404 });
+    }
+
+    // Find the intern profile to locate user
+    const intern = await db.intern.findFirst({
+      where: { internId: reqRecord.internId },
+      include: { user: true }
+    });
+
+    if (!intern || !intern.userId) {
+      return NextResponse.json({ error: "No matching user found for this intern." }, { status: 404 });
+    }
+
+    // HR cannot reset Founder accounts
+    if (intern.user?.role === "FOUNDER" && role !== "FOUNDER") {
+      return NextResponse.json({ error: "Access Denied. HR cannot resolve password resets for Founder accounts." }, { status: 403 });
     }
 
     if (action === "REJECT") {
@@ -44,15 +59,6 @@ export async function POST(request: Request) {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const tempPassword = `AXN-TEMP-${randomNum}`;
     const passwordHash = bcrypt.hashSync(tempPassword, 10);
-
-    // Find the intern profile to locate user
-    const intern = await db.intern.findFirst({
-      where: { internId: reqRecord.internId },
-    });
-
-    if (!intern || !intern.userId) {
-      return NextResponse.json({ error: "No matching user found for this intern." }, { status: 404 });
-    }
 
     // Transactionally update the user's password and change requirement, and update reset request
     await db.$transaction([

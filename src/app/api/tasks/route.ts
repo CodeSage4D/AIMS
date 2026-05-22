@@ -135,13 +135,16 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Validation failed. Target task does not exist." }, { status: 404 });
     }
 
-    // Mentor authorization validation:
-    // Team Leads can only update tasks they assigned OR tasks belonging to interns they supervise. Founder and HR can update any task.
+    // Mentor or Owner authorization validation:
+    // Founder and HR can update any task.
+    // Team Leads can update tasks they assigned OR tasks belonging to interns they supervise.
+    // Interns/Employees can update their OWN tasks.
     if (user.role !== "FOUNDER" && user.role !== "HR") {
       const isAssigner = task.assignedById === user.id;
       const isSupervisor = task.intern.supervisorId === user.id;
+      const isOwner = task.intern.userId === user.id;
 
-      if (!isAssigner && !isSupervisor) {
+      if (!isAssigner && !isSupervisor && !isOwner) {
         return NextResponse.json({ error: "Forbidden. You are not authorized to update this task's status." }, { status: 403 });
       }
     }
@@ -172,5 +175,61 @@ export async function PATCH(req: Request) {
   } catch (err: any) {
     console.error("Error updating task status:", err);
     return NextResponse.json({ error: "Internal database update error." }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/tasks?id=taskId
+ * Deletes a work goal/task (Founder / HR only)
+ */
+export async function DELETE(req: Request) {
+  try {
+    const authResult = await getAuthenticatedUser();
+    if (!authResult.authenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    const { user } = authResult;
+
+    // Strict Authorization Check: Both Founder and HR can delete tasks!
+    if (user.role !== "FOUNDER" && user.role !== "HR") {
+      return NextResponse.json({ error: "Forbidden. Only Founders and HR managers can delete tasks." }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const taskId = searchParams.get("id");
+
+    if (!taskId) {
+      return NextResponse.json({ error: "Validation failed. Missing query parameter: id." }, { status: 400 });
+    }
+
+    // Verify task exists
+    const task = await db.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: "Validation failed. Target task does not exist." }, { status: 404 });
+    }
+
+    // Delete task in transaction with activity log
+    await db.$transaction(async (tx) => {
+      const safeUserId = await getSafeUserId(user.id, tx);
+      await tx.task.delete({
+        where: { id: taskId },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          userId: safeUserId,
+          action: "DELETE_TASK",
+          description: `Deleted task "${task.title}"`,
+        },
+      });
+    });
+
+    return NextResponse.json({ success: true, message: "Task successfully deleted." }, { status: 200 });
+  } catch (err: any) {
+    console.error("Error deleting task:", err);
+    return NextResponse.json({ error: "Internal database write error." }, { status: 500 });
   }
 }

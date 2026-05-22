@@ -219,3 +219,153 @@ input:-webkit-autofill:active {
   }
 }
 
+/* --- LIGHT MODE TARGETED HIGHER CONTRAST OVERRIDES --- */
+html:not(.dark) {
+  /* Glassmorphism Settings (Light Mode Override) */
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(203, 213, 225, 0.85);
+  --glass-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.08);
+
+  /* Force background changes for hardcoded dark classes */
+  .bg-\[\#0b0f19\],
+  .bg-\[\#0d1222\],
+  .bg-slate-900,
+  .bg-slate-950,
+  .bg-indigo-950\/80,
+  .bg-blue-950\/70,
+  .bg-slate-950\/90 {
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+
+  .bg-\[\#0b0f19\]\/60,
+  .bg-\[\#0b0f19\]\/80,
+  .bg-slate-900\/60,
+  .bg-slate-900\/80,
+  .bg-card\/60 {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  /* Solid white sidebar and layouts */
+  aside {
+    background-color: #ffffff !important;
+    border-right-color: #cbd5e1 !important;
+  }
+
+  /* Force highly readable slate text colors for white theme */
+  .text-white,
+  .text-slate-100,
+  .text-slate-200,
+  .text-gray-100,
+  .text-gray-200 {
+    color: #0f172a !important;
+  }
+
+  .text-gray-300,
+  .text-slate-300 {
+    color: #1e293b !important;
+  }
+
+  .text-gray-400,
+  .text-slate-400,
+  .text-muted-foreground {
+    color: #334155 !important;
+  }
+
+  .text-gray-500,
+  .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  /* Keep heading elements highly visible */
+  .text-foreground,
+  h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important;
+  }
+
+  /* Except for buttons, tags, or active states which require white text */
+  .bg-primary .text-white,
+  .bg-primary .text-slate-100,
+  button[type="submit"] span,
+  button[type="submit"] svg,
+  button.bg-gradient-to-r,
+  button.bg-gradient-to-r *,
+  .bg-gradient-to-r .text-white,
+  .bg-gradient-to-r span,
+  a.bg-gradient-to-r span,
+  .inline-flex.bg-primary\/10 span {
+    color: #ffffff !important;
+  }
+
+  /* Style inputs and options correctly */
+  input, select, textarea {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+  
+  option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  input::placeholder, select::placeholder, textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+  }
+
+  /* Enforce clear borders on all tables, forms, and cards */
+  .border-white\/\[0\.08\],
+  .border-white\/10,
+  .border-white\/5,
+  .border-white\/\[0\.06\],
+  .border-white\/\[0\.04\],
+  .border-border\/60,
+  .border-border\/40,
+  .border-border\/80,
+  .border-border {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Table head styles */
+  thead tr {
+    background-color: #f8fafc !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+  }
+  
+  thead th {
+    color: #334155 !important;
+  }
+
+  tbody tr:hover {
+    background-color: #f1f5f9 !important;
+  }
+  
+  /* Badges inside light mode: enhance visibility */
+  .bg-emerald-500\/10 {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+  }
+  .bg-cyan-500\/10 {
+    background-color: #ecfeff !important;
+    color: #0e7490 !important;
+    border-color: #cffafe !important;
+  }
+  .bg-blue-500\/10 {
+    background-color: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .bg-red-500\/10 {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
+  }
+  .bg-slate-500\/10 {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
+  }
+}
+
