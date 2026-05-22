@@ -47,7 +47,7 @@ interface DailyLogsClientProps {
 export default function DailyLogsClient({ initialLogs, activeTasks, userRole = "INTERN" }: DailyLogsClientProps) {
   const router = useRouter();
   const isIntern = userRole === "INTERN";
-  const isManager = userRole === "FOUNDER" || userRole === "HR" || userRole === "TEAM_LEAD";
+  const isManager = userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR" || userRole === "TEAM_LEAD";
 
   // State Management
   const [logs, setLogs] = useState<LogItem[]>(initialLogs);
