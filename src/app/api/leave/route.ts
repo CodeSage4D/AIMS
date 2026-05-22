@@ -172,6 +172,9 @@ export async function PATCH(request: Request) {
       let attStatus: any = "LEAVE";
       if (leaveApp.type === "HALF_DAY_1ST_HALF") attStatus = "HALF_DAY_1ST_HALF";
       if (leaveApp.type === "HALF_DAY_2ND_HALF") attStatus = "HALF_DAY_2ND_HALF";
+      if (leaveApp.type === "EMERGENCY_LEAVE" || leaveApp.type === "URGENT_LEAVE") attStatus = "EMERGENCY_LEAVE";
+      if (leaveApp.type === "WORK_PAUSE") attStatus = "WORK_PAUSED";
+      if (leaveApp.type === "WORK_RESUME") attStatus = "PRESENT";
 
       while (current <= end) {
         // Set time to noon to avoid date zone shift mismatches
