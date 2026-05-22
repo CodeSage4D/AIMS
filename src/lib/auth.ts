@@ -74,47 +74,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           );
         }
 
-        // DEV-ONLY Fallback (Requested by User for local testing during DB outage)
-        if (process.env.NODE_ENV !== "production") {
-          const inputLower = input.toLowerCase();
-          if (inputLower === "founder@aurxon.demo" && password === "aims-demo-founder-2026") {
-            return {
-              id: "dev-founder",
-              email: "founder@aurxon.demo",
-              name: "Aurxon Founder (Elite)",
-              role: "FOUNDER",
-              changePasswordRequired: false,
-            };
-          }
-          if (inputLower === "hr@aurxon.demo" && password === "aims-demo-hr-2026") {
-            return {
-              id: "dev-hr",
-              email: "hr@aurxon.demo",
-              name: "Aurxon HR Manager",
-              role: "HR",
-              changePasswordRequired: false,
-            };
-          }
-          if (inputLower === "lead@aurxon.demo" && password === "aims-demo-lead-2026") {
-            return {
-              id: "dev-lead",
-              email: "lead@aurxon.demo",
-              name: "Aurxon Team Lead",
-              role: "TEAM_LEAD",
-              changePasswordRequired: false,
-            };
-          }
-          if ((inputLower === "aarav@aurxon.demo" || input === "AXN-SWE-2605-AS01" || inputLower === "axn-swe-2605-as01") && password === "aims-demo-intern-2026") {
-            return {
-              id: "dev-intern",
-              email: "aarav@aurxon.demo",
-              name: "Aarav Sharma",
-              role: "INTERN",
-              changePasswordRequired: true,
-            };
-          }
-        }
-
         return null;
       },
     }),
@@ -125,6 +84,19 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.role = (user as any).role;
         token.id = user.id;
         token.changePasswordRequired = (user as any).changePasswordRequired;
+      } else if (token.id) {
+        try {
+          const freshUser = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, changePasswordRequired: true },
+          });
+          if (freshUser) {
+            token.role = freshUser.role;
+            token.changePasswordRequired = freshUser.changePasswordRequired;
+          }
+        } catch (err) {
+          console.warn("[AUTH JWT] Database lookup failed:", err);
+        }
       }
       return token;
     },

@@ -240,6 +240,9 @@ export async function sendDocumentVerificationEmail(intern: { fullName: string; 
 /**
  * Auto-Generated Document Approval Notification
  */
+/**
+ * Auto-Generated Document Approval Notification
+ */
 export async function sendDocumentApprovedEmail(intern: { fullName: string; email: string }, documentType: string, vaultUrl: string) {
   const title = `Official ${documentType} Digitally Signed`;
   const bodyContent = `
@@ -254,5 +257,164 @@ export async function sendDocumentApprovedEmail(intern: { fullName: string; emai
     subject: `📄 Finalized: Your ${documentType} is Approved & Signed`,
     template: "DOCUMENT_APPROVED",
     htmlBody: getBrandedWrapper(title, bodyContent, vaultUrl, "Download Document"),
+  });
+}
+
+/**
+ * Offer Letter Notification
+ */
+export async function sendOfferLetterEmail(intern: { fullName: string; email: string }, offerLetterUrl: string) {
+  const title = "Official Letter of Internship Offer Issued";
+  const bodyContent = `
+    <p>Hello ${intern.fullName},</p>
+    <p>We are excited to inform you that your official **Internship Offer Letter** has been generated and digitally pre-signed by the Founder.</p>
+    <p>Please log in to the workforce portal, review the operational clauses, and sign the agreement to seal your enrollment seat.</p>
+  `;
+
+  await dispatchEmail({
+    recipient: intern.email,
+    subject: "🚀 Official Internship Offer Letter Issued - AURXON",
+    template: "OFFER_LETTER_READY",
+    htmlBody: getBrandedWrapper(title, bodyContent, offerLetterUrl, "Review & Sign Offer"),
+  });
+}
+
+/**
+ * NDA Action Required Email
+ */
+export async function sendNdaEmail(intern: { fullName: string; email: string }, ndaUrl: string) {
+  const title = "Mutual Non-Disclosure Agreement (NDA) Action Required";
+  const bodyContent = `
+    <p>Hello ${intern.fullName},</p>
+    <p>In accordance with AURXON regulatory safety codes, all workforce members are required to execute a standard **Non-Disclosure & Intellectual Property Assignment Agreement** before systems access is provisioned.</p>
+    <p>Please review the agreement text and digitally sign the compliance blocks in the document vault.</p>
+  `;
+
+  await dispatchEmail({
+    recipient: intern.email,
+    subject: "🔒 Compliance Action Required: Sign NDA - AURXON",
+    template: "NDA_AWAITING_SIGN",
+    htmlBody: getBrandedWrapper(title, bodyContent, ndaUrl, "Read & Acknowledge NDA"),
+  });
+}
+
+/**
+ * Digital ID Card Ready Notification
+ */
+export async function sendIdCardEmail(intern: { fullName: string; email: string; internId: string }, idCardUrl: string) {
+  const title = "Your Official Digital ID Card is Approved";
+  const bodyContent = `
+    <p>Hello ${intern.fullName},</p>
+    <p>Excellent news! Your digital workforce credential pass has been approved and issued by compliance administration.</p>
+    <table border="0" cellpadding="10" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+      <tr>
+        <td style="font-weight: bold; width: 40%;">Member ID:</td>
+        <td><code>${intern.internId}</code></td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">Status:</td>
+        <td style="color: #16a34a; font-weight: bold;">ACTIVE / VERIFIED</td>
+      </tr>
+    </table>
+    <p>You can view, print, or download your security digital pass from the compliance vault dashboard.</p>
+  `;
+
+  await dispatchEmail({
+    recipient: intern.email,
+    subject: `💳 Digital ID Card Approved & Issued [ID: ${intern.internId}]`,
+    template: "ID_CARD_ISSUED",
+    htmlBody: getBrandedWrapper(title, bodyContent, idCardUrl, "View Digital ID Card"),
+  });
+}
+
+/**
+ * Attendance Roster Alert Update
+ */
+export async function sendAttendanceUpdateEmail(intern: { fullName: string; email: string }, date: Date | string, status: string, checkIn?: Date | string | null, checkOut?: Date | string | null) {
+  const formattedDate = new Date(date).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const checkInStr = checkIn ? new Date(checkIn).toLocaleTimeString() : "--:--";
+  const checkOutStr = checkOut ? new Date(checkOut).toLocaleTimeString() : "--:--";
+
+  const title = "AIMS Attendance Roster Update";
+  const bodyContent = `
+    <p>Hello ${intern.fullName},</p>
+    <p>An attendance check-in update has been logged on your employee dashboard. Please audit the registration details:</p>
+    
+    <table border="0" cellpadding="10" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+      <tr>
+        <td style="font-weight: bold; width: 40%;">Roster Date:</td>
+        <td><code>${formattedDate}</code></td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">Logged Status:</td>
+        <td style="font-weight: bold; color: ${status === "PRESENT" ? "#16a34a" : "#dc2626"};">${status}</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">Check In:</td>
+        <td><code>${checkInStr}</code></td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">Check Out:</td>
+        <td><code>${checkOutStr}</code></td>
+      </tr>
+    </table>
+    <p>If you identify discrepancies, please submit a correction request to HR operations.</p>
+  `;
+
+  await dispatchEmail({
+    recipient: intern.email,
+    subject: `📅 Attendance Status Logged: ${status}`,
+    template: "ATTENDANCE_ALERT",
+    htmlBody: getBrandedWrapper(title, bodyContent, "http://localhost:3000/attendance", "View Attendance History"),
+  });
+}
+
+/**
+ * Profile Change Notification
+ */
+export async function sendProfileChangeNotificationEmail(user: { fullName: string; email: string }, changes: { field: string; oldValue: string; newValue: string }[]) {
+  const title = "Security Alert: Workspace Profile Changes Audited";
+  let changeRowsHtml = "";
+  
+  changes.forEach(c => {
+    changeRowsHtml += `
+      <tr>
+        <td style="font-weight: bold; padding: 10px; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${c.field.replace(/([A-Z])/g, ' $1')}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #dc2626; text-decoration: line-through;"><code>${c.oldValue || "[None]"}</code></td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #16a34a; font-weight: bold;"><code>${c.newValue}</code></td>
+      </tr>
+    `;
+  });
+
+  const bodyContent = `
+    <p>Hello ${user.fullName},</p>
+    <p>We are notifying you that administrative modifications were made to your profile fields inside the AIMS workforce database.</p>
+    
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; font-size: 13px;">
+      <thead>
+        <tr style="background-color: #f1f5f9;">
+          <th style="padding: 10px; text-align: left;">Field Name</th>
+          <th style="padding: 10px; text-align: left;">Prior Value</th>
+          <th style="padding: 10px; text-align: left;">Fresh Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${changeRowsHtml}
+      </tbody>
+    </table>
+    <p style="color: #e11d48; font-weight: 600;">If you did not authorize these modifications, please contact security administration immediately.</p>
+  `;
+
+  await dispatchEmail({
+    recipient: user.email,
+    subject: "🔒 Security Alert: AIMS Profile Changes Made",
+    template: "PROFILE_CHANGED",
+    htmlBody: getBrandedWrapper(title, bodyContent, "http://localhost:3000/profile", "Access Account Settings"),
   });
 }

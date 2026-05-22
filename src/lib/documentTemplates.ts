@@ -155,3 +155,58 @@ export function generateIDCardDraft(intern: {
     barcode: `*${intern.internId}*`,
   };
 }
+
+export interface ExperienceLetterContent {
+  title: string;
+  companyName: string;
+  salutation: string;
+  body: string;
+  department: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  performanceNotes: string;
+  closing: string;
+}
+
+export function generateExperienceLetterDraft(intern: {
+  fullName: string;
+  roleDomain: string;
+  department: string;
+  startDate: Date | string;
+  endDate?: Date | string | null;
+  performanceNotes?: string | null;
+}): ExperienceLetterContent {
+  const formattedStart = new Date(intern.startDate).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const formattedEnd = intern.endDate
+    ? new Date(intern.endDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+  const perfNotes = intern.performanceNotes || "demonstrated high technical aptitude, active learning ability, and positive team spirit throughout the program.";
+
+  return {
+    title: "CERTIFICATE OF WORK EXPERIENCE & COMPLETION",
+    companyName: "AURXON DB & SOFTWARE SYSTEMS",
+    salutation: "TO WHOMSOEVER IT MAY CONCERN",
+    body: `This is to certify that ${intern.fullName} has successfully completed their training and work engagement at AURXON DB & Software Systems. During their tenure, they worked actively within our core engineering and operations departments.`,
+    role: intern.roleDomain,
+    department: intern.department,
+    startDate: formattedStart,
+    endDate: formattedEnd,
+    performanceNotes: `During their engagement, ${intern.fullName} ${perfNotes}`,
+    closing: "We wish them the absolute best in their future endeavors and academic pursuits.",
+  };
+}
+

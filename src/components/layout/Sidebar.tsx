@@ -14,7 +14,8 @@ import {
   ShieldAlert,
   LogOut,
   X,
-  Layers
+  Layers,
+  ClipboardList
 } from "lucide-react";
 
 interface SidebarProps {
@@ -36,6 +37,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
+    { label: "Daily Logs", href: "/daily-logs", icon: ClipboardList },
     { label: "Teams & Members", href: "/teams", icon: Layers },
     ...(user.role === "FOUNDER" || user.role === "HR" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
   ];

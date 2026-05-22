@@ -48,7 +48,7 @@ export default function ForcePasswordChange() {
       } else {
         setSuccess("Password updated successfully! Reloading portal...");
         setTimeout(() => {
-          window.location.reload();
+          window.location.href = "/";
         }, 1500);
       }
     } catch (err) {

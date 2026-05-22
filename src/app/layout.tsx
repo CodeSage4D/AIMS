@@ -5,8 +5,8 @@ import "./globals.css";
  * Global Brand SEO Metadata parameters.
  */
 export const metadata: Metadata = {
-  title: "AIMS - AURXON Intern Management System",
-  description: "Elite enterprise workspace for managing AURXON intern records, attendance rolls, active task flows, and document compliance verification.",
+  title: "AIMS - AURXON Internal Management System",
+  description: "Elite enterprise workspace for managing AURXON internal records, attendance rolls, active task flows, and document compliance verification.",
   icons: {
     icon: "/favicon.ico",
   },

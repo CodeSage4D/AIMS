@@ -117,6 +117,8 @@ model Intern {
   leaves                 LeaveApplication[]
   certificates           Certificate[]
   generatedDocuments     GeneratedDocument[]
+  dailyLogs              DailyLog[]
+  profileUpdateRequests  ProfileUpdateRequest[]
 
   @@index([fullName])
   @@index([status])
@@ -146,12 +148,15 @@ model Task {
   title       String
   description String
   deadline    DateTime
-  status      TaskStatus @default(PENDING)
-  assignedById String?    @map("assigned_by_id")
-  assigner    User?      @relation(fields: [assignedById], references: [id], onDelete: SetNull)
-  remarks     String?
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  status            TaskStatus @default(PENDING)
+  assignedById      String?    @map("assigned_by_id")
+  assigner          User?      @relation(fields: [assignedById], references: [id], onDelete: SetNull)
+  remarks           String?
+  submissionComment String?    @map("submission_comment")
+  feedbackComment   String?    @map("feedback_comment")
+  dailyLogs         DailyLog[]
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   @@map("tasks")
 }
@@ -252,4 +257,36 @@ model EmailLog {
 
   @@map("email_logs")
 }
+
+model DailyLog {
+  id            String   @id @default(uuid())
+  internId      String   @map("intern_id")
+  intern        Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  date          DateTime @default(now())
+  workCompleted String   @map("work_completed")
+  blockers      String?
+  hoursWorked   Decimal  @map("hours_worked")
+  notes         String?
+  taskId        String?  @map("task_id")
+  task          Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("daily_logs")
+}
+
+model ProfileUpdateRequest {
+  id            String   @id @default(uuid())
+  internId      String   @map("intern_id")
+  intern        Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  fieldToUpdate String   @map("field_to_update")
+  proposedValue String   @map("proposed_value")
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("profile_update_requests")
+}
+
 

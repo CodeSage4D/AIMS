@@ -114,7 +114,7 @@ export async function PATCH(req: Request) {
 
     // Strict input validation
     const body = await req.json().catch(() => ({}));
-    const { taskId, status, remarks } = body;
+    const { taskId, status, remarks, submissionComment, feedbackComment } = body;
 
     if (!taskId || !status) {
       return NextResponse.json({ error: "Validation failed. Missing required fields: taskId or status." }, { status: 400 });
@@ -135,29 +135,50 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Validation failed. Target task does not exist." }, { status: 404 });
     }
 
-    // Mentor or Owner authorization validation:
-    // Founder and HR can update any task.
-    // Team Leads can update tasks they assigned OR tasks belonging to interns they supervise.
-    // Interns/Employees can update their OWN tasks.
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      const isAssigner = task.assignedById === user.id;
-      const isSupervisor = task.intern.supervisorId === user.id;
-      const isOwner = task.intern.userId === user.id;
+    // Role-based access validation
+    const isFounderOrHR = user.role === "FOUNDER" || user.role === "HR";
+    const isAssigner = task.assignedById === user.id;
+    const isSupervisor = task.intern.supervisorId === user.id;
+    const isOwner = task.intern.userId === user.id;
 
+    if (!isFounderOrHR) {
       if (!isAssigner && !isSupervisor && !isOwner) {
         return NextResponse.json({ error: "Forbidden. You are not authorized to update this task's status." }, { status: 403 });
+      }
+    }
+
+    // Role-based status transition restrictions:
+    if (user.role === "INTERN") {
+      if (status === "COMPLETED" || status === "PENDING") {
+        return NextResponse.json({ error: "Forbidden. Interns/Employees cannot approve tasks or revert them to PENDING." }, { status: 403 });
+      }
+      if (status === "IN_REVIEW" && !submissionComment?.trim()) {
+        return NextResponse.json({ error: "Validation failed. You must provide a submission comment when submitting your work for review." }, { status: 400 });
       }
     }
 
     // Perform database status update and audit log in a safe transaction
     const updatedTask = await db.$transaction(async (tx) => {
       const safeUserId = await getSafeUserId(user.id, tx);
+      
+      const updateData: any = {
+        status: status as TaskStatus,
+        remarks: remarks !== undefined ? remarks : undefined,
+      };
+
+      if (user.role === "INTERN") {
+        if (submissionComment !== undefined) {
+          updateData.submissionComment = submissionComment.trim();
+        }
+      } else {
+        if (feedbackComment !== undefined) {
+          updateData.feedbackComment = feedbackComment.trim();
+        }
+      }
+
       const updated = await tx.task.update({
         where: { id: taskId },
-        data: {
-          status: status as TaskStatus,
-          remarks: remarks !== undefined ? remarks : undefined,
-        },
+        data: updateData,
       });
 
       await tx.activityLog.create({
