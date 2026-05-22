@@ -135,7 +135,7 @@ export default async function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <TasksManager tasks={formattedTasks} interns={interns} userRole={userRole} />
+      <TasksManager tasks={formattedTasks} interns={interns} userRole={userRole} currentUserId={userId} />
     </div>
   );
 }
