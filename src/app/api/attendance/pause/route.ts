@@ -104,11 +104,14 @@ export async function POST(req: Request) {
     const minuteIST = nowIST.getUTCMinutes();
     const currentRemarks = attendance.remarks ? `${attendance.remarks} | ` : "";
 
+    const specialStatuses = ["HALF_DAY_1ST_HALF", "HALF_DAY_2ND_HALF", "EMERGENCY_LEAVE", "LEAVE", "PRESENT", "LATE"];
+    const prevStatusTag = specialStatuses.includes(attendance.status) ? `[PrevStatus:${attendance.status}] ` : "";
+
     const updatedAttendance = await db.attendance.update({
       where: { id: attendance.id },
       data: {
         status: "WORK_PAUSED",
-        remarks: `${currentRemarks}Paused work (Reason: ${reason}) at ${hourIST
+        remarks: `${currentRemarks}${prevStatusTag}Paused work (Reason: ${reason}) at ${hourIST
           .toString()
           .padStart(2, "0")}:${minuteIST.toString().padStart(2, "0")} IST.`,
       },
