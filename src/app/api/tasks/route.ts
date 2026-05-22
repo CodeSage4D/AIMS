@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TaskStatus } from "@prisma/client";
 import { getSafeUserId } from "@/lib/safeUser";
+import { hasPermission } from "@/lib/permissions";
 
 // helper to authenticate and check roles
 async function getAuthenticatedUser() {
@@ -57,15 +58,12 @@ export async function POST(req: Request) {
     }
 
     // Mentor authorization validation:
-    // If user is MENTOR, verify they are allowed to assign tasks.
-    // In AIMS, mentors can assign tasks to any intern or specifically interns under their supervision.
-    // Let's allow assigning if they are ADMIN or the designated supervisor, or standard program mentors.
-    if (user.role !== "FOUNDER" && user.role !== "HR" && user.role !== "TEAM_LEAD") {
+    if (user.role === "INTERN" || !(await hasPermission(user.id, user.role, "taskAccess"))) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to assign tasks." }, { status: 403 });
     }
 
-    if (user.role === "TEAM_LEAD" && intern.supervisorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden. Team Leads can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
+    if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && intern.supervisorId !== user.id) {
+      return NextResponse.json({ error: "Forbidden. Managers can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
     }
 
     // Create the task in a database transaction along with the audit log
@@ -135,15 +133,25 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Validation failed. Target task does not exist." }, { status: 404 });
     }
 
-    // Role-based access validation
-    const isFounderOrHR = user.role === "FOUNDER" || user.role === "HR";
+    // Check taskAccess permission and roles
+    const hasTaskAccess = await hasPermission(user.id, user.role, "taskAccess");
     const isAssigner = task.assignedById === user.id;
     const isSupervisor = task.intern.supervisorId === user.id;
     const isOwner = task.intern.userId === user.id;
 
-    if (!isFounderOrHR) {
-      if (!isAssigner && !isSupervisor && !isOwner) {
-        return NextResponse.json({ error: "Forbidden. You are not authorized to update this task's status." }, { status: 403 });
+    if (user.role === "INTERN") {
+      if (!isOwner) {
+        return NextResponse.json({ error: "Forbidden. You can only update your own tasks." }, { status: 403 });
+      }
+      if (!hasTaskAccess) {
+        return NextResponse.json({ error: "Forbidden. Insufficient permissions to access tasks." }, { status: 403 });
+      }
+    } else {
+      if (!hasTaskAccess) {
+        return NextResponse.json({ error: "Forbidden. Insufficient permissions to manage tasks." }, { status: 403 });
+      }
+      if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && !isAssigner && !isSupervisor) {
+        return NextResponse.json({ error: "Forbidden. You can only manage tasks under your direct supervision or assigned by you." }, { status: 403 });
       }
     }
 
@@ -201,7 +209,7 @@ export async function PATCH(req: Request) {
 
 /**
  * DELETE /api/tasks?id=taskId
- * Deletes a work goal/task (Founder / HR only)
+ * Deletes a work goal/task (Founder / HR / Admins with taskAccess)
  */
 export async function DELETE(req: Request) {
   try {
@@ -210,11 +218,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
     const { user } = authResult;
-
-    // Strict Authorization Check: Both Founder and HR can delete tasks!
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      return NextResponse.json({ error: "Forbidden. Only Founders and HR managers can delete tasks." }, { status: 403 });
-    }
 
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get("id");
@@ -226,10 +229,24 @@ export async function DELETE(req: Request) {
     // Verify task exists
     const task = await db.task.findUnique({
       where: { id: taskId },
+      include: { intern: true },
     });
 
     if (!task) {
       return NextResponse.json({ error: "Validation failed. Target task does not exist." }, { status: 404 });
+    }
+
+    // Strict Authorization Check: Must have taskAccess permission and not be INTERN
+    const hasTaskAccess = await hasPermission(user.id, user.role, "taskAccess");
+    if (user.role === "INTERN" || !hasTaskAccess) {
+      return NextResponse.json({ error: "Forbidden. Insufficient permissions to delete tasks." }, { status: 403 });
+    }
+
+    const isAssigner = task.assignedById === user.id;
+    const isSupervisor = task.intern.supervisorId === user.id;
+
+    if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && !isAssigner && !isSupervisor) {
+      return NextResponse.json({ error: "Forbidden. You can only delete tasks under your direct supervision or assigned by you." }, { status: 403 });
     }
 
     // Delete task in transaction with activity log
