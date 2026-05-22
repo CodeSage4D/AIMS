@@ -126,7 +126,7 @@ async function main() {
     data: {
       userId: founderUser.id,
       action: "PORTAL_INIT",
-      description: "AURXON Intern Management System (AIMS) successfully initialized in clean 4-tier model state.",
+      description: "AURXON Internal Management System (AIMS) successfully initialized in clean 4-tier model state.",
     },
   });
 
