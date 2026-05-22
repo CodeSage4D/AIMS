@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import WorkspaceHeaderActions from "@/components/layout/WorkspaceHeaderActions";
@@ -120,10 +121,26 @@ export default async function InternWorkspacePage({ params }: PageProps) {
   const totalDocs = intern.documents.length;
   const verifiedDocs = intern.documents.filter((d) => d.verified).length;
 
-  const formattedStipend = Number(intern.stipendAmount).toLocaleString("en-IN", {
-    style: "currency",
-    currency: "INR",
-  });
+  const cookieStore = await cookies();
+  const currency = cookieStore.get("aurxon_currency")?.value || "INR";
+  const rawStipend = Number(intern.stipendAmount);
+  let formattedStipend = "";
+  if (currency === "USD") {
+    const converted = rawStipend / 83;
+    formattedStipend = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(converted);
+  } else {
+    formattedStipend = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(rawStipend);
+  }
 
   // Maps statuses to glowing premium badge classes
   const getStatusBadge = (s: string) => {
