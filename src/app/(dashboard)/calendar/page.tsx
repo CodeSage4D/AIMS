@@ -123,15 +123,15 @@ export default function CalendarPage() {
 
   const getHolidaysForDay = (day: number) => {
     return holidays.filter((h) => {
-      const hDate = new Date(h.date);
-      return hDate.getUTCFullYear() === year && hDate.getUTCMonth() === month && hDate.getUTCDate() === day;
+      const hDateIST = new Date(new Date(h.date).getTime() + 5.5 * 60 * 60 * 1000);
+      return hDateIST.getUTCFullYear() === year && hDateIST.getUTCMonth() === month && hDateIST.getUTCDate() === day;
     });
   };
 
   const getEventsForDay = (day: number) => {
     return events.filter((e) => {
-      const eDate = new Date(e.date);
-      return eDate.getUTCFullYear() === year && eDate.getUTCMonth() === month && eDate.getUTCDate() === day;
+      const eDateIST = new Date(new Date(e.date).getTime() + 5.5 * 60 * 60 * 1000);
+      return eDateIST.getUTCFullYear() === year && eDateIST.getUTCMonth() === month && eDateIST.getUTCDate() === day;
     });
   };
 
@@ -140,11 +140,15 @@ export default function CalendarPage() {
       const start = new Date(l.startDate);
       const end = new Date(l.endDate);
       
-      // Zero out hours to compare accurately
+      // Shift start and end to IST before extracting components
+      const startIST = new Date(start.getTime() + 5.5 * 60 * 60 * 1000);
+      const endIST = new Date(end.getTime() + 5.5 * 60 * 60 * 1000);
+      
+      // Compare targetDate in IST coordinate
       const targetDate = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
       
-      const startUTC = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate(), 0, 0, 0, 0));
-      const endUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+      const startUTC = new Date(Date.UTC(startIST.getUTCFullYear(), startIST.getUTCMonth(), startIST.getUTCDate(), 0, 0, 0, 0));
+      const endUTC = new Date(Date.UTC(endIST.getUTCFullYear(), endIST.getUTCMonth(), endIST.getUTCDate(), 23, 59, 59, 999));
       
       return targetDate >= startUTC && targetDate <= endUTC;
     });
