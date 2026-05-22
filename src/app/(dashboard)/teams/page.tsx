@@ -60,7 +60,7 @@ export default async function TeamsPage() {
   // Fetch overall administrators for supervisor context
   const admins = await db.user.findMany({
     where: {
-      role: { in: ["FOUNDER", "HR"] },
+      role: { in: ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR"] },
     },
     select: {
       fullName: true,
@@ -147,8 +147,14 @@ export default async function TeamsPage() {
                 </div>
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <span className="text-xs font-bold text-white block truncate">{admin.fullName}</span>
-                  <span className="text-[9px] font-heading font-bold text-yellow-400 tracking-wider block uppercase">
-                    {admin.role === "FOUNDER" ? "Founder / Lead Architect" : "HR Management Director"}
+                  <span className="text-[9px] font-heading font-bold text-yellow-400 tracking-wider block uppercase font-mono">
+                    {admin.role === "FOUNDER" 
+                      ? "Founder / Lead Architect" 
+                      : admin.role === "SUPER_ADMIN" 
+                      ? "Super Admin Director"
+                      : admin.role === "ADMIN"
+                      ? "Admin Project Manager"
+                      : "HR Management Director"}
                   </span>
                   <a
                     href={`mailto:${admin.email}`}
