@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     // 1. Fetch all admins / supervisors (User accounts)
     const admins = await db.user.findMany({
       where: {
-        role: { in: ["FOUNDER", "HR", "TEAM_LEAD"] },
+        role: { in: ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR", "TEAM_LEAD"] },
         NOT: { id: userId }
       },
       select: {
