@@ -105,13 +105,43 @@ export async function POST() {
     const checkInHour = checkInIST.getUTCHours();
     const checkInMin = checkInIST.getUTCMinutes();
     const wasLate = checkInHour > 9 || (checkInHour === 9 && checkInMin > 30);
-    const finalStatus = wasLate ? "LATE" : "PRESENT";
+    
+    // Default restore status
+    let finalStatus = wasLate ? "LATE" : "PRESENT";
+
+    // 1. Preserve special statuses if they were set prior to check-out
+    const specialStatuses = ["HALF_DAY_1ST_HALF", "HALF_DAY_2ND_HALF", "EMERGENCY_LEAVE", "LEAVE"];
+    if (specialStatuses.includes(attendance.status)) {
+      finalStatus = attendance.status;
+    }
+
+    // 2. Query for an active approved LeaveApplication for today to protect leave status
+    const activeLeave = await db.leaveApplication.findFirst({
+      where: {
+        internId: intern.id,
+        status: "APPROVED",
+        startDate: { lte: todayUTC },
+        endDate: { gte: todayUTC },
+      },
+    });
+
+    if (activeLeave) {
+      if (activeLeave.type === "HALF_DAY_1ST_HALF") {
+        finalStatus = "HALF_DAY_1ST_HALF";
+      } else if (activeLeave.type === "HALF_DAY_2ND_HALF") {
+        finalStatus = "HALF_DAY_2ND_HALF";
+      } else if (activeLeave.type === "EMERGENCY_LEAVE") {
+        finalStatus = "EMERGENCY_LEAVE";
+      } else {
+        finalStatus = "LEAVE";
+      }
+    }
 
     const updatedAttendance = await db.attendance.update({
       where: { id: attendance.id },
       data: {
         checkOut: now,
-        status: finalStatus,
+        status: finalStatus as any,
         totalWorkDuration,
         remarks: `${currentRemarks}Checked out via portal at ${hourIST
           .toString()
