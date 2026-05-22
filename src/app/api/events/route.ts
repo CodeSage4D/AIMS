@@ -16,8 +16,8 @@ export async function GET(req: Request) {
     const role = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    if (role === "FOUNDER" || role === "HR") {
-      // Founders/HR see all events
+    if (role === "FOUNDER" || role === "HR" || role === "TEAM_LEAD") {
+      // Founders/HR/Team Leads see all events
       const events = await db.event.findMany({
         include: {
           intern: {
