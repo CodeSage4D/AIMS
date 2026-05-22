@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { internId, type } = body;
+    const { internId, type, preferredCurrency } = body;
 
     if (!internId || !type) {
       return NextResponse.json({ error: "Missing parameters: internId and type" }, { status: 400 });
@@ -50,14 +50,23 @@ export async function POST(req: Request) {
 
     if (existingDoc && existingDoc.status === "APPROVED") {
       return NextResponse.json(
-        { error: "This document is already APPROVED and digitally signed. Overwriting is locked for compliance." },
-        { status: 400 }
+          { error: "This document is already APPROVED and digitally signed. Overwriting is locked for compliance." },
+          { status: 400 }
       );
     }
 
+    // Determine the preferred currency to use for generation
+    let currencyFallback = "INR";
+    const cookieHeader = req.headers.get("cookie") || "";
+    const match = cookieHeader.match(/aurxon_currency=([^;]+)/);
+    if (match) {
+      currencyFallback = match[1];
+    }
+    const finalCurrency = preferredCurrency || currencyFallback || "INR";
+
     let content: any;
     if (type === "OFFER_LETTER") {
-      content = generateOfferLetterDraft(intern);
+      content = generateOfferLetterDraft(intern, finalCurrency);
     } else if (type === "NDA") {
       content = generateNDADraft(intern);
     } else if (type === "ID_CARD") {
