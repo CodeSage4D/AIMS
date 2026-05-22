@@ -175,7 +175,7 @@ export async function POST(req: Request) {
           });
 
           // Create corresponding Intern record
-          return await tx.intern.create({
+          const createdIntern = await tx.intern.create({
             data: {
               internId: computedId,
               fullName,
@@ -207,6 +207,37 @@ export async function POST(req: Request) {
               userId: createdUser.id,
             },
           });
+
+          // Generate dynamic onboarding document drafts
+          const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft } = await import("@/lib/documentTemplates");
+          const offerLetterContent = generateOfferLetterDraft(createdIntern);
+          const ndaContent = generateNDADraft(createdIntern);
+          const idCardContent = generateIDCardDraft(createdIntern);
+
+          await tx.generatedDocument.createMany({
+            data: [
+              {
+                internId: createdIntern.id,
+                type: "OFFER_LETTER",
+                content: offerLetterContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: createdIntern.id,
+                type: "NDA",
+                content: ndaContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: createdIntern.id,
+                type: "ID_CARD",
+                content: idCardContent as any,
+                status: "PENDING",
+              },
+            ],
+          });
+
+          return createdIntern;
         });
         break; // Successfully inserted!
       } catch (error: any) {
@@ -248,6 +279,15 @@ export async function POST(req: Request) {
         description: `Successfully onboarded new employee/intern ${fullName} with active branded ID ${finalAssignedId}`,
       },
     });
+
+    // Trigger onboarding welcome email asynchronously
+    const loginUrl = `${req.headers.get("origin") || "http://localhost:3000"}/login`;
+    const { sendOnboardingWelcomeEmail } = await import("@/lib/emailService");
+    sendOnboardingWelcomeEmail(
+      { fullName: intern.fullName, email: intern.email, internId: intern.internId },
+      "aims-demo-intern-2026",
+      loginUrl
+    ).catch((err) => console.error("Asynchronous welcome email dispatch failed:", err));
 
     return NextResponse.json({ success: true, intern }, { status: 201 });
   } catch (error: any) {
