@@ -104,6 +104,14 @@ export async function POST() {
       });
     }
 
+    // 4.5. Initialize active WorkSession for this attendance
+    await db.workSession.create({
+      data: {
+        attendanceId: attendance.id,
+        startTime: now,
+      },
+    });
+
     // 5. Register security activity log
     await db.activityLog.create({
       data: {
