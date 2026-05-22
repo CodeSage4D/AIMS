@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
     let logs: any[] = [];
 
-    if (user.role === "FOUNDER" || user.role === "HR") {
+    if (user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR") {
       logs = await db.dailyLog.findMany({
         include: {
           intern: {
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
         },
         orderBy: { createdAt: "desc" },
       });
-    } else if (user.role === "TEAM_LEAD") {
+    } else if (user.role === "ADMIN" || user.role === "TEAM_LEAD") {
       logs = await db.dailyLog.findMany({
         where: {
           intern: {
