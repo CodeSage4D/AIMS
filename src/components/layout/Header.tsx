@@ -4,10 +4,13 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Menu, User, Sun, Moon, LogOut } from "lucide-react";
+import { Menu, User, Sun, Moon, LogOut, Search, Loader2, Briefcase, MessageSquare } from "lucide-react";
+import { useCurrency } from "@/lib/useCurrency";
+import ChatDrawer from "./ChatDrawer";
 
 interface HeaderProps {
   user: {
+    id?: string;
     name?: string | null;
     email?: string | null;
     role?: string;
@@ -19,6 +22,16 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Currency Hook
+  const { currency, setCurrency } = useCurrency();
+
+  // Global Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ interns: any[]; tasks: any[] }>({ interns: [], tasks: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     // Retrieve persisted user theme preference on mount
@@ -33,6 +46,32 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
       document.documentElement.classList.remove("dark");
     }
   }, []);
+
+  // Debounced search logic
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults({ interns: [], tasks: [] });
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+        }
+      } catch (err) {
+        console.error("Search query execution failed:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -56,6 +95,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
     if (path.startsWith("/tasks")) return "Task Queue Board";
     if (path.startsWith("/documents")) return "Document Compliance Center";
     if (path.startsWith("/logs")) return "System Audit Logs";
+    if (path.startsWith("/calendar")) return "Company Calendar & Schedule";
     return "AURXON Portal";
   };
 
@@ -69,13 +109,130 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
         >
           <Menu className="h-5.5 w-5.5" />
         </button>
-        <h1 className="text-md font-heading font-bold text-foreground">
+        <h1 className="hidden md:block text-md font-heading font-bold text-foreground">
           {getPageTitle(pathname)}
         </h1>
       </div>
 
-      {/* Right: Active Status Badge, Theme Toggle & Mini Profile */}
+      {/* Middle: Global Search Input */}
+      <div className="flex-1 max-w-xs md:max-w-md mx-6 hidden sm:block relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search interns, tasks, domains..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchOpen(true);
+            }}
+            onFocus={() => setIsSearchOpen(true)}
+            className="w-full h-9 pl-9 pr-8 bg-secondary/60 hover:bg-secondary/80 focus:bg-background border border-border/80 focus:border-primary/50 rounded-lg text-xs font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+          />
+          {isSearching && (
+            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground animate-spin" />
+          )}
+        </div>
+
+        {/* Search Results Dropdown Overlay */}
+        {isSearchOpen && searchQuery.trim() !== "" && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-transparent"
+              onClick={() => setIsSearchOpen(false)}
+            />
+            <div className="absolute left-0 mt-2 w-full max-h-80 overflow-y-auto rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl shadow-2xl z-50 p-2 select-none animate-fadeIn">
+              {searchResults.interns.length === 0 && searchResults.tasks.length === 0 ? (
+                <div className="py-6 text-center text-xs text-muted-foreground font-medium">
+                  No matching interns or tasks found.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {searchResults.interns.length > 0 && (
+                    <div>
+                      <div className="px-2.5 py-1 text-[10px] font-heading font-extrabold text-primary tracking-wider uppercase border-b border-border/50 pb-1">
+                        Interns & Employees
+                      </div>
+                      <div className="mt-1 space-y-0.5">
+                        {searchResults.interns.map((intern) => (
+                          <Link
+                            key={intern.id}
+                            href={`/interns/${intern.id}`}
+                            onClick={() => {
+                              setIsSearchOpen(false);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-secondary transition-all"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-semibold text-foreground truncate">
+                                {intern.fullName}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {intern.internId} • {intern.roleDomain}
+                              </div>
+                            </div>
+                            <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded font-heading font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
+                              {intern.status}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {searchResults.tasks.length > 0 && (
+                    <div>
+                      <div className="px-2.5 py-1 text-[10px] font-heading font-extrabold text-indigo-500 tracking-wider uppercase border-b border-border/50 pb-1">
+                        Tasks
+                      </div>
+                      <div className="mt-1 space-y-0.5">
+                        {searchResults.tasks.map((task) => (
+                          <Link
+                            key={task.id}
+                            href="/tasks"
+                            onClick={() => {
+                              setIsSearchOpen(false);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-secondary transition-all"
+                          >
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="text-xs font-semibold text-foreground truncate">
+                                {task.title}
+                              </div>
+                              {task.intern?.fullName && (
+                                <div className="text-[10px] text-muted-foreground">
+                                  Assignee: {task.intern.fullName}
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-heading font-bold bg-secondary border border-border uppercase">
+                              {task.status.replace("_", " ")}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Right: Active Status Badge, Currency & Theme Toggle & Mini Profile */}
       <div className="flex items-center space-x-3.5">
+        {/* Currency Switcher Toggle Button */}
+        <button
+          onClick={() => setCurrency(currency === "INR" ? "USD" : "INR")}
+          className="h-9 px-3 rounded-md bg-secondary border border-border/80 flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer select-none"
+          title="Toggle Stipend Currency (INR / USD)"
+        >
+          <span>{currency === "INR" ? "🇮🇳 INR (₹)" : "🇺🇸 USD ($)"}</span>
+        </button>
+
         <button
           onClick={toggleTheme}
           className="h-9 w-9 rounded-md bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
@@ -86,6 +243,15 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
           ) : (
             <Moon className="h-4.5 w-4.5 text-blue-500" />
           )}
+        </button>
+
+        {/* Messaging Icon Button */}
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="h-9 w-9 rounded-md bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+          title="Open Messaging Center"
+        >
+          <MessageSquare className="h-4.5 w-4.5 text-indigo-400 hover:scale-105 transition-transform" />
         </button>
         
         <div className="hidden md:flex flex-col text-right">
@@ -155,6 +321,17 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
           )}
         </div>
       </div>
+      {user.id && (
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          currentUser={{
+            id: user.id,
+            name: user.name,
+            role: user.role
+          }}
+        />
+      )}
     </header>
   );
 }
