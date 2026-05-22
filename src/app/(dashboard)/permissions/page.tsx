@@ -218,7 +218,7 @@ export default function PermissionsPage() {
   // Toggle dynamic permission settings
   const handleTogglePermission = async (user: User, key: keyof UserPermission) => {
     if (user.role === "FOUNDER") return; // Hard lock
-    if (user.role === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") return; // Super admin lock
+    if (user.role === "SUPER_ADMIN" && currentUser?.role !== "FOUNDER") return; // Super admin lock
 
     const currentPerm = user.permission || {
       dashboardAccess: true,
@@ -275,7 +275,7 @@ export default function PermissionsPage() {
   // Update Administrative Role
   const handleUpdateRole = async (user: User, newRole: string) => {
     if (user.role === "FOUNDER") return;
-    if (newRole === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") {
+    if (newRole === "SUPER_ADMIN" && currentUser?.role !== "FOUNDER") {
       setErrorMessage("Forbidden. Only the Founder can promote users to Super Admin.");
       return;
     }
@@ -313,11 +313,11 @@ export default function PermissionsPage() {
   // Delete User Account
   const handleDeleteUser = async (user: User) => {
     if (user.role === "FOUNDER") return;
-    if (user.id === currentUser.id) {
+    if (user.id === currentUser?.id) {
       setErrorMessage("Forbidden. You cannot wipe your own active administrative workspace account.");
       return;
     }
-    if (user.role === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") {
+    if (user.role === "SUPER_ADMIN" && currentUser?.role !== "FOUNDER") {
       setErrorMessage("Forbidden. Only the Founder can delete Super Admin accounts.");
       return;
     }
@@ -491,7 +491,7 @@ export default function PermissionsPage() {
               filteredUsers.map((user) => {
                 const isFounder = user.role === "FOUNDER";
                 const isSuperAdmin = user.role === "SUPER_ADMIN";
-                const isSelf = user.id === currentUser.id;
+                const isSelf = user.id === currentUser?.id;
                 
                 return (
                   <div
@@ -501,7 +501,7 @@ export default function PermissionsPage() {
                   >
                     <div className="flex items-center space-x-3.5 min-w-0">
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center font-heading font-extrabold select-none shrink-0 border ${isFounder ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-sm" : isSuperAdmin ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs" : user.role === "HR" ? "bg-pink-500/10 border-pink-500/20 text-pink-600 dark:text-pink-400 text-xs" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs"}`}>
-                        {user.fullName[0].toUpperCase()}
+                        {(user.fullName?.[0] || user.email?.[0] || "?").toUpperCase()}
                       </div>
                       
                       <div className="min-w-0 space-y-0.5">
@@ -532,7 +532,7 @@ export default function PermissionsPage() {
                       
                       {/* Purple Shield Indicator */}
                       <div className="flex items-center space-x-1.5">
-                        {!isFounder && (currentUser.role === "FOUNDER" || (currentUser.role === "SUPER_ADMIN" && !isSuperAdmin)) && (
+                        {!isFounder && (currentUser?.role === "FOUNDER" || (currentUser?.role === "SUPER_ADMIN" && !isSuperAdmin)) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -581,7 +581,7 @@ export default function PermissionsPage() {
 
                 <div className="flex items-center space-x-3 bg-slate-50 dark:bg-white/[0.02] p-3 rounded-xl border border-slate-100 dark:border-white/[0.04]">
                   <div className="h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-sm font-bold text-indigo-500 dark:text-indigo-400 shrink-0">
-                    {selectedUser.fullName[0].toUpperCase()}
+                    {(selectedUser.fullName?.[0] || selectedUser.email?.[0] || "?").toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-slate-800 dark:text-white block truncate">{selectedUser.fullName}</span>
@@ -591,7 +591,7 @@ export default function PermissionsPage() {
               </div>
 
               {/* Role promotion console */}
-              {selectedUser.role !== "FOUNDER" && (currentUser.role === "FOUNDER" || (currentUser.role === "SUPER_ADMIN" && selectedUser.role !== "SUPER_ADMIN")) && (
+              {selectedUser.role !== "FOUNDER" && (currentUser?.role === "FOUNDER" || (currentUser?.role === "SUPER_ADMIN" && selectedUser.role !== "SUPER_ADMIN")) && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-heading font-extrabold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">
                     Administrative Designation Role
@@ -606,7 +606,7 @@ export default function PermissionsPage() {
                     <option value="TEAM_LEAD" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Team Lead / supervisor</option>
                     <option value="ADMIN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Admin Manager</option>
                     <option value="HR" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">HR Administrator</option>
-                    {currentUser.role === "FOUNDER" && <option value="SUPER_ADMIN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Super Admin Director</option>}
+                    {currentUser?.role === "FOUNDER" && <option value="SUPER_ADMIN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Super Admin Director</option>}
                   </select>
                 </div>
               )}
@@ -640,7 +640,7 @@ export default function PermissionsPage() {
                     const typedKey = key as keyof UserPermission;
                     const isGranted = selectedUser.permission ? !!selectedUser.permission[typedKey] : false;
                     const isFounder = selectedUser.role === "FOUNDER";
-                    const isSuperAdminEditLocked = selectedUser.role === "SUPER_ADMIN" && currentUser.role !== "FOUNDER";
+                    const isSuperAdminEditLocked = selectedUser.role === "SUPER_ADMIN" && currentUser?.role !== "FOUNDER";
                     
                     const isTogglingDisabled = isFounder || isSuperAdminEditLocked || actionLoading === `${selectedUser.id}-${key}`;
                     
@@ -767,7 +767,7 @@ export default function PermissionsPage() {
                     <option value="ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Admin Manager</option>
                     <option value="HR" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">HR Administrator</option>
                     <option value="TEAM_LEAD" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Team Lead / Supervisor</option>
-                    {currentUser.role === "FOUNDER" && <option value="SUPER_ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Super Admin Director</option>}
+                    {currentUser?.role === "FOUNDER" && <option value="SUPER_ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Super Admin Director</option>}
                   </select>
                 </div>
               </div>
