@@ -38,15 +38,18 @@ export interface IDCardContent {
   barcode: string;
 }
 
-export function generateOfferLetterDraft(intern: {
-  fullName: string;
-  internId: string;
-  roleDomain: string;
-  department: string;
-  startDate: Date | string;
-  endDate?: Date | string | null;
-  stipendAmount?: number | any;
-}): OfferLetterContent {
+export function generateOfferLetterDraft(
+  intern: {
+    fullName: string;
+    internId: string;
+    roleDomain: string;
+    department: string;
+    startDate: Date | string;
+    endDate?: Date | string | null;
+    stipendAmount?: number | any;
+  },
+  preferredCurrency: string = "INR"
+): OfferLetterContent {
   const formattedStart = new Date(intern.startDate).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -61,7 +64,25 @@ export function generateOfferLetterDraft(intern: {
     : "Completion of Training";
 
   const stipendVal = intern.stipendAmount ? Number(intern.stipendAmount) : 0;
-  const stipendText = stipendVal > 0 ? `INR ${stipendVal.toLocaleString()}/month` : "Unpaid (Training)";
+  let stipendText = "Unpaid (Training)";
+  if (stipendVal > 0) {
+    if (preferredCurrency === "USD") {
+      const converted = stipendVal / 83;
+      stipendText = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(converted) + "/month";
+    } else {
+      stipendText = new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(stipendVal) + "/month";
+    }
+  }
 
   return {
     title: "OFFICIAL LETTER OF INTERNSHIP OFFER",
