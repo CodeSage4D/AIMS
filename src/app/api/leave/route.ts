@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
 
 // GET: Fetch leave applications
 export async function GET(request: Request) {
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
 
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
+    const hasApprovalAccess = await hasPermission(userId, role, "approvalAccess");
 
     if (role === "INTERN") {
       // Find the corresponding intern profile
@@ -30,6 +32,9 @@ export async function GET(request: Request) {
 
       return NextResponse.json(leaves, { status: 200 });
     } else {
+      if (!hasApprovalAccess) {
+        return NextResponse.json({ error: "Forbidden. Access restricted." }, { status: 403 });
+      }
       // Founders, HR, Team Leads can see all enrollees' leave requests
       const leaves = await db.leaveApplication.findMany({
         include: {
@@ -39,11 +44,18 @@ export async function GET(request: Request) {
               internId: true,
               department: true,
               roleDomain: true,
+              supervisorId: true,
             },
           },
         },
         orderBy: { createdAt: "desc" },
       });
+
+      // Filter by supervision if they are TEAM_LEAD or ADMIN
+      if (role === "TEAM_LEAD" || role === "ADMIN") {
+        const filteredLeaves = leaves.filter(l => l.intern.supervisorId === userId);
+        return NextResponse.json(filteredLeaves, { status: 200 });
+      }
 
       return NextResponse.json(leaves, { status: 200 });
     }
@@ -119,7 +131,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH: Approve or reject leave application (Founder / HR)
+// PATCH: Approve or reject leave application (Founder / HR / Admins with approvalAccess)
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
@@ -130,9 +142,10 @@ export async function PATCH(request: Request) {
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
 
-    // Only Founder and HR are authorized to approve leaves
-    if (role !== "FOUNDER" && role !== "HR") {
-      return NextResponse.json({ error: "Only the Founder and HR managers can resolve leave requests." }, { status: 403 });
+    // Check approvalAccess permission
+    const hasApprovalAccess = await hasPermission(userId, role, "approvalAccess");
+    if (role === "INTERN" || !hasApprovalAccess) {
+      return NextResponse.json({ error: "Forbidden. Only authorized managers can resolve leave requests." }, { status: 403 });
     }
 
     const { id, status } = await request.json();
@@ -156,6 +169,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Leave application not found." }, { status: 404 });
     }
 
+    if ((role === "TEAM_LEAD" || role === "ADMIN") && leaveApp.intern.supervisorId !== userId) {
+      return NextResponse.json({ error: "Forbidden. You can only resolve leave requests for interns under your direct supervision." }, { status: 403 });
+    }
+
     // Update status
     const updatedLeave = await db.leaveApplication.update({
       where: { id },
@@ -166,6 +183,10 @@ export async function PATCH(request: Request) {
     if (status === "APPROVED") {
       const start = new Date(leaveApp.startDate);
       const end = new Date(leaveApp.endDate);
+      
+      start.setUTCHours(0, 0, 0, 0);
+      end.setUTCHours(0, 0, 0, 0);
+      
       const current = new Date(start);
 
       // Determine attendance status based on leave type
@@ -177,9 +198,8 @@ export async function PATCH(request: Request) {
       if (leaveApp.type === "WORK_RESUME") attStatus = "PRESENT";
 
       while (current <= end) {
-        // Set time to noon to avoid date zone shift mismatches
         const targetDate = new Date(current);
-        targetDate.setUTCHours(12, 0, 0, 0);
+        targetDate.setUTCHours(0, 0, 0, 0);
 
         await db.attendance.upsert({
           where: {
@@ -200,7 +220,7 @@ export async function PATCH(request: Request) {
           },
         });
 
-        current.setDate(current.getDate() + 1);
+        current.setUTCDate(current.getUTCDate() + 1);
       }
     }
 
