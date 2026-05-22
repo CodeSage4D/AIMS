@@ -94,6 +94,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
     if (path.startsWith("/attendance")) return "Daily Attendance Roll";
     if (path.startsWith("/tasks")) return "Task Queue Board";
     if (path.startsWith("/documents")) return "Document Compliance Center";
+    if (path.startsWith("/permissions")) return "Roles & Permissions Hub";
     if (path.startsWith("/logs")) return "System Audit Logs";
     if (path.startsWith("/calendar")) return "Company Calendar & Schedule";
     return "AURXON Portal";
@@ -173,7 +174,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
                               </div>
                             </div>
                             <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded font-heading font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
-                              {intern.status}
+                               {intern.status}
                             </span>
                           </Link>
                         ))}
@@ -208,7 +209,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
                               )}
                             </div>
                             <span className="text-[9px] px-1.5 py-0.5 rounded font-heading font-bold bg-secondary border border-border uppercase">
-                              {task.status.replace("_", " ")}
+                               {task.status.replace("_", " ")}
                             </span>
                           </Link>
                         ))}
@@ -259,6 +260,10 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
           <span className="text-[9px] font-heading font-bold text-primary tracking-wider uppercase">
             {user.role === "FOUNDER"
               ? "FOUNDER ELITE WORKSPACE"
+              : user.role === "SUPER_ADMIN"
+              ? "SUPER ADMIN WORKSPACE"
+              : user.role === "ADMIN"
+              ? "ADMIN WORKSPACE"
               : user.role === "HR"
               ? "HR MANAGEMENT SUITE"
               : user.role === "TEAM_LEAD"
