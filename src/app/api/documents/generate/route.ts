@@ -19,20 +19,11 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
-      return NextResponse.json({ error: "Forbidden. Administrative access required." }, { status: 403 });
-    }
-
     const body = await req.json();
     const { internId, type, preferredCurrency } = body;
 
     if (!internId || !type) {
       return NextResponse.json({ error: "Missing parameters: internId and type" }, { status: 400 });
-    }
-
-    const validTypes = ["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: `Invalid type. Must be one of: ${validTypes.join(", ")}` }, { status: 400 });
     }
 
     const intern = await db.intern.findUnique({
@@ -41,6 +32,18 @@ export async function POST(req: Request) {
 
     if (!intern) {
       return NextResponse.json({ error: "Intern record not found." }, { status: 404 });
+    }
+
+    const isSelf = intern.userId === userId;
+    const isHired = intern.status === "ACTIVE" || intern.status === "COMPLETED" || intern.employmentType === "PERMANENT" || intern.employmentType === "CONTRACT";
+
+    if (userRole !== "FOUNDER" && userRole !== "HR" && !(isSelf && isHired)) {
+      return NextResponse.json({ error: "Forbidden. Administrative access or hired status required." }, { status: 403 });
+    }
+
+    const validTypes = ["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"];
+    if (!validTypes.includes(type)) {
+      return NextResponse.json({ error: `Invalid type. Must be one of: ${validTypes.join(", ")}` }, { status: 400 });
     }
 
     // Check if an APPROVED document already exists of this type
