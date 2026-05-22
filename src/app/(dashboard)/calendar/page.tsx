@@ -318,7 +318,7 @@ export default function CalendarPage() {
             </p>
           </div>
           
-          {(userRole === "FOUNDER" || userRole === "HR") && (
+          {(userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR") && (
             <div className="flex flex-wrap items-center gap-2.5">
               <Button
                 onClick={() => setIsEventModalOpen(true)}
