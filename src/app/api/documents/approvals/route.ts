@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSafeUserId } from "@/lib/safeUser";
 import crypto from "crypto";
+import { hasPermission } from "@/lib/permissions";
 
 /**
  * REST Endpoint for Document Approvals
@@ -15,8 +16,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
     }
 
+    const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
+    const hasApprovalAccess = await hasPermission(userId, userRole, "approvalAccess");
+    if (!hasApprovalAccess) {
       return NextResponse.json({ error: "Forbidden. Access restricted." }, { status: 403 });
     }
 
@@ -65,7 +68,8 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const userName = (session.user as any).name || "Administrator";
 
-    if (userRole !== "FOUNDER" && userRole !== "HR") {
+    const hasApprovalAccess = await hasPermission(userId, userRole, "approvalAccess");
+    if (!hasApprovalAccess) {
       return NextResponse.json({ error: "Forbidden. Administrative access required." }, { status: 403 });
     }
 
@@ -138,15 +142,12 @@ export async function PUT(req: Request) {
 
     // ACTION 3: APPROVE & DIGITAL SIGN
     if (action === "APPROVE") {
-      if (userRole !== "FOUNDER") {
-        return NextResponse.json({ error: "Forbidden. Only AIMS Founders can digitally sign official certificates and documents." }, { status: 403 });
-      }
       const approvedAt = new Date();
       // Create a solid cryptographic signature block
       const sigInput = `${doc.intern.id}-${userId}-${approvedAt.toISOString()}`;
       const sigHash = crypto.createHash("sha256").update(sigInput).digest("hex").substring(0, 16).toUpperCase();
       
-      const signatureStamp = `Digitally Signed by Founder [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
+      const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
 
       const updatedDoc = await db.generatedDocument.update({
         where: { id: documentId },
