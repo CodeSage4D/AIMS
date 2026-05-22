@@ -69,6 +69,7 @@ model User {
   tasks                  Task[]
   logs                   ActivityLog[]
   internProfile          Intern?                @relation("InternUserRelation")
+  approvedDocuments      GeneratedDocument[]    @relation("ApprovedDocuments")
 
   @@map("users")
 }
@@ -115,6 +116,7 @@ model Intern {
   documents              Document[]
   leaves                 LeaveApplication[]
   certificates           Certificate[]
+  generatedDocuments     GeneratedDocument[]
 
   @@index([fullName])
   @@index([status])
@@ -218,5 +220,36 @@ model Certificate {
   createdAt         DateTime @default(now()) @map("created_at")
 
   @@map("certificates")
+}
+
+model GeneratedDocument {
+  id             String    @id @default(uuid())
+  internId       String    @map("intern_id")
+  intern         Intern    @relation(fields: [internId], references: [id], onDelete: Cascade)
+  type           String    // e.g. "OFFER_LETTER", "NDA", "ID_CARD"
+  content        Json      // Contains custom terms, template variables, or filled strings
+  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById   String?   @map("approved_by_id")
+  approvedBy     User?     @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt     DateTime? @map("approved_at")
+  signature      String?   // Cryptographic base64 signature hash or Admin/Founder signature stamp
+  notes          String?   // Audit notes from founder review
+  fileUrl        String?   @map("file_url") // Location of final generated document (PDF/Image)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("generated_documents")
+}
+
+model EmailLog {
+  id           String   @id @default(uuid())
+  recipient    String
+  subject      String
+  template     String   // e.g. "ONBOARDING_WELCOME", "TASK_ASSIGNED", "PASSWORD_RESET"
+  status       String   @default("SENT") // SENT, FAILED
+  errorMessage String?  @map("error_message")
+  sentAt       DateTime @default(now()) @map("sent_at")
+
+  @@map("email_logs")
 }
 
