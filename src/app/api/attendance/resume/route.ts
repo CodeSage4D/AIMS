@@ -101,7 +101,39 @@ export async function POST() {
     const checkInHour = checkInIST.getUTCHours();
     const checkInMin = checkInIST.getUTCMinutes();
     const wasLate = checkInHour > 9 || (checkInHour === 9 && checkInMin > 30);
-    const restoreStatus = wasLate ? "LATE" : "PRESENT";
+    
+    // Default restore status
+    let restoreStatus = wasLate ? "LATE" : "PRESENT";
+
+    // 1. Try to recover status tag from remarks
+    if (attendance.remarks) {
+      const match = attendance.remarks.match(/\[PrevStatus:([A-Z0-9_]+)\]/);
+      if (match && match[1]) {
+        restoreStatus = match[1];
+      }
+    }
+
+    // 2. Query for an active approved LeaveApplication for today to protect leave status
+    const activeLeave = await db.leaveApplication.findFirst({
+      where: {
+        internId: intern.id,
+        status: "APPROVED",
+        startDate: { lte: todayUTC },
+        endDate: { gte: todayUTC },
+      },
+    });
+
+    if (activeLeave) {
+      if (activeLeave.type === "HALF_DAY_1ST_HALF") {
+        restoreStatus = "HALF_DAY_1ST_HALF";
+      } else if (activeLeave.type === "HALF_DAY_2ND_HALF") {
+        restoreStatus = "HALF_DAY_2ND_HALF";
+      } else if (activeLeave.type === "EMERGENCY_LEAVE") {
+        restoreStatus = "EMERGENCY_LEAVE";
+      } else {
+        restoreStatus = "LEAVE";
+      }
+    }
 
     const hourIST = nowIST.getUTCHours();
     const minuteIST = nowIST.getUTCMinutes();
@@ -110,7 +142,7 @@ export async function POST() {
     const updatedAttendance = await db.attendance.update({
       where: { id: attendance.id },
       data: {
-        status: restoreStatus,
+        status: restoreStatus as any,
         breakDuration: newBreakDuration,
         remarks: `${currentRemarks}Resumed work at ${hourIST
           .toString()
