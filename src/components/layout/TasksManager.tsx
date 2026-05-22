@@ -47,9 +47,10 @@ interface TasksManagerProps {
   tasks: TaskItem[];
   interns: InternOption[];
   userRole?: string;
+  currentUserId?: string;
 }
 
-export default function TasksManager({ tasks, interns, userRole = "INTERN" }: TasksManagerProps) {
+export default function TasksManager({ tasks, interns, userRole = "INTERN", currentUserId }: TasksManagerProps) {
   const router = useRouter();
 
   // Role validation helpers
@@ -74,6 +75,63 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN" }: Ta
   const [internId, setInternId] = useState("");
   const [submissionComment, setSubmissionComment] = useState("");
   const [feedbackComment, setFeedbackComment] = useState("");
+
+  // Task Commentary Thread States & Logic
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const commentsEndRef = React.useRef<HTMLDivElement>(null);
+
+  const fetchComments = async (taskId: string) => {
+    setCommentsLoading(true);
+    try {
+      const res = await fetch(`/api/messages?taskId=${taskId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data);
+      }
+    } catch (err) {
+      console.error("Failed to load task comments", err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleOpenDetails = (task: TaskItem) => {
+    setSelectedTask(task);
+    setIsDetailsModalOpen(true);
+    fetchComments(task.id);
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !selectedTask) return;
+
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: newComment.trim(),
+          taskId: selectedTask.id
+        }),
+      });
+
+      if (res.ok) {
+        const added = await res.json();
+        setComments((prev) => [...prev, added]);
+        setNewComment("");
+      }
+    } catch (err) {
+      console.error("Failed to post comment", err);
+    }
+  };
+
+  React.useEffect(() => {
+    if (commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [comments]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,20 +359,15 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN" }: Ta
                             <span className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
                               {task.description}
                             </span>
-                            {(task.submissionComment || task.feedbackComment) && (
-                              <div className="flex items-center space-x-1.5 mt-2 text-[10px] text-primary font-bold">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                <button
-                                  onClick={() => {
-                                    setSelectedTask(task);
-                                    setIsDetailsModalOpen(true);
-                                  }}
-                                  className="hover:underline flex items-center space-x-1"
-                                >
-                                  <span>View Workflow Remarks & Comments</span>
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex items-center space-x-1.5 mt-2 text-[10px] text-primary font-bold">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <button
+                                onClick={() => handleOpenDetails(task)}
+                                className="hover:underline flex items-center space-x-1"
+                              >
+                                <span>Task Details & Discussion Thread</span>
+                              </button>
+                            </div>
                           </div>
                         </td>
                         <td className="py-4.5 px-6">
@@ -471,18 +524,13 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN" }: Ta
                 </p>
 
                 {/* Mobile Comments Indicator */}
-                {(task.submissionComment || task.feedbackComment) && (
-                  <button
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setIsDetailsModalOpen(true);
-                    }}
-                    className="flex items-center space-x-1.5 text-[10px] text-primary font-bold hover:underline"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    <span>View Remarks & Comments ({[task.submissionComment, task.feedbackComment].filter(Boolean).length})</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => handleOpenDetails(task)}
+                  className="flex items-center space-x-1.5 text-[10px] text-primary font-bold hover:underline"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>Task Details & Discussion Thread</span>
+                </button>
 
                 {/* Mobile Card Metadata Grid */}
                 <div className="grid grid-cols-2 gap-3 text-[11px] bg-muted/20 border border-border/40 p-3 rounded-lg font-medium text-foreground">
@@ -851,75 +899,180 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN" }: Ta
       {/* 6. View Details & History Modal Overlay */}
       {isDetailsModalOpen && selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 select-none animate-fadeIn">
-          <div className="w-full max-w-lg">
+          <div className="w-full max-w-3xl animate-scaleIn">
             <Card className="border-border shadow-2xl relative rounded-2xl overflow-hidden bg-card/95 backdrop-blur-xl text-card-foreground">
               <button
                 onClick={() => {
                   setIsDetailsModalOpen(false);
                   setSelectedTask(null);
+                  setComments([]);
                 }}
-                className="absolute top-4.5 right-4.5 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-secondary/10 transition-colors cursor-pointer"
+                className="absolute top-4.5 right-4.5 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary/15 transition-colors cursor-pointer z-10"
               >
                 <X className="h-5 w-5" />
               </button>
-              <CardHeader className="pb-4">
-                <CardTitle>Task Details & Progress</CardTitle>
-                <CardDescription>Complete audit record of the task workflow.</CardDescription>
+              
+              <CardHeader className="pb-4 border-b border-border/40">
+                <CardTitle className="text-lg">Task Board & Live Workspace</CardTitle>
+                <CardDescription>Full task details, workflow remarks, and continuous team comments.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Task Goal</span>
-                  <p className="text-sm font-bold text-foreground">{selectedTask.title}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{selectedTask.description}</p>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs border-t border-border/40 pt-3.5">
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Intern Profile</span>
-                    <span className="font-bold text-foreground">{selectedTask.intern.fullName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Assigned By</span>
-                    <span className="font-bold text-foreground">{selectedTask.assigner?.fullName || "Supervisor"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Deadline</span>
-                    <span className="font-bold text-foreground">{formatDate(selectedTask.deadline)}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Current Status</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border mt-0.5 ${getStatusBadge(selectedTask.status)}`}>
-                      {selectedTask.status}
-                    </span>
-                  </div>
-                </div>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-border/40">
+                  {/* Left Column: Task details & status */}
+                  <div className="col-span-1 md:col-span-5 p-5 space-y-4 max-h-[500px] overflow-y-auto pr-3">
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Task Goal</span>
+                      <p className="text-sm font-extrabold text-foreground leading-snug">{selectedTask.title}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{selectedTask.description}</p>
+                    </div>
 
-                {selectedTask.submissionComment && (
-                  <div className="space-y-1.5 p-3 rounded-xl bg-primary/5 border border-primary/20 border-t mt-3">
-                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">Intern Submission Comments</span>
-                    <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-semibold">{selectedTask.submissionComment}</p>
-                  </div>
-                )}
+                    <div className="space-y-3.5 border-t border-border/40 pt-4">
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Intern Profile</span>
+                        <span className="text-xs font-bold text-foreground">{selectedTask.intern.fullName}</span>
+                        <span className="text-[10px] text-muted-foreground block">ID: {selectedTask.intern.internId || selectedTask.intern.id}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Assigned By</span>
+                        <span className="text-xs font-bold text-foreground">{selectedTask.assigner?.fullName || "Supervisor"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Deadline</span>
+                        <span className="text-xs font-bold text-foreground flex items-center space-x-1 mt-0.5">
+                          <Clock className="h-3.5 w-3.5 text-cyan-500 shrink-0" />
+                          <span>{formatDate(selectedTask.deadline)}</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase font-bold text-muted-foreground block">Current Status</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border mt-1 ${getStatusBadge(selectedTask.status)}`}>
+                          {selectedTask.status}
+                        </span>
+                      </div>
+                    </div>
 
-                {selectedTask.feedbackComment && (
-                  <div className="space-y-1.5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 border-t mt-3">
-                    <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block">Manager Feedback Remarks</span>
-                    <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-semibold">{selectedTask.feedbackComment}</p>
-                  </div>
-                )}
+                    {selectedTask.submissionComment && (
+                      <div className="space-y-1.5 p-3 rounded-xl bg-primary/5 border border-primary/25 border-t mt-3">
+                        <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">Intern Submission Comment</span>
+                        <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-semibold">{selectedTask.submissionComment}</p>
+                      </div>
+                    )}
 
-                <div className="flex items-center justify-end pt-4 border-t border-border/40 select-none">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsDetailsModalOpen(false);
-                      setSelectedTask(null);
-                    }}
-                  >
-                    Close
-                  </Button>
+                    {selectedTask.feedbackComment && (
+                      <div className="space-y-1.5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 border-t mt-3">
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block">Manager Feedback Remarks</span>
+                        <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-semibold">{selectedTask.feedbackComment}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Dynamic Discussion Thread */}
+                  <div className="col-span-1 md:col-span-7 flex flex-col h-[500px]">
+                    <div className="p-4.5 bg-muted/15 border-b border-border/40 flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider flex items-center space-x-1">
+                        <MessageSquare className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                        <span>Live Workspace Thread</span>
+                      </span>
+                      {comments.length > 0 && (
+                        <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-full font-bold border border-indigo-500/10 dark:text-indigo-400">
+                          {comments.length} Messages
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Comments scroll area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+                      {commentsLoading ? (
+                        <div className="flex flex-col items-center justify-center h-full space-y-2 text-muted-foreground select-none">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                          <span className="text-xs font-semibold">Retrieving workspace comments...</span>
+                        </div>
+                      ) : comments.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center space-y-2 text-muted-foreground select-none">
+                          <MessageSquare className="h-7 w-7 text-muted-foreground/40" />
+                          <p className="text-xs font-semibold">No comments posted yet.</p>
+                          <p className="text-[10px] text-muted-foreground/80 max-w-[220px]">
+                            Ask questions, provide notes, or send links to sync with your team.
+                          </p>
+                        </div>
+                      ) : (
+                        comments.map((msg) => {
+                          const isMe = currentUserId === msg.senderId;
+                          const senderInitials = msg.sender.fullName
+                            ? msg.sender.fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+                            : "U";
+                          const senderRole = msg.sender.role || "INTERN";
+
+                          return (
+                            <div key={msg.id} className={`flex items-start space-x-2.5 ${isMe ? "flex-row-reverse space-x-reverse" : ""}`}>
+                              {/* Avatar */}
+                              <div className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-extrabold text-white shrink-0 shadow-sm border",
+                                isMe 
+                                  ? "bg-gradient-to-br from-indigo-500 to-indigo-600 border-indigo-400/20" 
+                                  : senderRole === "FOUNDER" || senderRole === "HR"
+                                  ? "bg-gradient-to-br from-amber-500 to-orange-500 border-amber-400/20"
+                                  : "bg-gradient-to-br from-cyan-500 to-blue-500 border-cyan-400/20"
+                              )}>
+                                {senderInitials}
+                              </div>
+
+                              {/* Message bubble */}
+                              <div className="max-w-[75%] space-y-0.5">
+                                <div className={`flex items-center space-x-1.5 ${isMe ? "flex-row-reverse space-x-reverse" : ""}`}>
+                                  <span className="text-[10px] font-bold text-foreground">{msg.sender.fullName}</span>
+                                  <span className={cn(
+                                    "text-[8px] font-extrabold px-1 rounded uppercase tracking-wide border",
+                                    senderRole === "FOUNDER" || senderRole === "HR"
+                                      ? "bg-amber-500/10 text-amber-600 border-amber-500/10 dark:text-amber-400"
+                                      : "bg-cyan-500/10 text-cyan-600 border-cyan-500/10 dark:text-cyan-400"
+                                  )}>
+                                    {senderRole}
+                                  </span>
+                                </div>
+                                <div className={cn(
+                                  "p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap shadow-xs border",
+                                  isMe 
+                                    ? "bg-indigo-500/10 text-indigo-700 border-indigo-500/10 dark:text-indigo-300 rounded-tr-none" 
+                                    : "bg-muted/30 text-foreground border-border/40 rounded-tl-none"
+                                )}>
+                                  {msg.content}
+                                </div>
+                                <span className={cn(
+                                  "text-[8px] text-muted-foreground/80 block mt-0.5 font-medium",
+                                  isMe ? "text-right" : ""
+                                )}>
+                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={commentsEndRef} />
+                    </div>
+
+                    {/* Chat input form */}
+                    <form onSubmit={handleAddComment} className="p-3 border-t border-border/40 bg-muted/10 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Write a message or paste work link..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 h-9 rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1.5 focus:ring-primary transition-all font-medium"
+                      />
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        disabled={!newComment.trim()}
+                        className="h-9 w-9 p-0 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-white/5 shadow-md active:scale-95 transition-all text-white shrink-0 cursor-pointer"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </form>
+                  </div>
                 </div>
               </CardContent>
             </Card>
