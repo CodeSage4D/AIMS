@@ -57,14 +57,14 @@ export default async function ProfilePage() {
   let initialRequests: any[] = [];
 
   try {
-    if (userRole === "TEAM_LEAD") {
+    if (userRole === "TEAM_LEAD" || userRole === "ADMIN") {
       supervisedCount = await db.intern.count({
         where: { supervisorId: userId },
       });
       tasksAssignedCount = await db.task.count({
         where: { assignedById: userId },
       });
-    } else if (userRole === "FOUNDER" || userRole === "HR") {
+    } else if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
       supervisedCount = await db.intern.count({
         where: { status: "ACTIVE" },
       });
