@@ -21,6 +21,7 @@ import { formatDate } from "@/lib/utils";
 import FounderDashboardQueues from "@/components/layout/FounderDashboardQueues";
 import InternDashboard from "@/components/layout/InternDashboard";
 import AnalyticsDashboard from "@/components/layout/AnalyticsDashboard";
+import NoticeBoard from "@/components/layout/NoticeBoard";
 
 export default async function DashboardPage() {
   // Dynamic background sweep to mark absent active interns on daily shifts
@@ -35,6 +36,63 @@ export default async function DashboardPage() {
   const userRole = (session?.user as any)?.role || "INTERN";
   const userId = (session?.user as any)?.id;
   const userName = session?.user?.name || "AURXON User";
+
+  // Fetch Announcements and Milestones for Notice Board
+  let announcements: any[] = [];
+  let anniversaries: any[] = [];
+  try {
+    const events = await db.event.findMany({
+      where: {
+        type: { in: ["EVENT", "REMINDER"] }
+      },
+      orderBy: {
+        date: "desc"
+      },
+      take: 5
+    });
+
+    announcements = events.map(e => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      date: e.date.toISOString(),
+      type: e.type
+    }));
+
+    const interns = await db.intern.findMany({
+      where: {
+        status: { in: ["ACTIVE", "COMPLETED"] }
+      },
+      select: {
+        id: true,
+        fullName: true,
+        roleDomain: true,
+        startDate: true
+      }
+    });
+
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentDateVal = today.getDate();
+
+    anniversaries = interns
+      .filter(intern => {
+        const start = new Date(intern.startDate);
+        return start.getMonth() === currentMonth && start.getDate() === currentDateVal;
+      })
+      .map(intern => {
+        const start = new Date(intern.startDate);
+        const years = today.getFullYear() - start.getFullYear();
+        return {
+          internId: intern.id,
+          fullName: intern.fullName,
+          roleDomain: intern.roleDomain,
+          years: years
+        };
+      });
+  } catch (err) {
+    console.error("Failed to query notices and milestones:", err);
+  }
 
   // ----------------------------------------------------
   // INTERN DASHBOARD RENDER PATH
@@ -148,6 +206,8 @@ export default async function DashboardPage() {
         initialAttendance={serializedAttendance}
         initialTasks={serializedTasks}
         initialDocuments={serializedDocuments}
+        announcements={announcements}
+        anniversaries={anniversaries}
       />
     );
   }
@@ -338,6 +398,9 @@ export default async function DashboardPage() {
           <FounderDashboardQueues />
         </div>
       )}
+
+      {/* 3.5 Notice Board announcements & milestones */}
+      <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
 
       {/* 4. Operational Split Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
