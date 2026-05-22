@@ -50,6 +50,7 @@ interface InternRecord {
   department: string;
   roleDomain: string;
   status: string;
+  employmentType?: string;
   supervisor?: { fullName: string } | null;
   documents: DocumentItem[];
   generatedDocuments?: {
@@ -137,6 +138,32 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     const uploadedCount = myRecord.documents.length;
     const verifiedCount = myRecord.documents.filter(d => d.verified).length;
     const myComplianceRate = Math.round((verifiedCount / REQUIRED_DOCS.length) * 100);
+
+    const [internActionLoading, setInternActionLoading] = useState<string | null>(null);
+
+    const handleGenerateDraftForIntern = async (type: string) => {
+      setError(null);
+      setSuccess(null);
+      setInternActionLoading(type);
+
+      try {
+        const res = await fetch("/api/documents/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ internId: myRecord.id, type, preferredCurrency: currency }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to generate document draft.");
+
+        setSuccess(`Dynamic draft for ${type.replace(/_/g, " ")} generated successfully!`);
+        router.refresh();
+      } catch (err: any) {
+        setError(err.message || "Could not generate document draft.");
+      } finally {
+        setInternActionLoading(null);
+      }
+    };
 
     // Document Upload Action
     const handleUploadForIntern = async (e: React.FormEvent) => {
@@ -302,89 +329,119 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-4">
-                {(!myRecord.generatedDocuments || myRecord.generatedDocuments.length === 0) ? (
-                  <div className="py-12 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider flex flex-col items-center space-y-3">
-                    <FileText className="h-8 w-8 text-muted-foreground/40 animate-pulse" />
-                    <span>No generated credentials issued yet.</span>
-                  </div>
-                ) : (
-                  myRecord.generatedDocuments.map((doc) => {
-                    const isApproved = doc.status === "APPROVED";
-                    
-                    return (
-                      <div
-                        key={doc.id}
-                        className={cn(
-                          "p-4 rounded-xl border transition-all duration-300 flex flex-col space-y-4",
-                          isApproved
-                            ? "bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border-emerald-500/25 hover:border-emerald-500/40"
-                            : "bg-secondary/5 border-border/40 opacity-75"
-                        )}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
-                              AURXON OFFICIAL CERTIFICATE
-                            </span>
-                            <h4 className="text-sm font-bold">{doc.type.replace(/_/g, " ")}</h4>
+                {["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"].map((type) => {
+                  const existing = (myRecord.generatedDocuments || []).find((d) => d.type === type);
+                  const isApproved = existing?.status === "APPROVED";
+                  const isHired = myRecord.status === "ACTIVE" || myRecord.status === "COMPLETED" || myRecord.employmentType === "PERMANENT" || myRecord.employmentType === "CONTRACT";
+
+                  return (
+                    <div
+                      key={type}
+                      className={cn(
+                        "p-4 rounded-xl border transition-all duration-300 flex flex-col space-y-4",
+                        isApproved
+                          ? "bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border-emerald-500/25 hover:border-emerald-500/40"
+                          : existing
+                          ? "bg-secondary/5 border-border/40"
+                          : "bg-secondary/5 border-dashed border-border/40"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
+                            AURXON OFFICIAL CREDENTIAL
+                          </span>
+                          <h4 className="text-sm font-bold">{type.replace(/_/g, " ")}</h4>
+                          {existing && (
                             <p className="text-[10px] text-muted-foreground">
-                              Issued {formatDate(doc.approvedAt || doc.createdAt || new Date())}
+                              Issued {formatDate(existing.approvedAt || existing.createdAt || new Date())}
                             </p>
-                          </div>
-                          
-                          <div className="shrink-0">
-                            {isApproved ? (
-                              <div className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wide">
-                                <CheckCircle className="h-3 w-3" />
-                                <span>Approved & Signed</span>
-                              </div>
-                            ) : (
-                              <div className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase tracking-wide">
-                                <Clock className="h-3 w-3 animate-pulse" />
-                                <span>Awaiting Approval</span>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        {/* Signature stamp representation */}
-                        {isApproved ? (
-                          <>
-                            <div className="bg-emerald-500/[0.03] border border-emerald-500/10 rounded-xl p-3.5 space-y-1 select-text">
-                              <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-heading font-extrabold text-[10px] uppercase tracking-wider">
-                                <ShieldCheck className="h-4 w-4 shrink-0" />
-                                <span>AURXON Compliance Shield Verified</span>
-                              </div>
-                              <p className="text-[10px]">
-                                Digitally Approved & Signed by Founder
-                              </p>
-                              <span className="block text-[8.5px] font-mono text-cyan-600 dark:text-cyan-400 break-all leading-none mt-1 select-all">
-                                {doc.signature}
-                              </span>
+                        <div className="shrink-0">
+                          {isApproved ? (
+                            <div className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wide">
+                              <CheckCircle className="h-3 w-3" />
+                              <span>Approved & Signed</span>
                             </div>
-
-                            {/* View/Print actions */}
-                            <div className="flex items-center justify-end space-x-3 pt-2">
-                              <Button
-                                onClick={() => setSelectedGeneratedDoc(doc)}
-                                size="sm"
-                                variant="primary"
-                                className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 border border-white/5 rounded-xl transition-all shadow-md select-none"
-                              >
-                                <Eye className="h-4 w-4 mr-1.5" />
-                                <span>View & Download Credential</span>
-                              </Button>
+                          ) : existing ? (
+                            <div className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase tracking-wide">
+                              <Clock className="h-3 w-3 animate-pulse" />
+                              <span>Awaiting Founder Signature</span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="bg-secondary/5 border border-dashed border-border/40 rounded-xl p-3.5 text-center text-xs text-muted-foreground italic">
-                            This document is locked and will be generated automatically with dynamic signatures once the Founder approves your learning seat.
-                          </div>
-                        )}
+                          ) : (
+                            <div className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-secondary border border-border/45 text-muted-foreground text-[10px] font-extrabold uppercase tracking-wide">
+                              <span>Not Issued</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    );
-                  })
-                )}
+
+                      {isApproved ? (
+                        <>
+                          <div className="bg-emerald-500/[0.03] border border-emerald-500/10 rounded-xl p-3.5 space-y-1 select-text">
+                            <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400 font-heading font-extrabold text-[10px] uppercase tracking-wider">
+                              <ShieldCheck className="h-4 w-4 shrink-0" />
+                              <span>AURXON Compliance Shield Verified</span>
+                            </div>
+                            <p className="text-[10px]">
+                              Digitally Approved & Signed by Founder
+                            </p>
+                            <span className="block text-[8.5px] font-mono text-cyan-600 dark:text-cyan-400 break-all leading-none mt-1 select-all">
+                              {existing.signature}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-end space-x-3 pt-2">
+                            <Button
+                              onClick={() => setSelectedGeneratedDoc({
+                                ...existing,
+                                intern: {
+                                  id: myRecord.id,
+                                  fullName: myRecord.fullName,
+                                  internId: myRecord.internId,
+                                  department: myRecord.department,
+                                  roleDomain: myRecord.roleDomain,
+                                  email: myRecord.email,
+                                }
+                              })}
+                              size="sm"
+                              variant="primary"
+                              className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 border border-white/5 rounded-xl transition-all shadow-md select-none"
+                            >
+                              <Eye className="h-4 w-4 mr-1.5" />
+                              <span>View & Download Credential</span>
+                            </Button>
+                          </div>
+                        </>
+                      ) : isHired ? (
+                        <div className="space-y-3">
+                          <div className="bg-cyan-500/[0.03] border border-cyan-500/10 rounded-xl p-3.5 text-xs text-foreground/90 leading-relaxed">
+                            <span className="font-bold text-cyan-600 dark:text-cyan-400 block mb-1">🎉 Hired Status Confirmed!</span>
+                            As a hired specialist, you possess the operational power to draft your own official {type.replace(/_/g, " ")}. Click below to compile the dynamic draft for Founder review.
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => handleGenerateDraftForIntern(type)}
+                              size="sm"
+                              variant="primary"
+                              className="h-9 px-4 text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 border border-white/5 rounded-xl transition-all shadow-md select-none"
+                              isLoading={internActionLoading === type}
+                            >
+                              <Sparkles className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                              <span>{existing ? "Recompile Draft" : "Compile Draft"}</span>
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-secondary/5 border border-dashed border-border/40 rounded-xl p-3.5 text-center text-xs text-muted-foreground italic">
+                          This document is locked and will be generated automatically with dynamic signatures once the Founder approves your learning seat.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
