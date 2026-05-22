@@ -173,6 +173,7 @@ export default async function DocumentsPage() {
     department: intern.department,
     roleDomain: intern.roleDomain,
     status: intern.status,
+    employmentType: intern.employmentType || "INTERN",
     stipendAmount: intern.stipendAmount ? Number(intern.stipendAmount) : 0,
     supervisor: intern.supervisor ? { fullName: intern.supervisor.fullName } : null,
     documents: (intern.documents || []).map((doc: any) => ({
