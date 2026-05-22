@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { put } from "@vercel/blob";
 import { DocType } from "@prisma/client";
 import { getSafeUserId } from "@/lib/safeUser";
+import { hasPermission } from "@/lib/permissions";
 
 // helper to authenticate and check roles
 async function getAuthenticatedUser() {
@@ -76,17 +77,20 @@ export async function POST(req: Request) {
     }
 
     // Role-based document access controls
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      if (user.role === "TEAM_LEAD") {
-        if (intern.supervisorId !== user.id) {
-          return NextResponse.json({ error: "Forbidden. Team Leads can only upload files for supervised enrollees." }, { status: 403 });
-        }
-      } else if (user.role === "INTERN") {
-        if (intern.userId !== user.id) {
-          return NextResponse.json({ error: "Forbidden. You can only upload compliance files for your own profile." }, { status: 403 });
-        }
-      } else {
-        return NextResponse.json({ error: "Forbidden. Insufficient permissions." }, { status: 403 });
+    const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
+    if (user.role === "INTERN") {
+      if (intern.userId !== user.id) {
+        return NextResponse.json({ error: "Forbidden. You can only upload compliance files for your own profile." }, { status: 403 });
+      }
+      if (!hasDocAccess) {
+        return NextResponse.json({ error: "Forbidden. Insufficient permissions to access documents." }, { status: 403 });
+      }
+    } else {
+      if (!hasDocAccess) {
+        return NextResponse.json({ error: "Forbidden. Insufficient permissions to manage documents." }, { status: 403 });
+      }
+      if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && intern.supervisorId !== user.id) {
+        return NextResponse.json({ error: "Forbidden. Managers can only upload files for supervised enrollees." }, { status: 403 });
       }
     }
 
@@ -156,9 +160,10 @@ export async function PATCH(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: Both Founder and HR can verify documents!
-    if (user.role !== "FOUNDER" && user.role !== "HR") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Founders and HR managers can audit/verify documents." }, { status: 403 });
+    // Check permission
+    const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
+    if (user.role === "INTERN" || !hasDocAccess) {
+      return NextResponse.json({ error: "Forbidden. Insufficient permissions to audit/verify documents." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -176,6 +181,10 @@ export async function PATCH(req: Request) {
 
     if (!document) {
       return NextResponse.json({ error: "Validation failed. Target document does not exist." }, { status: 404 });
+    }
+
+    if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && document.intern.supervisorId !== user.id) {
+      return NextResponse.json({ error: "Forbidden. You can only verify documents of interns under your direct supervision." }, { status: 403 });
     }
 
     // Verify and update document inside a safe database transaction
@@ -219,7 +228,7 @@ export async function PATCH(req: Request) {
 
 /**
  * DELETE /api/documents
- * Wipes a document record and activity trail (ADMIN ONLY)
+ * Wipes a document record and activity trail (FOUNDER / SUPER_ADMIN ONLY)
  */
 export async function DELETE(req: Request) {
   try {
@@ -229,9 +238,11 @@ export async function DELETE(req: Request) {
     }
     const { user } = authResult;
 
-    // Strict Authorization Check: ONLY Founder can wipe vault records!
-    if (user.role !== "FOUNDER") {
-      return NextResponse.json({ error: "Forbidden. Only AIMS Founders can wipe document items." }, { status: 403 });
+    // Only Founder and Super Admin with documentAccess can delete
+    const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
+    const isAuthorizedToDelete = user.role === "FOUNDER" || (user.role === "SUPER_ADMIN" && hasDocAccess);
+    if (!isAuthorizedToDelete) {
+      return NextResponse.json({ error: "Forbidden. Only AIMS Founders and Super Admins can wipe document items." }, { status: 403 });
     }
 
     // Extract ID from query search parameters
