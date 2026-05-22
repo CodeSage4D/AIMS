@@ -19,13 +19,13 @@ export default async function TasksPage() {
 
   try {
     // 1. Fetch interns for the assignment selection dropdown based on role permissions
-    if (userRole === "FOUNDER" || userRole === "HR") {
+    if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
       interns = await db.intern.findMany({
         where: { status: "ACTIVE" },
         select: { id: true, internId: true, fullName: true },
         orderBy: { fullName: "asc" },
       });
-    } else if (userRole === "TEAM_LEAD") {
+    } else if (userRole === "ADMIN" || userRole === "TEAM_LEAD") {
       interns = await db.intern.findMany({
         where: { status: "ACTIVE", supervisorId: userId },
         select: { id: true, internId: true, fullName: true },
@@ -34,7 +34,7 @@ export default async function TasksPage() {
     }
 
     // 2. Fetch tasks based on the 4 roles:
-    if (userRole === "FOUNDER" || userRole === "HR") {
+    if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
       tasks = await db.task.findMany({
         include: {
           intern: {
@@ -46,7 +46,7 @@ export default async function TasksPage() {
         },
         orderBy: { createdAt: "desc" },
       });
-    } else if (userRole === "TEAM_LEAD") {
+    } else if (userRole === "ADMIN" || userRole === "TEAM_LEAD") {
       tasks = await db.task.findMany({
         where: {
           OR: [
