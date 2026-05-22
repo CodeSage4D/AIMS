@@ -37,6 +37,27 @@ export default async function DashboardPage() {
   const userId = (session?.user as any)?.id;
   const userName = session?.user?.name || "AURXON User";
 
+  // Check Dashboard Access Permission
+  const { hasPermission } = await import("@/lib/permissions");
+  const canAccessDashboard = await hasPermission(userId, userRole, "dashboardAccess");
+
+  if (!canAccessDashboard) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center px-4">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-400">
+          <AlertTriangle className="h-12 w-12" />
+        </div>
+        <h2 className="text-xl font-heading font-extrabold text-white">Dashboard Access Suspended</h2>
+        <p className="text-sm text-gray-400 max-w-md leading-relaxed font-medium">
+          Your administrative or intern account currently does not have active dashboard access privileges. Please contact your AIMS System Founder or Super Admin to restore access.
+        </p>
+      </div>
+    );
+  }
+
+  const canAccessAnalytics = await hasPermission(userId, userRole, "analyticsAccess");
+  const canAccessApprovals = await hasPermission(userId, userRole, "approvalAccess");
+
   // Fetch Announcements and Milestones for Notice Board
   let announcements: any[] = [];
   let anniversaries: any[] = [];
@@ -380,7 +401,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* 2.5 Dynamic SVG Analytics Charts Dashboard */}
-      {(userRole === "FOUNDER" || userRole === "HR" || userRole === "TEAM_LEAD") && (
+      {canAccessAnalytics && (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR" || userRole === "TEAM_LEAD") && (
         <AnalyticsDashboard
           attendanceStats={attendanceStats}
           taskStats={taskStats}
@@ -388,8 +409,8 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* 3. Founder Operations Queue (Rendered for Founders/HR to resolve requests) */}
-      {(userRole === "FOUNDER" || userRole === "HR") && (
+      {/* 3. Founder Operations Queue (Rendered for Authorized Admins to resolve requests) */}
+      {canAccessApprovals && (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") && (
         <div className="space-y-6">
           <div className="border-t border-border/40 my-8" />
           <h3 className="text-lg font-heading font-extrabold text-white tracking-tight">
