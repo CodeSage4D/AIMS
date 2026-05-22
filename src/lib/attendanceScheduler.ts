@@ -82,23 +82,62 @@ export async function autoMarkAbsent() {
     
     // Dates to audit: Check the last 7 calendar days
     // Index 0 represents today. If it's before 11:00 AM IST, skip today (start from yesterday, index 1)
-    const datesToCheck: Date[] = [];
+    const candidateDates: Date[] = [];
     const startIdx = currentHourIST >= 11 ? 0 : 1;
 
     for (let i = startIdx; i <= 7; i++) {
       const d = new Date(nowIST.getTime());
       d.setUTCDate(d.getUTCDate() - i);
-      
-      const dayOfWeek = d.getUTCDay();
-      // Exclude weekends (Saturday = 6, Sunday = 0)
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        continue;
-      }
-
-      // Normalize date to absolute midnight UTC to fit database constraints
       const normalizedDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
-      datesToCheck.push(normalizedDate);
+      candidateDates.push(normalizedDate);
     }
+
+    // A. Fetch custom weekly offs settings from the database (Fallback to Sunday [0] and Saturday [6])
+    let weeklyOffs = [0, 6];
+    try {
+      const offSetting = await db.systemSetting.findUnique({
+        where: { key: "weekly_offs" },
+      });
+      if (offSetting) {
+        const parsed = JSON.parse(offSetting.value);
+        if (Array.isArray(parsed)) {
+          weeklyOffs = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("[Auto-Absent Scheduler] Error fetching/parsing weekly offs setting:", e);
+    }
+
+    // B. Fetch registered custom/national holidays from the database
+    let holidayDatesSet = new Set<string>();
+    try {
+      const dbHolidays = await db.holiday.findMany({
+        where: {
+          date: { in: candidateDates },
+        },
+        select: { date: true },
+      });
+      dbHolidays.forEach((h) => {
+        holidayDatesSet.add(h.date.toISOString().split("T")[0]);
+      });
+    } catch (e) {
+      console.warn("[Auto-Absent Scheduler] Error fetching holidays:", e);
+    }
+
+    // C. Filter candidate dates using weeklyOffs and registered holidays
+    const datesToCheck = candidateDates.filter((normalizedDate) => {
+      const dayOfWeek = normalizedDate.getUTCDay();
+      // Skip weekend/weekly offs
+      if (weeklyOffs.includes(dayOfWeek)) {
+        return false;
+      }
+      // Skip official holidays
+      const dateStr = normalizedDate.toISOString().split("T")[0];
+      if (holidayDatesSet.has(dateStr)) {
+        return false;
+      }
+      return true;
+    });
 
     if (datesToCheck.length === 0) {
       await db.activityLog.create({
