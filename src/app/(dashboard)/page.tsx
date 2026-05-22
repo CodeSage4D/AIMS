@@ -20,6 +20,7 @@ import {
 import { formatDate } from "@/lib/utils";
 import FounderDashboardQueues from "@/components/layout/FounderDashboardQueues";
 import InternDashboard from "@/components/layout/InternDashboard";
+import AnalyticsDashboard from "@/components/layout/AnalyticsDashboard";
 
 export default async function DashboardPage() {
   // Dynamic background sweep to mark absent active interns on daily shifts
@@ -161,6 +162,10 @@ export default async function DashboardPage() {
   let leaveRequestsCount = 0;
   let passwordRequestsCount = 0;
 
+  let attendanceStats = { present: 0, absent: 0, late: 0, leave: 0 };
+  let taskStats = { pending: 0, inProgress: 0, inReview: 0, completed: 0 };
+  let complianceStats = { pending: 0, approved: 0, rejected: 0 };
+
   try {
     totalInterns = await db.intern.count();
     activeInterns = await db.intern.count({ where: { status: "ACTIVE" } });
@@ -183,6 +188,24 @@ export default async function DashboardPage() {
     passwordRequestsCount = await db.passwordResetRequest.count({
       where: { status: "PENDING" }
     });
+
+    // Fetch dynamic analytics metrics
+    const presentCount = await db.attendance.count({ where: { status: "PRESENT" } });
+    const absentCount = await db.attendance.count({ where: { status: "ABSENT" } });
+    const lateCount = await db.attendance.count({ where: { status: "LATE" } });
+    const leaveCount = await db.attendance.count({ where: { status: "LEAVE" } });
+    attendanceStats = { present: presentCount, absent: absentCount, late: lateCount, leave: leaveCount };
+
+    const pendingTasks = await db.task.count({ where: { status: "PENDING" } });
+    const inProgressTasks = await db.task.count({ where: { status: "IN_PROGRESS" } });
+    const inReviewTasks = await db.task.count({ where: { status: "IN_REVIEW" } });
+    const completedTasks = await db.task.count({ where: { status: "COMPLETED" } });
+    taskStats = { pending: pendingTasks, inProgress: inProgressTasks, inReview: inReviewTasks, completed: completedTasks };
+
+    const pendingDocs = await db.generatedDocument.count({ where: { status: "PENDING" } });
+    const approvedDocs = await db.generatedDocument.count({ where: { status: "APPROVED" } });
+    const rejectedDocs = await db.generatedDocument.count({ where: { status: "REJECTED" } });
+    complianceStats = { pending: pendingDocs, approved: approvedDocs, rejected: rejectedDocs };
   } catch (err) {
     // Elegant fallback mocks for early development state
     recentLogs = [
@@ -295,6 +318,15 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      {/* 2.5 Dynamic SVG Analytics Charts Dashboard */}
+      {(userRole === "FOUNDER" || userRole === "HR" || userRole === "TEAM_LEAD") && (
+        <AnalyticsDashboard
+          attendanceStats={attendanceStats}
+          taskStats={taskStats}
+          complianceStats={complianceStats}
+        />
+      )}
 
       {/* 3. Founder Operations Queue (Rendered for Founders/HR to resolve requests) */}
       {(userRole === "FOUNDER" || userRole === "HR") && (

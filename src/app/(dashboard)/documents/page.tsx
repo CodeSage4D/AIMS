@@ -14,31 +14,51 @@ export default async function DocumentsPage() {
   const userRole = (session.user as any).role || "INTERN";
   const userId = (session.user as any).id;
 
-  if (userRole !== "FOUNDER" && userRole !== "HR") {
+  if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "INTERN") {
     redirect("/");
   }
 
   let interns: any[] = [];
   try {
-    // Fetch all active or onboarding interns with their uploaded documents
-    interns = await db.intern.findMany({
-      where: {
-        status: {
-          in: ["ACTIVE", "ONBOARDING", "COMPLETED"],
-        },
-      },
-      include: {
-        documents: true,
-        supervisor: {
-          select: {
-            fullName: true,
+    if (userRole === "FOUNDER" || userRole === "HR") {
+      // Fetch all active or onboarding interns with their uploaded documents
+      interns = await db.intern.findMany({
+        where: {
+          status: {
+            in: ["ACTIVE", "ONBOARDING", "COMPLETED"],
           },
         },
-      },
-      orderBy: {
-        fullName: "asc",
-      },
-    });
+        include: {
+          documents: true,
+          generatedDocuments: true,
+          supervisor: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+        orderBy: {
+          fullName: "asc",
+        },
+      });
+    } else {
+      // Intern role: Only fetch their own intern record
+      const intern = await db.intern.findUnique({
+        where: { userId },
+        include: {
+          documents: true,
+          generatedDocuments: true,
+          supervisor: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+      if (intern) {
+        interns = [intern];
+      }
+    }
   } catch (err) {
     console.error("Database connection failed, using high-fidelity mock data fallback inside /documents server wrapper:", err);
     // Secure Fallback mocks for robust local testing and UI demonstration
@@ -70,6 +90,35 @@ export default async function DocumentsPage() {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
           },
         ],
+        generatedDocuments: [
+          {
+            id: "gen-1",
+            type: "OFFER_LETTER",
+            status: "APPROVED",
+            approvedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+            signature: "AXN-SIG-8f7a93b4e6c12d5f08a9c7b6d5e4f3a2b1c0e9d8f7a6b5c4d3e2f1a0b9c8d7e6",
+            fileUrl: "https://yck9uoc24tphuxtg.public.blob.vercel-storage.com/Aarav_Offer_Letter.pdf",
+            notes: "Approved and digitally signed by Founder Aarav.",
+          },
+          {
+            id: "gen-2",
+            type: "NDA",
+            status: "APPROVED",
+            approvedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+            signature: "AXN-SIG-2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d",
+            fileUrl: "https://yck9uoc24tphuxtg.public.blob.vercel-storage.com/Aarav_NDA.pdf",
+            notes: "Approved and digitally signed by Founder Aarav.",
+          },
+          {
+            id: "gen-3",
+            type: "ID_CARD",
+            status: "PENDING",
+            approvedAt: null,
+            signature: null,
+            fileUrl: null,
+            notes: null,
+          }
+        ]
       },
       {
         id: "uuid-ananya",
@@ -98,6 +147,7 @@ export default async function DocumentsPage() {
             createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           },
         ],
+        generatedDocuments: []
       },
       {
         id: "uuid-karan",
@@ -109,6 +159,7 @@ export default async function DocumentsPage() {
         status: "ONBOARDING",
         supervisor: { fullName: "Senior Mentor" },
         documents: [],
+        generatedDocuments: []
       },
     ];
   }
@@ -130,6 +181,15 @@ export default async function DocumentsPage() {
       fileUrl: doc.fileUrl,
       verified: doc.verified,
       createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+    })),
+    generatedDocuments: (intern.generatedDocuments || []).map((doc: any) => ({
+      id: doc.id,
+      type: doc.type,
+      status: doc.status,
+      approvedAt: doc.approvedAt instanceof Date ? doc.approvedAt.toISOString() : doc.approvedAt ? String(doc.approvedAt) : null,
+      signature: doc.signature,
+      fileUrl: doc.fileUrl,
+      notes: doc.notes,
     })),
   }));
 

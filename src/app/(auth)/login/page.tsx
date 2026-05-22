@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, Mail, AlertTriangle, User, ChevronLeft, CheckCircle } from "lucide-react";
+import { Lock, Mail, AlertTriangle, User, ChevronLeft, CheckCircle, Sun, Moon } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,6 +27,40 @@ export default function LoginPage() {
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Theme support
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Retrieve persisted user theme preference on mount
+    const savedTheme = localStorage.getItem("aims-theme");
+    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const activeTheme = savedTheme === "dark" || (savedTheme === null && systemPrefersDark) ? "dark" : "light";
+    
+    setTheme(activeTheme);
+    if (activeTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("aims-theme", newTheme);
+    
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  // Safe theme evaluation for Server-Client hydration matching
+  const currentTheme = mounted ? theme : "dark";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,31 +133,76 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[#030712] p-4 overflow-hidden select-none">
-      {/* 1. Futuristic Ambient Glowing Orbs (Mobile-optimized visual elements) */}
-      <div className="absolute top-[-10%] left-[-20%] w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] rounded-full bg-violet-600/15 blur-[80px] sm:blur-[140px] pointer-events-none animate-pulse duration-10000" />
-      <div className="absolute bottom-[-15%] right-[-10%] w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] rounded-full bg-cyan-500/15 blur-[80px] sm:blur-[140px] pointer-events-none animate-pulse duration-7000" />
-      <div className="absolute top-[40%] left-[30%] w-[200px] sm:w-[400px] h-[200px] sm:h-[400px] rounded-full bg-blue-500/10 blur-[60px] sm:blur-[120px] pointer-events-none" />
+    <div className={`relative min-h-screen flex items-center justify-center p-4 overflow-hidden select-none transition-colors duration-500 ${
+      currentTheme === "dark" ? "bg-[#030712]" : "bg-[#f1f5f9]"
+    }`}>
+      {/* Dynamic Ambient Glowing Orbs */}
+      <div className={`absolute top-[-10%] left-[-20%] w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] rounded-full blur-[80px] sm:blur-[140px] pointer-events-none animate-pulse duration-10000 transition-colors ${
+        currentTheme === "dark" ? "bg-violet-600/15" : "bg-blue-400/20"
+      }`} />
+      <div className={`absolute bottom-[-15%] right-[-10%] w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] rounded-full blur-[80px] sm:blur-[140px] pointer-events-none animate-pulse duration-7000 transition-colors ${
+        currentTheme === "dark" ? "bg-cyan-500/15" : "bg-sky-400/25"
+      }`} />
+      <div className={`absolute top-[40%] left-[30%] w-[200px] sm:w-[400px] h-[200px] sm:h-[400px] rounded-full blur-[60px] sm:blur-[120px] pointer-events-none transition-colors ${
+        currentTheme === "dark" ? "bg-blue-500/10" : "bg-indigo-400/15"
+      }`} />
 
-      {/* 2. Main Glass Container */}
+      {/* Elegant Floating Theme Selector */}
+      {mounted && (
+        <div className="absolute top-5 right-5 z-20">
+          <button
+            onClick={toggleTheme}
+            className={`p-2.5 rounded-xl border transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 ${
+              currentTheme === "dark"
+                ? "bg-[#0d1222]/80 border-white/10 text-amber-400 hover:bg-[#0d1222] hover:border-white/20 shadow-black/40"
+                : "bg-white/80 border-slate-200 text-indigo-600 hover:bg-white hover:border-slate-300 shadow-slate-200/50"
+            }`}
+            aria-label="Toggle visual theme"
+          >
+            {currentTheme === "dark" ? (
+              <Sun className="h-4.5 w-4.5 animate-spin-slow" />
+            ) : (
+              <Moon className="h-4.5 w-4.5 text-indigo-600" />
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Main Glass Container */}
       <div className="relative z-10 w-full max-w-[92%] sm:max-w-md transition-all duration-300">
-        <Card className="border-white/10 bg-[#0b0f19]/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
+        <Card className={`transition-all duration-300 border backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${
+          currentTheme === "dark"
+            ? "border-white/10 bg-[#0b0f19]/70 shadow-black/60"
+            : "border-slate-200/80 bg-white/80 shadow-slate-200/80"
+        }`}>
           <CardHeader className="text-center space-y-3 pb-4 pt-8 px-5 sm:px-8">
             <div className="flex justify-center mb-1">
-              <div className="relative group flex items-center justify-center p-0.5 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 shadow-lg shadow-indigo-500/20">
-                <div className="bg-[#0b0f19] px-4.5 py-1.5 rounded-[10px] transition-all group-hover:bg-[#0b0f19]/80">
-                  <span className="text-2xl font-heading font-extrabold tracking-widest bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(59,130,246,0.3)]">
+              <div className={`relative group flex items-center justify-center p-0.5 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 shadow-lg ${
+                currentTheme === "dark" ? "shadow-indigo-500/20" : "shadow-indigo-600/10"
+              }`}>
+                <div className={`px-4.5 py-1.5 rounded-[10px] transition-all ${
+                  currentTheme === "dark" ? "bg-[#0b0f19] group-hover:bg-[#0b0f19]/80" : "bg-white group-hover:bg-white/90"
+                }`}>
+                  <span className={`text-2xl font-heading font-extrabold tracking-widest bg-clip-text text-transparent drop-shadow-sm bg-gradient-to-r ${
+                    currentTheme === "dark" 
+                      ? "from-blue-400 via-indigo-300 to-cyan-400 drop-shadow-[0_2px_4px_rgba(59,130,246,0.3)]" 
+                      : "from-blue-600 via-indigo-600 to-cyan-600"
+                  }`}>
                     AURXON
                   </span>
                 </div>
               </div>
             </div>
-            <CardTitle className="text-lg sm:text-xl font-heading font-bold text-white tracking-wide">
+            <CardTitle className={`text-lg sm:text-xl font-heading font-bold tracking-wide transition-colors ${
+              currentTheme === "dark" ? "text-white" : "text-slate-900"
+            }`}>
               {view === "login" ? "Internal Portal" : "Reset Password"}
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-gray-400/90 font-medium">
+            <CardDescription className={`text-xs sm:text-sm font-medium transition-colors ${
+              currentTheme === "dark" ? "text-gray-400/90" : "text-slate-600"
+            }`}>
               {view === "login"
-                ? "AIMS - Intern Management System"
+                ? "AIMS - Internal Management System"
                 : "Submit password reset request to Founder"}
             </CardDescription>
           </CardHeader>
@@ -133,15 +212,23 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Alert Indicator */}
                 {loginError && (
-                  <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs animate-shake">
+                  <div className={`flex items-center space-x-3 p-3.5 rounded-xl border text-xs animate-shake ${
+                    currentTheme === "dark"
+                      ? "bg-red-500/10 border-red-500/20 text-red-400"
+                      : "bg-red-50 border-red-200 text-red-600"
+                  }`}>
                     <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
                     <span className="font-semibold leading-normal">{loginError}</span>
                   </div>
                 )}
 
                 {/* Email/Username Form Entry */}
-                <div className="relative group">
-                  <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-blue-400 transition-colors duration-300 pointer-events-none z-10">
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark"
+                      ? "text-gray-400 group-focus-within:text-blue-400"
+                      : "text-slate-400 group-focus-within:text-blue-600"
+                  }`}>
                     <Mail className="h-4.5 w-4.5" />
                   </div>
                   <Input
@@ -150,15 +237,23 @@ export default function LoginPage() {
                     placeholder="name@aurxon.com or username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
                     disabled={loginLoading}
                     required
                   />
                 </div>
 
                 {/* Password Form Entry */}
-                <div className="relative group">
-                  <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-blue-400 transition-colors duration-300 pointer-events-none z-10">
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark"
+                      ? "text-gray-400 group-focus-within:text-blue-400"
+                      : "text-slate-400 group-focus-within:text-blue-600"
+                  }`}>
                     <Lock className="h-4.5 w-4.5" />
                   </div>
                   <Input
@@ -167,7 +262,11 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
                     disabled={loginLoading}
                     required
                   />
@@ -180,7 +279,11 @@ export default function LoginPage() {
                       setView("forgot");
                       setLoginError(null);
                     }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium cursor-pointer"
+                    className={`text-xs transition-colors font-semibold cursor-pointer ${
+                      currentTheme === "dark" 
+                        ? "text-indigo-400 hover:text-indigo-300" 
+                        : "text-indigo-600 hover:text-indigo-700"
+                    }`}
                   >
                     Forgot Password?
                   </button>
@@ -191,7 +294,7 @@ export default function LoginPage() {
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full mt-2 h-12.5 text-sm font-semibold tracking-wide font-heading bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 text-white rounded-xl transition-all duration-300 scale-active-98 active:scale-98"
+                  className="w-full mt-2 h-12.5 text-sm font-semibold tracking-wide font-heading bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 text-white rounded-xl transition-all duration-300 scale-active-98 active:scale-98 cursor-pointer"
                   isLoading={loginLoading}
                 >
                   Authenticate & Access
@@ -201,21 +304,33 @@ export default function LoginPage() {
               <form onSubmit={handleForgotSubmit} className="space-y-5">
                 {/* Alert Indicators */}
                 {forgotError && (
-                  <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs animate-shake">
+                  <div className={`flex items-center space-x-3 p-3.5 rounded-xl border text-xs animate-shake ${
+                    currentTheme === "dark"
+                      ? "bg-red-500/10 border-red-500/20 text-red-400"
+                      : "bg-red-50 border-red-200 text-red-600"
+                  }`}>
                     <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
                     <span className="font-semibold leading-normal">{forgotError}</span>
                   </div>
                 )}
                 {forgotSuccess && (
-                  <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                  <div className={`flex items-center space-x-3 p-3.5 rounded-xl border text-xs ${
+                    currentTheme === "dark"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : "bg-emerald-50 border-emerald-200 text-emerald-600"
+                  }`}>
                     <CheckCircle className="h-4.5 w-4.5 shrink-0" />
                     <span className="font-semibold leading-normal">{forgotSuccess}</span>
                   </div>
                 )}
 
                 {/* Intern ID Entry */}
-                <div className="relative group">
-                  <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-indigo-400 transition-colors duration-300 pointer-events-none z-10">
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark"
+                      ? "text-gray-400 group-focus-within:text-indigo-400"
+                      : "text-slate-400 group-focus-within:text-indigo-600"
+                  }`}>
                     <Lock className="h-4.5 w-4.5" />
                   </div>
                   <Input
@@ -224,15 +339,23 @@ export default function LoginPage() {
                     placeholder="e.g. AXN-SWE-2605-AS01"
                     value={forgotInternId}
                     onChange={(e) => setForgotInternId(e.target.value)}
-                    className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-indigo-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
                     disabled={forgotLoading}
                     required
                   />
                 </div>
 
                 {/* Full Name Entry */}
-                <div className="relative group">
-                  <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-indigo-400 transition-colors duration-300 pointer-events-none z-10">
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark"
+                      ? "text-gray-400 group-focus-within:text-indigo-400"
+                      : "text-slate-400 group-focus-within:text-indigo-600"
+                  }`}>
                     <User className="h-4.5 w-4.5" />
                   </div>
                   <Input
@@ -241,15 +364,23 @@ export default function LoginPage() {
                     placeholder="Aarav Sharma"
                     value={forgotName}
                     onChange={(e) => setForgotName(e.target.value)}
-                    className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-indigo-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
                     disabled={forgotLoading}
                     required
                   />
                 </div>
 
                 {/* Corporate Email Entry */}
-                <div className="relative group">
-                  <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-indigo-400 transition-colors duration-300 pointer-events-none z-10">
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark"
+                      ? "text-gray-400 group-focus-within:text-indigo-400"
+                      : "text-slate-400 group-focus-within:text-indigo-600"
+                  }`}>
                     <Mail className="h-4.5 w-4.5" />
                   </div>
                   <Input
@@ -258,7 +389,11 @@ export default function LoginPage() {
                     placeholder="aarav@aurxon.demo"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-indigo-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-indigo-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
                     disabled={forgotLoading}
                     required
                   />
@@ -272,7 +407,9 @@ export default function LoginPage() {
                       setForgotError(null);
                       setForgotSuccess(null);
                     }}
-                    className="flex items-center space-x-1 text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
+                    className={`flex items-center space-x-1 text-xs transition-colors font-semibold cursor-pointer ${
+                      currentTheme === "dark" ? "text-gray-400 hover:text-white" : "text-slate-600 hover:text-slate-900"
+                    }`}
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                     <span>Back to Login</span>
@@ -284,7 +421,7 @@ export default function LoginPage() {
                   type="submit"
                   variant="secondary"
                   size="lg"
-                  className="w-full mt-2 h-12.5 text-sm font-semibold tracking-wide font-heading bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 text-white rounded-xl transition-all duration-300 scale-active-98 active:scale-98"
+                  className="w-full mt-2 h-12.5 text-sm font-semibold tracking-wide font-heading bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 text-white rounded-xl transition-all duration-300 scale-active-98 active:scale-98 cursor-pointer"
                   isLoading={forgotLoading}
                 >
                   Submit Reset Request
@@ -295,7 +432,9 @@ export default function LoginPage() {
         </Card>
         
         {/* Footer Trademark */}
-        <p className="text-center text-[9px] sm:text-[10px] text-gray-500/80 mt-8 tracking-widest uppercase font-medium">
+        <p className={`text-center text-[9px] sm:text-[10px] mt-8 tracking-widest uppercase font-semibold transition-colors ${
+          currentTheme === "dark" ? "text-gray-500/80" : "text-slate-500"
+        }`}>
           © 2026 AURXON Technologies. All rights reserved.
         </p>
       </div>
