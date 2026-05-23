@@ -343,6 +343,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           department={myRecord.department}
                           roleDomain={myRecord.roleDomain}
                           status={myRecord.status}
+                          dbInternId={myRecord.id}
                         />
                       </div>
                     );

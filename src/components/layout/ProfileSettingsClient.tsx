@@ -17,8 +17,10 @@ import {
   Send,
   Eye,
   Inbox,
-  UserCheck
+  UserCheck,
+  Contact
 } from "lucide-react";
+import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { cn, formatDate } from "@/lib/utils";
 
 interface RequestItem {
@@ -70,7 +72,7 @@ export default function ProfileSettingsClient({
   const isManager = user.role === "FOUNDER" || user.role === "HR";
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections" | "idcard">("overview");
 
   // Requests List State
   const [requests, setRequests] = useState<RequestItem[]>(initialRequests);
@@ -386,6 +388,20 @@ export default function ProfileSettingsClient({
             </span>
           )}
         </button>
+        {internProfile && (
+          <button
+            onClick={() => setActiveTab("idcard")}
+            className={cn(
+              "px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border border-transparent",
+              activeTab === "idcard"
+                ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+            )}
+          >
+            <Contact className="h-4 w-4 shrink-0" />
+            <span>Digital ID Card</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs Content */}
@@ -910,6 +926,33 @@ export default function ProfileSettingsClient({
                 </CardContent>
               </Card>
             </div>
+          </div>
+        )}
+
+        {/* TAB 4: DIGITAL ID CARD */}
+        {activeTab === "idcard" && internProfile && (
+          <div className="space-y-6 animate-fadeIn">
+            <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+              <CardHeader className="p-0 pb-4 border-b border-border/40 mb-6">
+                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                  <Contact className="h-4.5 w-4.5 text-primary" />
+                  <span>Official Corporate Digital ID Badge</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-muted-foreground">
+                  Your certified digital badge with real-time themes and photo attachment.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <IdCardGenerator
+                  fullName={internProfile.fullName}
+                  internId={internProfile.internId || "AXN-REF-PENDING"}
+                  department={internProfile.department}
+                  roleDomain={internProfile.roleDomain}
+                  status={user.role === "INTERN" ? "INTERN" : "ACTIVE"}
+                  dbInternId={internProfile.id}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ interface IdCardGeneratorProps {
   department: string;
   roleDomain: string;
   status: string;
+  dbInternId: string; // The database primary key of the intern/employee record
 }
 
 export default function IdCardGenerator({
@@ -18,13 +19,40 @@ export default function IdCardGenerator({
   department,
   roleDomain,
   status,
+  dbInternId,
 }: IdCardGeneratorProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoSuccess, setPhotoSuccess] = useState<string | null>(null);
   const [theme, setTheme] = useState<"glacial" | "gold" | "matrix" | "cyber" | "orange">("orange");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Fetch saved configuration on mount
+  useEffect(() => {
+    async function fetchSavedCard() {
+      try {
+        const res = await fetch(`/api/documents/id-card?internId=${dbInternId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.content) {
+            if (data.content.avatarUrl) {
+              setPhotoUrl(data.content.avatarUrl);
+            }
+            if (data.content.theme) {
+              setTheme(data.content.theme);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch saved ID card badge setup:", err);
+      }
+    }
+    if (dbInternId) {
+      fetchSavedCard();
+    }
+  }, [dbInternId]);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhotoError(null);
@@ -33,9 +61,9 @@ export default function IdCardGenerator({
 
     if (!file) return;
 
-    // Strict 5 KB client-side validation
-    if (file.size > 5 * 1024) {
-      setPhotoError("Rejected: Profile photo exceeds the strict 5 KB maximum limit. Please compress your picture.");
+    // Secure 50 KB client-side validation
+    if (file.size > 50 * 1024) {
+      setPhotoError("Rejected: Profile photo exceeds the secure 50 KB maximum limit. Please compress your picture.");
       setPhotoUrl(null);
       return;
     }
@@ -44,7 +72,7 @@ export default function IdCardGenerator({
     reader.onload = (event) => {
       if (event.target?.result) {
         setPhotoUrl(event.target.result as string);
-        setPhotoSuccess("Photo uploaded and compressed in browser memory successfully!");
+        setPhotoSuccess("Photo uploaded and prepared for compliance secure compilation!");
       }
     };
     reader.onerror = () => {
@@ -199,7 +227,7 @@ export default function IdCardGenerator({
       ctx.fillText("STATUS", width - 45, 395);
       ctx.font = "bold 12px sans-serif";
       ctx.fillStyle = "#34d399"; // Emerald active
-      ctx.fillText("ACTIVE MEMBER", width - 45, 415);
+      ctx.fillText(status === "ONBOARDING" ? "ACTIVE RECRUIT" : "ACTIVE MEMBER", width - 45, 415);
 
       // 6. Draw Barcode / QR Section
       // Draw simulated secure barcode
@@ -233,9 +261,38 @@ export default function IdCardGenerator({
     });
   };
 
+  const handleSaveAndGenerate = async () => {
+    setIsSaving(true);
+    setPhotoError(null);
+    setPhotoSuccess(null);
+
+    try {
+      const res = await fetch("/api/documents/id-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          internId: dbInternId,
+          theme,
+          avatarUrl: photoUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save ID card.");
+
+      setPhotoSuccess("Official corporate ID card successfully saved and compiled inside the Compliance Vault!");
+    } catch (err: any) {
+      setPhotoError(err.message || "Could not persist badge configuration.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDownload = async () => {
     if (isGenerating) return;
     setIsGenerating(true);
+    setPhotoError(null);
+    setPhotoSuccess(null);
 
     try {
       const canvas = canvasRef.current;
@@ -271,6 +328,17 @@ export default function IdCardGenerator({
       link.href = canvas.toDataURL("image/png");
       link.click();
       
+      // Perform security audit log fetch
+      try {
+        await fetch("/api/documents/id-card/log-download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ internId: dbInternId }),
+        });
+      } catch (logErr) {
+        console.warn("Failed to audit log ID card download:", logErr);
+      }
+
       setPhotoSuccess("Sleek digital ID card exported and downloaded successfully!");
     } catch (err: any) {
       setPhotoError(err.message || "Failed to render card onto canvas pipeline.");
@@ -324,7 +392,7 @@ export default function IdCardGenerator({
               <UploadCloud className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
               <div className="text-xs">
                 <span className="font-bold text-indigo-550 dark:text-indigo-400">Click to attach photo</span>
-                <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-rose-500 animate-pulse">Strictly ≤ 5 KB</span></p>
+                <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-indigo-550 dark:text-indigo-400">Strictly ≤ 50 KB</span></p>
               </div>
               <input
                 type="file"
@@ -357,24 +425,37 @@ export default function IdCardGenerator({
             </div>
           </div>
 
-          {/* Secure privacy notice */}
+          {/* Secure compliance notice */}
           <p className="text-[9px] text-slate-400 dark:text-gray-500 leading-normal bg-slate-50 dark:bg-white/[0.01] p-3 rounded-xl border border-slate-150 dark:border-white/[0.04]">
-            🔐 <span className="font-bold">ZERO DATABASE STORAGE:</span> To ensure complete data compliance and user privacy, your uploaded ID photograph is strictly kept inside your browser's local memory and is **never** transmitted or stored on PostgreSQL database services!
+            🔒 <span className="font-bold">COMPLIANCE VAULT PERSISTENCE:</span> To support organizational transparency, audit logs, and supervisor retrieval, your ID card configuration is securely encrypted and stored inside AURXON's compliance database services.
           </p>
 
-          <Button
-            onClick={handleDownload}
-            disabled={isGenerating}
-            variant="primary"
-            className="w-full h-11 text-xs font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow cursor-pointer flex items-center justify-center space-x-1.5"
-          >
-            {isGenerating ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            <span>{isGenerating ? "Compiling Badge Image..." : "Export Badge (PNG)"}</span>
-          </Button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1.5">
+            <Button
+              onClick={handleSaveAndGenerate}
+              disabled={isSaving}
+              variant="outline"
+              className="w-full h-11 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl shadow cursor-pointer flex items-center justify-center space-x-1.5"
+              isLoading={isSaving}
+            >
+              <Sparkles className="h-4 w-4 mr-0.5" />
+              <span>Save & Compile</span>
+            </Button>
+
+            <Button
+              onClick={handleDownload}
+              disabled={isGenerating || isSaving}
+              variant="primary"
+              className="w-full h-11 text-xs font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow cursor-pointer flex items-center justify-center space-x-1.5"
+            >
+              {isGenerating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              <span>{isGenerating ? "Compiling..." : "Export Badge"}</span>
+            </Button>
+          </div>
         </div>
 
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
@@ -476,3 +557,4 @@ export default function IdCardGenerator({
     </div>
   );
 }
+

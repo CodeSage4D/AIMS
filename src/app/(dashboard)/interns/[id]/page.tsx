@@ -23,8 +23,10 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Contact
 } from "lucide-react";
+import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { formatDate } from "@/lib/utils";
 
 interface PageProps {
@@ -480,6 +482,26 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Card C: Official Corporate ID Badge */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                <Contact className="h-4.5 w-4.5 text-primary" />
+                <span>Official Corporate ID Badge</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <IdCardGenerator
+                fullName={intern.fullName}
+                internId={intern.internId || "AXN-REF-PENDING"}
+                department={intern.department}
+                roleDomain={intern.roleDomain}
+                status={intern.status}
+                dbInternId={intern.id}
+              />
             </CardContent>
           </Card>
         </div>
