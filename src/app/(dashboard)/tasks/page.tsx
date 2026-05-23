@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import TasksManager from "@/components/layout/TasksManager";
+import { hasPermission } from "@/lib/permissions";
+import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
 
 export default async function TasksPage() {
   const session = await auth();
@@ -13,6 +15,11 @@ export default async function TasksPage() {
 
   const userId = (session.user as any).id;
   const userRole = (session.user as any).role || "INTERN";
+
+  const hasAccess = await hasPermission(userId, userRole, "taskAccess");
+  if (!hasAccess) {
+    return <AccessDeniedShield requiredRole="Tasks Board" currentRole={userRole} />;
+  }
 
   let interns: any[] = [];
   let tasks: any[] = [];
