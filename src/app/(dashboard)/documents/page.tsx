@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import DocumentVaultClient from "@/components/layout/DocumentVaultClient";
+import { hasPermission } from "@/lib/permissions";
+import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
 
 export default async function DocumentsPage() {
   const session = await auth();
@@ -14,8 +16,9 @@ export default async function DocumentsPage() {
   const userRole = (session.user as any).role || "INTERN";
   const userId = (session.user as any).id;
 
-  if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "INTERN") {
-    redirect("/");
+  const hasAccess = await hasPermission(userId, userRole, "documentAccess");
+  if (!hasAccess) {
+    return <AccessDeniedShield requiredRole="Document Compliance" currentRole={userRole} />;
   }
 
   let interns: any[] = [];
