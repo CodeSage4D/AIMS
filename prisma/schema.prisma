@@ -61,26 +61,30 @@ enum DocType {
 }
 
 model User {
-  id                     String                 @id @default(uuid())
-  email                  String                 @unique
-  username               String?                @unique
-  passwordHash           String                 @map("password_hash")
-  fullName               String                 @map("full_name")
-  role                   Role                   @default(INTERN)
-  changePasswordRequired Boolean                @default(false) @map("change_password_required")
-  createdAt              DateTime               @default(now()) @map("created_at")
-  updatedAt              DateTime               @updatedAt @map("updated_at")
-  interns                Intern[]               @relation("SupervisorRelation")
-  tasks                  Task[]
-  logs                   ActivityLog[]
-  internProfile          Intern?                @relation("InternUserRelation")
-  approvedDocuments      GeneratedDocument[]    @relation("ApprovedDocuments")
-  createdEvents          Event[]                @relation("CreatedEvents")
-  sentMessages           Message[]              @relation("SentMessages")
-  receivedMessages       Message[]              @relation("ReceivedMessages")
-  reviewedLeaves         LeaveApplication[]     @relation("ReviewedLeaves")
-  updatedSettings        SystemSetting[]        @relation("SystemSettingsUpdatedBy")
-  permission             UserPermission?
+  id                        String                 @id @default(uuid())
+  email                     String                 @unique
+  username                  String?                @unique
+  passwordHash              String                 @map("password_hash")
+  fullName                  String                 @map("full_name")
+  role                      Role                   @default(INTERN)
+  changePasswordRequired    Boolean                @default(false) @map("change_password_required")
+  createdAt                 DateTime               @default(now()) @map("created_at")
+  updatedAt                 DateTime               @updatedAt @map("updated_at")
+  interns                   Intern[]               @relation("SupervisorRelation")
+  tasks                     Task[]
+  logs                      ActivityLog[]
+  internProfile             Intern?                @relation("InternUserRelation")
+  approvedDocuments         GeneratedDocument[]    @relation("ApprovedDocuments")
+  createdEvents             Event[]                @relation("CreatedEvents")
+  sentMessages              Message[]              @relation("SentMessages")
+  receivedMessages          Message[]              @relation("ReceivedMessages")
+  reviewedLeaves            LeaveApplication[]     @relation("ReviewedLeaves")
+  updatedSettings           SystemSetting[]        @relation("SystemSettingsUpdatedBy")
+  permission                UserPermission?
+  createdGroups             ChatGroup[]            @relation("CreatedGroups")
+  groupMemberships          GroupMember[]
+  permissionChangesMade     PermissionChangeLog[]  @relation("PermissionChangesMade")
+  permissionChangesReceived PermissionChangeLog[]  @relation("PermissionChangesReceived")
 
   @@map("users")
 }
@@ -342,16 +346,18 @@ model Event {
 }
 
 model Message {
-  id         String   @id @default(uuid())
+  id         String     @id @default(uuid())
   content    String
-  senderId   String   @map("sender_id")
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String?  @map("receiver_id") // Null for general channel discussions
-  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: SetNull)
-  taskId     String?  @map("task_id")
-  task       Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  isRead     Boolean  @default(false) @map("is_read")
-  createdAt  DateTime @default(now()) @map("created_at")
+  senderId   String     @map("sender_id")
+  sender     User       @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String?    @map("receiver_id") // Null for general channel discussions or group chats
+  receiver   User?      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: SetNull)
+  groupId    String?    @map("group_id")
+  group      ChatGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  taskId     String?    @map("task_id")
+  task       Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  isRead     Boolean    @default(false) @map("is_read")
+  createdAt  DateTime   @default(now()) @map("created_at")
 
   @@map("messages")
 }
@@ -394,6 +400,47 @@ model UserPermission {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("user_permissions")
+}
+
+model ChatGroup {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String?
+  createdById String        @map("created_by_id")
+  creator     User          @relation("CreatedGroups", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  members     GroupMember[]
+  messages    Message[]
+
+  @@map("chat_groups")
+}
+
+model GroupMember {
+  id        String    @id @default(uuid())
+  groupId   String    @map("group_id")
+  group     ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String    @default("MEMBER") // ADMIN, MEMBER
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model PermissionChangeLog {
+  id           String   @id @default(uuid())
+  changedById  String   @map("changed_by_id")
+  changedBy    User     @relation("PermissionChangesMade", fields: [changedById], references: [id], onDelete: Cascade)
+  targetId     String   @map("target_id")
+  target       User     @relation("PermissionChangesReceived", fields: [targetId], references: [id], onDelete: Cascade)
+  previousRole String   @map("previous_role")
+  newRole      String   @map("new_role")
+  details      String?  // JSON string containing detailed permission overrides changed
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("permission_change_logs")
 }
 
 
