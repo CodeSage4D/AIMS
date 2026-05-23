@@ -22,6 +22,7 @@ import FounderDashboardQueues from "@/components/layout/FounderDashboardQueues";
 import InternDashboard from "@/components/layout/InternDashboard";
 import AnalyticsDashboard from "@/components/layout/AnalyticsDashboard";
 import NoticeBoard from "@/components/layout/NoticeBoard";
+import ExecutiveClockStation from "@/components/layout/ExecutiveClockStation";
 
 export default async function DashboardPage() {
   // Dynamic background sweep to mark absent active interns on daily shifts
@@ -374,6 +375,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* 1.5 Real-Time Clock & Attendance Session Station */}
+      <ExecutiveClockStation />
 
       {/* 2. Analytical Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
