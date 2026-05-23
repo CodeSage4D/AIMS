@@ -119,6 +119,12 @@ export async function POST(req: Request) {
       barcode: `*${intern.internId}*`,
     };
 
+    const isSaveAdmin = userRole === "FOUNDER" || userRole === "HR" || userRole === "SUPER_ADMIN" || userRole === "ADMIN";
+    const initialStatus = isSaveAdmin ? "APPROVED" : "PENDING";
+    const initialNotes = isSaveAdmin 
+      ? "ID Card generated and approved directly by Administrator."
+      : "ID Card compiled by enrollee, pending administrative approval.";
+
     // Check if ID Card GeneratedDocument already exists
     const existingDoc = await db.generatedDocument.findFirst({
       where: {
@@ -133,8 +139,8 @@ export async function POST(req: Request) {
         where: { id: existingDoc.id },
         data: {
           content: docContent as any,
-          status: "APPROVED",
-          notes: "Updated corporate ID card badge.",
+          status: initialStatus,
+          notes: initialNotes,
         },
       });
     } else {
@@ -143,8 +149,8 @@ export async function POST(req: Request) {
           internId,
           type: "ID_CARD",
           content: docContent as any,
-          status: "APPROVED",
-          notes: "Initial generation of corporate ID card badge.",
+          status: initialStatus,
+          notes: initialNotes,
         },
       });
     }
