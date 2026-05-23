@@ -14,6 +14,7 @@ interface IdCardGeneratorProps {
   roleDomain: string;
   status: string;
   dbInternId: string; // The database primary key of the intern/employee record
+  employmentType?: string; // The employment status type
 }
 
 export default function IdCardGenerator({
@@ -23,6 +24,7 @@ export default function IdCardGenerator({
   roleDomain,
   status,
   dbInternId,
+  employmentType,
 }: IdCardGeneratorProps) {
   const { data: session } = useSession();
   const loggedInRole = (session?.user as any)?.role || "INTERN";
@@ -42,71 +44,102 @@ export default function IdCardGenerator({
   const [cardSignature, setCardSignature] = useState<string | null>(null);
 
   // Dynamic light-themed color configuration based on enrollee's role for high contrast visual identity
-  const getCardDesign = (domain: string) => {
-    const lower = (domain || "").toLowerCase();
+  const getCardDesign = (domain: string, empType?: string) => {
+    const lowerRole = (domain || "").toLowerCase();
+    const lowerEmp = (empType || "").toLowerCase();
     
-    if (lower.includes("founder") || lower.includes("admin") || lower.includes("director")) {
+    // 1. Founder (Royal Purple)
+    if (lowerRole.includes("founder") || lowerRole.includes("director") || lowerRole.includes("owner")) {
       return {
         label: "FOUNDER & OWNER",
-        themeName: "Glacier Blue + Cool White (Lavender)",
-        primaryColor: "#7c3aed", // Lavender Purple
-        secondaryColor: "#2563eb", // Glacier Blue
-        accentColor: "#6d28d9", // Deep purple
-        techColor: "#8b5cf6", // Lavender Purple tech color
-        bgColorStart: "#e0f2fe", // Glacier Blue Light
-        bgColorEnd: "#ffffff", // Cool White
-        badgeBg: "bg-indigo-500/10 text-indigo-700 border border-indigo-500/20 shadow-sm",
+        themeName: "Royal Purple Premium (White Base)",
+        primaryColor: "#7c3aed", // Royal Purple
+        secondaryColor: "#8b5cf6", // Violet Highlight
+        accentColor: "#6d28d9", // Deep Purple
+        techColor: "#7c3aed", // Royal Purple
+        bgColorStart: "#ffffff",
+        bgColorEnd: "#faf8ff", // Cool Purple Tint
+        badgeBg: "bg-purple-100 text-purple-700 border border-purple-250 shadow-sm dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40",
         panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "FOUNDER CONTROL",
+        textColor: "#000000",
       };
     }
-    if (lower.includes("hr") || lower.includes("human resources") || lower.includes("talent")) {
+    // 2. HR / Staff Management (Blue)
+    if (
+      lowerRole.includes("hr") || 
+      lowerRole.includes("human resources") || 
+      lowerRole.includes("talent") || 
+      lowerRole.includes("management") || 
+      lowerRole.includes("operations")
+    ) {
       return {
-        label: "HUMAN RESOURCES",
-        themeName: "Cool White + Soft Blue (Red)",
-        primaryColor: "#ef4444", // Red Accent
-        secondaryColor: "#3b82f6", // Soft Blue
-        accentColor: "#dc2626", // Deep Red
-        techColor: "#ef4444", // Red tech color
-        bgColorStart: "#ffffff", // Cool White
-        bgColorEnd: "#eff6ff", // Soft Blue Light
-        badgeBg: "bg-blue-500/10 text-blue-700 border border-blue-500/20 shadow-sm",
+        label: "HR & MANAGEMENT",
+        themeName: "Soft Blue Enterprise (White Base)",
+        primaryColor: "#2563eb", // Royal Blue
+        secondaryColor: "#3b82f6", // Sky Blue Highlight
+        accentColor: "#1d4ed8", // Dark Blue
+        techColor: "#2563eb", // Blue
+        bgColorStart: "#ffffff",
+        bgColorEnd: "#f8faff", // Cool Blue Tint
+        badgeBg: "bg-blue-100 text-blue-700 border border-blue-250 shadow-sm dark:bg-blue-950/40 dark:text-blue-350 dark:border-blue-800/40",
         panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "HR ADMINISTRATION",
+        textColor: "#000000",
       };
     }
-    if (lower.includes("intern")) {
+    // 3. Intern (Orange)
+    if (lowerRole.includes("intern") || lowerEmp.includes("intern")) {
       return {
         label: "OFFICIAL INTERN",
-        themeName: "Off-White Minimalist (Orange)",
-        primaryColor: "#f97316", // Orange Accent
-        secondaryColor: "#ea580c", // Deep Orange
+        themeName: "Off-White Minimalist Orange (White Base)",
+        primaryColor: "#f97316", // Orange
+        secondaryColor: "#ea580c", // Orange Highlight
         accentColor: "#c2410c", // Charcoal Orange
-        techColor: "#f97316", // Orange tech color
-        bgColorStart: "#fafaf9", // Off-white stone
-        bgColorEnd: "#f5f5f4",
-        badgeBg: "bg-orange-500/10 text-orange-700 border border-orange-500/20 shadow-sm",
+        techColor: "#f97316", // Orange
+        bgColorStart: "#ffffff",
+        bgColorEnd: "#fffbf7", // Cool Orange Tint
+        badgeBg: "bg-orange-100 text-orange-700 border border-orange-250 shadow-sm dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40",
         panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "LEARNING ENROLLEE",
+        textColor: "#000000",
       };
     }
-    // Default contract or platform staff: Green + White
+    // 4. Contract Employee (Green)
+    if (lowerEmp.includes("contract")) {
+      return {
+        label: "CONTRACT ASSOCIATE",
+        themeName: "White + Green Enterprise (White Base)",
+        primaryColor: "#10b981", // Green Accent
+        secondaryColor: "#059669", // Green Highlight
+        accentColor: "#047857", // Deep Green
+        techColor: "#10b981", // Green
+        bgColorStart: "#ffffff",
+        bgColorEnd: "#f6fffb", // Cool Green Tint
+        badgeBg: "bg-emerald-100 text-emerald-700 border border-emerald-250 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40",
+        panelBg: "rgba(255, 255, 255, 0.95)",
+        badgeText: "CONTRACT MEMBER",
+        textColor: "#000000",
+      };
+    }
+    // 5. Permanent Employee (Dark Navy or Teal - default fallback for Software Engineers etc.)
     return {
-      label: "PLATFORM MEMBER",
-      themeName: "White + Green Enterprise",
-      primaryColor: "#10b981", // Green Accent
-      secondaryColor: "#059669", // Deep Green
-      accentColor: "#047857", // Charcoal Green
-      techColor: "#10b981", // Green tech color
-      bgColorStart: "#ffffff", // Pure White
-      bgColorEnd: "#ecfdf5", // Mint Light
-      badgeBg: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-sm",
+      label: "PERMANENT ASSOCIATE",
+      themeName: "Dark Navy & Teal (White Base)",
+      primaryColor: "#1e3a8a", // Dark Navy
+      secondaryColor: "#0f766e", // Teal Accent
+      accentColor: "#1e3a8a", // Dark Navy
+      techColor: "#1e3a8a", // Dark Navy
+      bgColorStart: "#ffffff",
+      bgColorEnd: "#f8fafc", // Cool Navy-Grey Tint
+      badgeBg: "bg-teal-100 text-teal-700 border border-teal-250 shadow-sm dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40",
       panelBg: "rgba(255, 255, 255, 0.95)",
-      badgeText: "MEMBER CONSOLE",
+      badgeText: "PERMANENT STAFF",
+      textColor: "#000000",
     };
   };
 
-  const design = getCardDesign(roleDomain);
+  const design = getCardDesign(roleDomain, employmentType);
   const roleMeta = getRoleMeta(roleDomain);
 
   // Fetch saved configuration and approvals on mount
@@ -553,7 +586,7 @@ export default function IdCardGenerator({
   const isAdminActor = loggedInRole === "FOUNDER" || loggedInRole === "HR" || loggedInRole === "SUPER_ADMIN" || loggedInRole === "ADMIN";
 
   return (
-    <div className="relative select-none text-slate-800 dark:text-white space-y-6">
+    <div className="relative text-slate-800 dark:text-white space-y-6">
       
       {/* Hidden Render Canvas */}
       <canvas ref={canvasRef} className="hidden" />
@@ -716,45 +749,67 @@ export default function IdCardGenerator({
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
         <div className="flex justify-center items-center">
           <div
-            className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative select-text shadow-2xl overflow-hidden text-white"
+            className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
             style={{
-              border: `4px solid ${design.primaryColor}`,
+              borderColor: design.primaryColor,
               boxShadow: `0 10px 40px ${design.primaryColor}1a`,
-              background: `linear-gradient(to bottom right, ${design.bgColorStart}, #0c101d, ${design.bgColorEnd})`,
+              background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
             }}
           >
+            {/* Top Tech Accent Line */}
+            <div 
+              className="absolute top-4 left-5 right-5 h-[4px] rounded-full z-20"
+              style={{ backgroundColor: design.primaryColor }}
+            />
+            {/* Top Tech Center Block */}
+            <div 
+              className="absolute top-[14px] left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-b-md z-20"
+              style={{ backgroundColor: design.primaryColor }}
+            />
+
+            {/* Bottom Tech Accent Line */}
+            <div 
+              className="absolute bottom-4 left-5 right-5 h-[4px] rounded-full z-20"
+              style={{ backgroundColor: design.primaryColor }}
+            />
+            {/* Bottom Tech Center Block */}
+            <div 
+              className="absolute bottom-[14px] left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-t-md z-20"
+              style={{ backgroundColor: design.primaryColor }}
+            />
+
             {/* Ambient Background Grid Overlay */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
 
             {/* Header Area */}
-            <div className="text-center space-y-0.5 relative z-10">
-              <h4 className="text-sm font-heading font-extrabold tracking-widest text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <div className="text-center space-y-0.5 relative z-10 pt-1.5">
+              <h4 className="text-sm font-heading font-extrabold tracking-widest text-slate-900">
                 AURXON
               </h4>
               <span 
                 className="text-[8.5px] font-black uppercase tracking-widest block"
-                style={{ color: design.secondaryColor }}
+                style={{ color: design.primaryColor }}
               >
                 WORKFORCE CREDENTIAL
               </span>
-              <div className="h-0.5 w-full bg-white/10 mt-1" />
+              <div className="h-0.5 w-full bg-slate-100 mt-1" />
             </div>
 
             {/* Photo & Identity Center */}
-            <div className="flex flex-col items-center space-y-3.5 relative z-10">
+            <div className="flex flex-col items-center space-y-3 relative z-10">
               {/* Photo Ring wrapper */}
               <div 
-                className="h-[106px] w-[106px] rounded-full flex items-center justify-center border-[3px]"
-                style={{ borderColor: design.primaryColor, backgroundColor: "rgba(0,0,0,0.5)" }}
+                className="h-[106px] w-[106px] rounded-full flex items-center justify-center border-[3.5px] shadow-sm bg-slate-50"
+                style={{ borderColor: design.primaryColor }}
               >
                 {photoUrl ? (
                   <img
                     src={photoUrl}
                     alt="Badge portrait"
-                    className="h-[98px] w-[98px] rounded-full object-cover shadow-inner"
+                    className="h-[96px] w-[96px] rounded-full object-cover shadow-inner"
                   />
                 ) : (
-                  <div className="h-[98px] w-[98px] rounded-full bg-white/5 flex items-center justify-center text-white/20 border border-white/5 shadow-inner">
+                  <div className="h-[96px] w-[96px] rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200/50 shadow-inner">
                     <span className="text-[8.5px] uppercase font-bold text-center tracking-wider px-2">No Photo</span>
                   </div>
                 )}
@@ -762,45 +817,43 @@ export default function IdCardGenerator({
 
               {/* Text items inside solid panel */}
               <div 
-                className="w-full rounded-xl border border-white/10 p-3.5 text-center space-y-1"
-                style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}
+                className="w-full rounded-xl border border-slate-250 p-3 text-center space-y-0.5 shadow-sm bg-white"
               >
-                <span className="text-sm font-heading font-extrabold tracking-wide block text-white">
+                <span className="text-sm font-heading font-extrabold tracking-wide block text-slate-900 select-text">
                   {fullName}
                 </span>
                 
                 <span 
                   className="text-[9.5px] font-extrabold uppercase tracking-wider block"
-                  style={{ color: design.accentColor }}
+                  style={{ color: design.primaryColor }}
                 >
                   {roleDomain} ({roleMeta.shortCode})
                 </span>
                 
-                <span className="text-[8px] text-slate-400 block font-medium uppercase tracking-wide">
+                <span className="text-[8.5px] text-slate-500 block font-bold uppercase tracking-wide">
                   {department}
                 </span>
 
-                <span 
-                  className="text-[7.5px] font-heading font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-white/[0.04] border-white/10 inline-block mt-1"
-                  style={{ color: design.secondaryColor, borderColor: design.primaryColor + "55" }}
-                >
-                  {design.label}
-                </span>
+                <div className="pt-1 select-none">
+                  <span className={`text-[8px] font-heading font-extrabold uppercase tracking-widest px-3 py-0.5 rounded-full border ${design.badgeBg}`}>
+                    {design.badgeText}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Identity details and barcode */}
-            <div className="space-y-3.5 relative z-10">
-              <div className="flex justify-between items-center text-[9px] px-1 border-t border-white/10 pt-2 bg-black/30 p-1.5 rounded-lg border border-white/5">
+            <div className="space-y-3 relative z-10 pb-1.5">
+              <div className="flex justify-between items-center text-[9px] px-1 border border-slate-200 bg-slate-50/50 p-1.5 rounded-xl">
                 <div>
-                  <span className="text-slate-500 block text-[7.5px] font-bold uppercase tracking-wider">Credential ID</span>
-                  <span className="font-mono font-bold tracking-wide text-white">{internId}</span>
+                  <span className="text-slate-400 block text-[7.5px] font-bold uppercase tracking-wider">Credential ID</span>
+                  <span className="font-mono font-bold tracking-wide text-slate-800 select-text">{internId}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-slate-500 block text-[7.5px] font-bold uppercase tracking-wider">Status</span>
+                  <span className="text-slate-400 block text-[7.5px] font-bold uppercase tracking-wider">Status</span>
                   <span 
                     className="font-black uppercase tracking-wide text-[10px]"
-                    style={{ color: isCardApproved ? "#10b981" : "#f59e0b" }}
+                    style={{ color: isCardApproved ? "#047857" : "#c2410c" }}
                   >
                     {isCardApproved ? "Active verified" : "Pending audit"}
                   </span>
@@ -808,7 +861,7 @@ export default function IdCardGenerator({
               </div>
 
               {/* Barcode representation */}
-              <div className="bg-white p-1 rounded border border-white/5 shadow-md h-9 overflow-hidden flex flex-col justify-between">
+              <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-sm h-9 overflow-hidden flex flex-col justify-between">
                 <div className="flex items-end justify-between h-5 w-full select-none">
                   {Array.from({ length: 42 }).map((_, i) => {
                     const h = [6, 12, 16, 20, 24][(i + (internId.charCodeAt(i % internId.length) || 0)) % 5];
