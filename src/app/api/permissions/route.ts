@@ -5,22 +5,24 @@ import { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getSafeUserId } from "@/lib/safeUser";
 
-// Helper to authenticate and check roles
+// Helper to authenticate and check roles dynamically
 async function getAdminUser() {
   const session = await auth();
   if (!session?.user) {
     return { authenticated: false, status: 401, error: "Unauthorized access. Please log in." };
   }
   const user = session.user as any;
-  if (user.role !== Role.FOUNDER && user.role !== Role.SUPER_ADMIN) {
-    return { authenticated: false, status: 403, error: "Forbidden. Administrative privileges required." };
+  const { hasPermission } = await import("@/lib/permissions");
+  const hasAccess = await hasPermission(user.id, user.role, "settingsAccess");
+  if (!hasAccess) {
+    return { authenticated: false, status: 403, error: "Forbidden. Administrative settings privileges required." };
   }
   return { authenticated: true, user };
 }
 
 /**
  * GET /api/permissions
- * Lists all users with their roles and permission status
+ * Lists all users with their roles and permission status, plus the security audit trail
  */
 export async function GET(req: Request) {
   try {
@@ -50,7 +52,16 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, users }, { status: 200 });
+    const changeLogs = await db.permissionChangeLog.findMany({
+      include: {
+        changedBy: { select: { fullName: true, role: true } },
+        target: { select: { fullName: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    return NextResponse.json({ success: true, users, changeLogs }, { status: 200 });
   } catch (err: any) {
     console.error("Error fetching permissions:", err);
     return NextResponse.json({ error: "Internal database query error." }, { status: 500 });
@@ -189,6 +200,40 @@ export async function PUT(req: Request) {
     }
 
     const updatedUser = await db.$transaction(async (tx) => {
+      const changes: string[] = [];
+      if (role && role !== targetUser.role) {
+        changes.push(`Role changed from ${targetUser.role} to ${role}`);
+      }
+
+      if (permissions) {
+        const currentPerms = await tx.userPermission.findUnique({ where: { userId } });
+        const changedPerms: string[] = [];
+        const keys = [
+          "dashboardAccess",
+          "attendanceAccess",
+          "taskAccess",
+          "documentAccess",
+          "approvalAccess",
+          "settingsAccess",
+          "analyticsAccess",
+          "onboardingAccess",
+        ];
+        for (const k of keys) {
+          if (permissions[k] !== undefined) {
+            const prevVal = currentPerms ? !!currentPerms[k as keyof typeof currentPerms] : "default (true)";
+            const newVal = !!permissions[k];
+            if (prevVal !== newVal) {
+              changedPerms.push(`${k}: ${prevVal} -> ${newVal}`);
+            }
+          }
+        }
+        if (changedPerms.length > 0) {
+          changes.push(`Overrides: ${changedPerms.join(", ")}`);
+        }
+      }
+
+      const details = changes.join(" | ");
+
       // Update role if supplied
       let nextRole = targetUser.role;
       if (role && Object.values(Role).includes(role as Role)) {
@@ -227,11 +272,21 @@ export async function PUT(req: Request) {
         });
       }
 
+      await tx.permissionChangeLog.create({
+        data: {
+          changedById: currentUser.id,
+          targetId: userId,
+          previousRole: targetUser.role,
+          newRole: nextRole,
+          details: details || "No functional changes",
+        },
+      });
+
       await tx.activityLog.create({
         data: {
           userId: await getSafeUserId(currentUser.id, tx),
           action: "UPDATE_PERMISSIONS",
-          description: `Updated roles and permission limits for user ${targetUser.fullName} (ID: ${userId})`,
+          description: `Updated roles and permission limits for user ${targetUser.fullName} (ID: ${userId}). Details: ${details || "No changes"}`,
         },
       });
 
