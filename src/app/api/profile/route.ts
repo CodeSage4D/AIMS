@@ -188,11 +188,20 @@ export async function PATCH(req: Request) {
             city: "city",
             state: "state",
             country: "country",
+            pinCode: "pinCode",
+            citizenship: "citizenship",
+            region: "region",
             university: "university",
             degree: "degree",
             department: "department",
             roleDomain: "roleDomain",
             batchSemester: "batchSemester",
+            bankName: "bankName",
+            accountNumber: "accountNumber",
+            ifscCode: "ifscCode",
+            upiId: "upiId",
+            branchName: "branchName",
+            panCard: "panCard",
           };
 
           const targetField = fieldMap[request.fieldToUpdate];
