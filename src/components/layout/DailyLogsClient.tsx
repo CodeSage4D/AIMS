@@ -140,7 +140,7 @@ export default function DailyLogsClient({ initialLogs, activeTasks, userRole = "
   });
 
   return (
-    <div className="space-y-6 select-none animate-fadeIn text-foreground">
+    <div className="space-y-6 animate-fadeIn text-foreground">
       {/* Page Header */}
       <div>
         <h2 className="text-xl font-heading font-extrabold text-foreground tracking-tight flex items-center space-x-2">
