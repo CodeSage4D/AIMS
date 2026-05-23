@@ -54,10 +54,9 @@ export default function NoticeBoard({ announcements, anniversaries }: NoticeBoar
                     <Megaphone className="h-4.5 w-4.5" />
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-xs font-extrabold text-white truncate">{notice.title}</h4>
-                      <span className="text-[9px] text-muted-foreground font-semibold flex items-center space-x-1 shrink-0">
+                    <div className="flex items-start sm:items-center justify-between gap-2">
+                      <h4 className="text-xs font-extrabold text-white whitespace-normal break-words flex-1 leading-normal sm:truncate">{notice.title}</h4>
+                      <span className="text-[9px] text-muted-foreground font-semibold flex items-center space-x-1 shrink-0 mt-0.5 sm:mt-0">
                         <Calendar className="h-3 w-3" />
                         <span>{new Date(notice.date).toLocaleDateString()}</span>
                       </span>
