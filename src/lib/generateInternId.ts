@@ -74,7 +74,10 @@ export function getRoleCode(roleDomain: string): string {
 
 // Extractor logic for full name initials (First Letter + Last Letter)
 export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
+  // Strip out non-alphanumeric characters except spaces to keep initials clean and professional
+  const cleanName = (name || "").replace(/[^a-zA-Z0-9\s]/g, "");
+  const parts = cleanName.trim().split(/\s+/).filter(Boolean);
+  
   if (parts.length === 0) return "XX";
   if (parts.length === 1) {
     const word = parts[0].toUpperCase();
