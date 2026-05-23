@@ -368,7 +368,7 @@ export default function ProfileSettingsClient({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 select-none text-foreground animate-fadeIn max-w-5xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 text-foreground animate-fadeIn max-w-5xl mx-auto">
       {/* 1. Cover Card Component */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-br from-card/85 via-card/75 to-card/60 p-6 sm:p-8 shadow-2xl backdrop-blur-md">
         <div className="absolute -right-20 -top-20 h-40 w-40 sm:h-52 sm:w-52 rounded-full bg-primary/10 blur-[60px] pointer-events-none" />
@@ -1204,6 +1204,7 @@ export default function ProfileSettingsClient({
                   roleDomain={internProfile.roleDomain}
                   status={user.role === "INTERN" ? "INTERN" : "ACTIVE"}
                   dbInternId={internProfile.id}
+                  employmentType={internProfile.employmentType}
                 />
               </CardContent>
             </Card>
