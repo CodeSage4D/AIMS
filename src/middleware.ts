@@ -2,7 +2,10 @@ import { auth } from "@/lib/auth";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
+  const isAuthPage =
+    req.nextUrl.pathname.startsWith("/login") ||
+    req.nextUrl.pathname.startsWith("/signup") ||
+    req.nextUrl.pathname.startsWith("/recovery");
 
   const isVerifyPage = req.nextUrl.pathname.startsWith("/verify");
 

@@ -73,7 +73,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               };
             }
           }
-        } catch (dbError) {
+        } catch (dbError: any) {
+          // Re-throw account status errors so NextAuth can surface them
+          if (dbError?.message?.includes("pending") || dbError?.message?.includes("rejected")) {
+            throw dbError;
+          }
           console.warn(
             "Database connection failed during login:",
             dbError

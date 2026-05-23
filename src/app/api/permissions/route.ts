@@ -35,6 +35,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         email: true,
+        username: true,
         fullName: true,
         role: true,
         status: true,
