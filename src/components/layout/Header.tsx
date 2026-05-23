@@ -223,17 +223,8 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
         )}
       </div>
 
-      {/* Right: Active Status Badge, Currency & Theme Toggle & Mini Profile */}
+      {/* Right: Active Status Badge, Theme Toggle & Mini Profile */}
       <div className="flex items-center space-x-3.5">
-        {/* Currency Switcher Toggle Button */}
-        <button
-          onClick={() => setCurrency(currency === "INR" ? "USD" : "INR")}
-          className="h-9 px-3 rounded-md bg-secondary border border-border/80 flex items-center space-x-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer select-none"
-          title="Toggle Stipend Currency (INR / USD)"
-        >
-          <span>{currency === "INR" ? "🇮🇳 INR (₹)" : "🇺🇸 USD ($)"}</span>
-        </button>
-
         <button
           onClick={toggleTheme}
           className="h-9 w-9 rounded-md bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
