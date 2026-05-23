@@ -1,8 +1,26 @@
 import React from "react";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { hasPermission } from "@/lib/permissions";
 import AttendanceRoll from "@/components/layout/AttendanceRoll";
+import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
 
 export default async function AttendancePage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const userRole = (session.user as any).role || "INTERN";
+  const userId = (session.user as any).id;
+
+  const hasAccess = await hasPermission(userId, userRole, "attendanceAccess");
+  if (!hasAccess) {
+    return <AccessDeniedShield requiredRole="Attendance Control" currentRole={userRole} />;
+  }
+
   let interns: any[] = [];
 
   try {
