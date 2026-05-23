@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -330,6 +331,23 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
               </CardHeader>
               <CardContent className="p-5 space-y-4">
                 {["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"].map((type) => {
+                  if (type === "ID_CARD") {
+                    return (
+                      <div
+                        key={type}
+                        className="p-4.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/20 dark:bg-card/40 backdrop-blur-md shadow-xl transition-all duration-300"
+                      >
+                        <IdCardGenerator
+                          fullName={myRecord.fullName}
+                          internId={myRecord.internId || "AXN-REF-PENDING"}
+                          department={myRecord.department}
+                          roleDomain={myRecord.roleDomain}
+                          status={myRecord.status}
+                        />
+                      </div>
+                    );
+                  }
+
                   const existing = (myRecord.generatedDocuments || []).find((d) => d.type === type);
                   const isApproved = existing?.status === "APPROVED";
                   const isHired = myRecord.status === "ACTIVE" || myRecord.status === "COMPLETED" || myRecord.employmentType === "PERMANENT" || myRecord.employmentType === "CONTRACT";
