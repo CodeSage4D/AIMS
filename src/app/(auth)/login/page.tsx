@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, Mail, AlertTriangle, User, ChevronLeft, CheckCircle, Sun, Moon } from "lucide-react";
+import { Lock, Mail, AlertTriangle, User, ChevronLeft, CheckCircle, Sun, Moon, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Forgot Password Form States
   const [forgotInternId, setForgotInternId] = useState("");
@@ -258,11 +259,11 @@ export default function LoginPage() {
                   </div>
                   <Input
                     label="Password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${
+                    className={`pl-11 pr-11 h-12 text-sm rounded-xl transition-all duration-200 ${
                       currentTheme === "dark"
                         ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
                         : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
@@ -270,22 +271,58 @@ export default function LoginPage() {
                     disabled={loginLoading}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute right-4 top-[39px] transition-colors duration-200 cursor-pointer ${
+                      currentTheme === "dark" ? "text-gray-400 hover:text-white" : "text-slate-400 hover:text-slate-700"
+                    }`}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/signup")}
+                    className={`transition-colors cursor-pointer ${
+                      currentTheme === "dark" 
+                        ? "text-indigo-400 hover:text-indigo-300" 
+                        : "text-indigo-600 hover:text-indigo-700"
+                    }`}
+                  >
+                    Onboard / Register Account
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
                       setView("forgot");
                       setLoginError(null);
                     }}
-                    className={`text-xs transition-colors font-semibold cursor-pointer ${
+                    className={`transition-colors cursor-pointer ${
                       currentTheme === "dark" 
                         ? "text-indigo-400 hover:text-indigo-300" 
                         : "text-indigo-600 hover:text-indigo-700"
                     }`}
                   >
                     Forgot Password?
+                  </button>
+                </div>
+
+                <div className="flex justify-center text-[10px] sm:text-[11px] font-semibold pt-2 border-t border-slate-200 dark:border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/recovery")}
+                    className={`transition-colors cursor-pointer ${
+                      currentTheme === "dark" 
+                        ? "text-amber-500 hover:text-amber-400" 
+                        : "text-amber-600 hover:text-amber-700"
+                    }`}
+                  >
+                    Founder Administrative Recovery Console
                   </button>
                 </div>
 
