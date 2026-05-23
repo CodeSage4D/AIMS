@@ -41,92 +41,68 @@ export default function IdCardGenerator({
   const [cardDocId, setCardDocId] = useState<string | null>(null);
   const [cardSignature, setCardSignature] = useState<string | null>(null);
 
-  // Dynamic color configuration based on enrollee's role for visual identity
+  // Dynamic light-themed color configuration based on enrollee's role for high contrast visual identity
   const getCardDesign = (domain: string) => {
     const lower = (domain || "").toLowerCase();
     
-    if (lower.includes("founder")) {
+    if (lower.includes("founder") || lower.includes("admin") || lower.includes("director")) {
       return {
         label: "FOUNDER & OWNER",
-        themeName: "Royal Ruby Crimson",
-        primaryColor: "#dc2626", // Crimson Red
-        secondaryColor: "#fbbf24", // Gold
-        accentColor: "#facc15", // Light Gold
-        bgColorStart: "#09090b", // Absolute dark
-        bgColorEnd: "#1c0d0d",
-        badgeBg: "bg-red-500/10 text-red-400 border border-red-500/20 shadow-red-500/5",
-        panelBg: "rgba(10, 10, 10, 0.85)",
+        themeName: "Glacier Blue + Cool White (Lavender)",
+        primaryColor: "#7c3aed", // Lavender Purple
+        secondaryColor: "#2563eb", // Glacier Blue
+        accentColor: "#6d28d9", // Deep purple
+        techColor: "#8b5cf6", // Lavender Purple tech color
+        bgColorStart: "#e0f2fe", // Glacier Blue Light
+        bgColorEnd: "#ffffff", // Cool White
+        badgeBg: "bg-indigo-500/10 text-indigo-700 border border-indigo-500/20 shadow-sm",
+        panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "FOUNDER CONTROL",
       };
     }
     if (lower.includes("hr") || lower.includes("human resources") || lower.includes("talent")) {
       return {
         label: "HUMAN RESOURCES",
-        themeName: "Royal Indigo & Sapphire",
-        primaryColor: "#2563eb", // Deep Blue
-        secondaryColor: "#06b6d4", // Cyan
-        accentColor: "#38bdf8", // Sky cyan
-        bgColorStart: "#030712",
-        bgColorEnd: "#0c1830",
-        badgeBg: "bg-blue-500/10 text-cyan-400 border border-cyan-500/20 shadow-cyan-500/5",
-        panelBg: "rgba(15, 23, 42, 0.85)",
+        themeName: "Cool White + Soft Blue (Red)",
+        primaryColor: "#ef4444", // Red Accent
+        secondaryColor: "#3b82f6", // Soft Blue
+        accentColor: "#dc2626", // Deep Red
+        techColor: "#ef4444", // Red tech color
+        bgColorStart: "#ffffff", // Cool White
+        bgColorEnd: "#eff6ff", // Soft Blue Light
+        badgeBg: "bg-blue-500/10 text-blue-700 border border-blue-500/20 shadow-sm",
+        panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "HR ADMINISTRATION",
-      };
-    }
-    if (lower.includes("admin") || lower.includes("director") || lower.includes("manager")) {
-      return {
-        label: "ADMINISTRATOR",
-        themeName: "Obsidian Slate & Emerald",
-        primaryColor: "#059669", // Emerald
-        secondaryColor: "#10b981", // Mint
-        accentColor: "#34d399", // Light Mint
-        bgColorStart: "#09090b",
-        bgColorEnd: "#061a15",
-        badgeBg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-emerald-500/5",
-        panelBg: "rgba(24, 24, 27, 0.85)",
-        badgeText: "ADMIN CONTROL",
-      };
-    }
-    if (lower.includes("developer") || lower.includes("engineer") || lower.includes("design lead")) {
-      return {
-        label: "ENGINEER / DEV",
-        themeName: "Matrix Carbon & Neon Teal",
-        primaryColor: "#0d9488", // Dark Teal
-        secondaryColor: "#14b8a6", // Bright Teal
-        accentColor: "#2dd4bf", // Teal Accent
-        bgColorStart: "#030712",
-        bgColorEnd: "#041a18",
-        badgeBg: "bg-teal-500/10 text-teal-400 border border-teal-500/20 shadow-teal-500/5",
-        panelBg: "rgba(8, 15, 30, 0.85)",
-        badgeText: "CORE ENGINEERING",
       };
     }
     if (lower.includes("intern")) {
       return {
         label: "OFFICIAL INTERN",
-        themeName: "Aura Amber & Violet",
-        primaryColor: "#d97706", // Dark Amber
-        secondaryColor: "#f59e0b", // Gold Amber
-        accentColor: "#fbbf24", // Bright Yellow
-        bgColorStart: "#090514", // Deep Violet
-        bgColorEnd: "#140b2b",
-        badgeBg: "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-amber-500/5",
-        panelBg: "rgba(20, 10, 35, 0.85)",
+        themeName: "Off-White Minimalist (Orange)",
+        primaryColor: "#f97316", // Orange Accent
+        secondaryColor: "#ea580c", // Deep Orange
+        accentColor: "#c2410c", // Charcoal Orange
+        techColor: "#f97316", // Orange tech color
+        bgColorStart: "#fafaf9", // Off-white stone
+        bgColorEnd: "#f5f5f4",
+        badgeBg: "bg-orange-500/10 text-orange-700 border border-orange-500/20 shadow-sm",
+        panelBg: "rgba(255, 255, 255, 0.95)",
         badgeText: "LEARNING ENROLLEE",
       };
     }
-    // Default standard employee
+    // Default contract or platform staff: Green + White
     return {
       label: "PLATFORM MEMBER",
-      themeName: "Obsidian Onyx & Orange",
-      primaryColor: "#ea580c", // Orange
-      secondaryColor: "#f97316", // Amber Orange
-      accentColor: "#fdba74", // Light Orange
-      bgColorStart: "#030712",
-      bgColorEnd: "#1c1103",
-      badgeBg: "bg-orange-500/10 text-orange-400 border border-orange-500/20 shadow-orange-500/5",
-      panelBg: "rgba(15, 23, 42, 0.85)",
-      badgeText: "EMPLOYEE MEMBER",
+      themeName: "White + Green Enterprise",
+      primaryColor: "#10b981", // Green Accent
+      secondaryColor: "#059669", // Deep Green
+      accentColor: "#047857", // Charcoal Green
+      techColor: "#10b981", // Green tech color
+      bgColorStart: "#ffffff", // Pure White
+      bgColorEnd: "#ecfdf5", // Mint Light
+      badgeBg: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-sm",
+      panelBg: "rgba(255, 255, 255, 0.95)",
+      badgeText: "MEMBER CONSOLE",
     };
   };
 
@@ -192,17 +168,16 @@ export default function IdCardGenerator({
 
   const drawCardOnCanvas = (ctx: CanvasRenderingContext2D, width: number, height: number, imgElement?: HTMLImageElement): Promise<void> => {
     return new Promise((resolve) => {
-      // 1. High Contrast Background Gradient
+      // 1. High Contrast Background Gradient (Light-themed)
       let bgGradient = ctx.createLinearGradient(0, 0, width, height);
       bgGradient.addColorStop(0, design.bgColorStart);
-      bgGradient.addColorStop(0.5, "#0b0f19");
       bgGradient.addColorStop(1, design.bgColorEnd);
       
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle high-contrast grid overlay
-      ctx.fillStyle = "rgba(255, 255, 255, 0.015)";
+      // Subtle light-contrast grid overlay
+      ctx.fillStyle = "rgba(15, 23, 42, 0.015)";
       for (let x = 0; x < width; x += 15) {
         ctx.fillRect(x, 0, 1, height);
       }
@@ -211,34 +186,44 @@ export default function IdCardGenerator({
       }
 
       // 2. High-Readability Card Frame
-      ctx.strokeStyle = design.primaryColor;
+      ctx.strokeStyle = design.secondaryColor;
       ctx.lineWidth = 8;
       ctx.strokeRect(4, 4, width - 8, height - 8);
 
-      ctx.strokeStyle = design.secondaryColor;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(15, 23, 42, 0.08)";
+      ctx.lineWidth = 1;
       ctx.strokeRect(10, 10, width - 20, height - 20);
 
-      // Decorative corners
-      ctx.fillStyle = design.accentColor;
-      ctx.fillRect(4, 4, 25, 8);
-      ctx.fillRect(4, 4, 8, 25);
-      ctx.fillRect(width - 29, 4, 25, 8);
-      ctx.fillRect(width - 12, 4, 8, 25);
-      ctx.fillRect(4, height - 12, 25, 8);
-      ctx.fillRect(4, height - 29, 8, 25);
-      ctx.fillRect(width - 29, height - 12, 25, 8);
-      ctx.fillRect(width - 12, height - 29, 8, 25);
+      // Draw top tech line stripes
+      ctx.strokeStyle = design.techColor;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(25, 22);
+      ctx.lineTo(width - 25, 22);
+      ctx.stroke();
 
-      // 3. Header Section (Highly Readable White Title)
+      // Top decorative tech block
+      ctx.fillStyle = design.techColor;
+      ctx.fillRect(width / 2 - 25, 20, 50, 4);
+
+      // Draw bottom tech line stripes
+      ctx.beginPath();
+      ctx.moveTo(25, height - 22);
+      ctx.lineTo(width - 25, height - 22);
+      ctx.stroke();
+
+      // Bottom decorative tech block
+      ctx.fillRect(width / 2 - 25, height - 24, 50, 4);
+
+      // 3. Header Section (Highly Readable Slate Black Title)
       ctx.textAlign = "center";
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#0f172a"; // Slate-900
       
-      // Shadow for extreme text contrast
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 2;
+      // Shadow for subtle contrast
+      ctx.shadowColor = "rgba(0, 0, 0, 0.08)";
+      ctx.shadowBlur = 1;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1;
 
       ctx.font = "900 24px sans-serif";
       ctx.fillText("AURXON", width / 2, 46);
@@ -247,13 +232,13 @@ export default function IdCardGenerator({
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillStyle = design.secondaryColor;
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillStyle = "#334155"; // Slate-700
       ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, 65);
 
       // Horizontal separator
-      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-      ctx.fillRect(30, 80, width - 60, 2);
+      ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
+      ctx.fillRect(30, 80, width - 60, 1.5);
 
       // 4. Draw Profile Picture Frame
       const centerX = width / 2;
@@ -262,16 +247,16 @@ export default function IdCardGenerator({
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius + 4, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.04)";
       ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = design.primaryColor;
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = design.secondaryColor;
       ctx.stroke();
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = design.secondaryColor;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(15, 23, 42, 0.1)";
       ctx.stroke();
 
       if (imgElement) {
@@ -283,32 +268,32 @@ export default function IdCardGenerator({
         ctx.drawImage(imgElement, centerX - radius, centerY - radius, radius * 2, radius * 2);
         ctx.restore();
       } else {
-        // Draw crisp vector avatar placeholder
+        // Draw crisp vector avatar placeholder (Light style)
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
         ctx.clip();
         
-        ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.fillStyle = "#f1f5f9"; // Slate-100
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
         
         ctx.beginPath();
         ctx.arc(centerX, centerY - 12, 22, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.fillStyle = "#cbd5e1"; // Slate-300
         ctx.fill();
         
         ctx.beginPath();
         ctx.arc(centerX, centerY + 48, 42, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.fillStyle = "#cbd5e1"; // Slate-300
         ctx.fill();
         ctx.restore();
       }
 
-      // 5. Solid Opaque Overlay Panel for Superior Text Readability
+      // 5. Solid Opaque Overlay Panel for Superior Text Readability (White theme)
       const panelY = 280;
       const panelHeight = 158;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; // Solid Opaque White Panel
+      ctx.strokeStyle = "rgba(15, 23, 42, 0.08)";  // Soft border
       ctx.lineWidth = 1;
       
       // Draw rounded container panel
@@ -320,9 +305,9 @@ export default function IdCardGenerator({
       // Draw text inside panel
       ctx.textAlign = "center";
       
-      // Full Name (Heavy White Font)
+      // Full Name (Heavy Slate Black Font)
       ctx.font = "900 21px sans-serif";
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#090d16"; // Ink Black
       ctx.fillText(fullName, width / 2, panelY + 32);
 
       // Role Domain Badge Text
@@ -332,35 +317,35 @@ export default function IdCardGenerator({
       
       // Department
       ctx.font = "bold 11px sans-serif";
-      ctx.fillStyle = "#94a3b8"; // Slate color
+      ctx.fillStyle = "#475569"; // Slate-600
       ctx.fillText(department, width / 2, panelY + 74);
 
       // Dynamic Design Role Label Badge
       const badgeW = 160;
       const badgeH = 18;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
-      ctx.strokeStyle = design.primaryColor + "55"; // translucent border
+      ctx.fillStyle = "rgba(15, 23, 42, 0.03)";
+      ctx.strokeStyle = design.primaryColor + "33"; // soft border
       ctx.beginPath();
       ctx.roundRect(width / 2 - badgeW / 2, panelY + 90, badgeW, badgeH, 6);
       ctx.fill();
       ctx.stroke();
 
       ctx.font = "900 8.5px sans-serif";
-      ctx.fillStyle = design.secondaryColor;
+      ctx.fillStyle = design.accentColor;
       ctx.fillText(design.label, width / 2, panelY + 102);
 
       // Separator
-      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
       ctx.fillRect(40, panelY + 118, width - 80, 1.5);
 
-      // Credential ID (Highly Readable)
+      // Credential ID (Highly Readable Black)
       ctx.textAlign = "left";
       ctx.font = "900 9px sans-serif";
       ctx.fillStyle = "#64748b";
       ctx.fillText("CREDENTIAL ID", 45, panelY + 134);
       
       ctx.font = "bold 13px monospace";
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#0f172a";
       ctx.fillText(internId, 45, panelY + 148);
 
       // Status
@@ -371,13 +356,13 @@ export default function IdCardGenerator({
 
       const isApproved = cardStatus === "APPROVED";
       ctx.font = "900 11.5px sans-serif";
-      ctx.fillStyle = isApproved ? "#10b981" : "#f59e0b"; // Green or Amber
+      ctx.fillStyle = isApproved ? "#047857" : "#c2410c"; // Dark Green or Dark Orange
       ctx.fillText(isApproved ? "VERIFIED ACTIVE" : "PENDING AUDIT", width - 45, panelY + 148);
 
       // 6. Draw Barcode Section
       const barcodeY = 458;
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(35, barcodeY, width - 70, 48); // white base block
+      ctx.fillRect(35, barcodeY, width - 70, 48); // white base block (keeps scan contrast high)
       
       ctx.fillStyle = "#000000";
       let cursorX = 45;
@@ -394,23 +379,23 @@ export default function IdCardGenerator({
       
       ctx.textAlign = "center";
       ctx.font = "bold 9px monospace";
-      ctx.fillStyle = "#4b5563";
+      ctx.fillStyle = "#374151"; // Charcoal
       ctx.fillText(`* ${internId} *`, width / 2, barcodeY + 45);
 
       // 7. Security Footnotes & Signature Stamp
       ctx.font = "bold 8px sans-serif";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.4)"; // Charcoal opaque footnotes
       ctx.fillText("AURXON SECURE COMPLIANCE BADGE - COMPLIANCE SHIELD ACTIVE", width / 2, 524);
 
       if (isApproved && cardSignature) {
         ctx.font = "500 7px monospace";
-        ctx.fillStyle = design.secondaryColor;
+        ctx.fillStyle = "#0f172a"; // Signature ink black
         // Limit signature stamp width safely
         const cleanSig = cardSignature.length > 55 ? cardSignature.substring(0, 52) + "..." : cardSignature;
         ctx.fillText(cleanSig, width / 2, 538);
       } else {
         ctx.font = "bold 7.5px sans-serif";
-        ctx.fillStyle = "#ef4444";
+        ctx.fillStyle = "#dc2626"; // High contrast Red
         ctx.fillText("⚠️ UNAPPROVED CREDENTIAL DRAFT", width / 2, 538);
       }
 

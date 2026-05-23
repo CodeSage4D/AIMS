@@ -53,7 +53,7 @@ export default function NoticeBoard({ announcements, anniversaries }: NoticeBoar
                   <div className="p-2 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
                     <Megaphone className="h-4.5 w-4.5" />
                   </div>
-                  
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-start sm:items-center justify-between gap-2">
                       <h4 className="text-xs font-extrabold text-white whitespace-normal break-words flex-1 leading-normal sm:truncate">{notice.title}</h4>
                       <span className="text-[9px] text-muted-foreground font-semibold flex items-center space-x-1 shrink-0 mt-0.5 sm:mt-0">
