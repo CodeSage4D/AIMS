@@ -5,17 +5,43 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, AlertTriangle, CheckCircle, ShieldAlert } from "lucide-react";
+import { Lock, AlertTriangle, CheckCircle, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 export default function ForcePasswordChange() {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: "", color: "bg-transparent", textClass: "text-gray-400" };
+    
+    let score = 0;
+    if (pass.length >= 8) score += 1;
+    if (pass.length >= 10) score += 1;
+    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+
+    if (pass.length < 8) {
+      return { score: 1, label: "Too Weak (Min 8 characters)", color: "bg-red-500 w-1/3", textClass: "text-red-500 font-bold" };
+    }
+    if (score <= 2) {
+      return { score: 1, label: "Weak Quality (Red)", color: "bg-red-500 w-1/3", textClass: "text-red-400 font-bold" };
+    } else if (score <= 4) {
+      return { score: 2, label: "Medium Quality (Yellow)", color: "bg-yellow-500 w-2/3", textClass: "text-yellow-450 font-bold" };
+    } else {
+      return { score: 3, label: "Strong Quality (Green)", color: "bg-emerald-500 w-full", textClass: "text-emerald-400 font-bold" };
+    }
+  };
+
+  const strength = getPasswordStrength(newPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,37 +123,66 @@ export default function ForcePasswordChange() {
               )}
 
               {/* New Password Entry */}
-              <div className="relative group">
+              <div className="relative group flex flex-col">
                 <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-violet-400 transition-colors duration-300 pointer-events-none z-10">
                   <Lock className="h-4.5 w-4.5" />
                 </div>
                 <Input
                   label="New Password"
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-violet-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                  className="pl-11 pr-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-violet-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
                   disabled={loading}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-4 top-[39px] text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer z-10"
+                  title={showNewPassword ? "Hide password" : "Show password"}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
 
+              {/* Password Strength Meter */}
+              {newPassword && (
+                <div className="space-y-1.5 pt-1 animate-fadeIn">
+                  <div className="flex justify-between items-center text-[9px] sm:text-[10px] uppercase font-bold tracking-wider">
+                    <span className="text-gray-400">Password Complexity Quality:</span>
+                    <span className={strength.textClass}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div className={`h-full transition-all duration-300 ${strength.color}`} />
+                  </div>
+                </div>
+              )}
+
               {/* Confirm Password Entry */}
-              <div className="relative group">
+              <div className="relative group flex flex-col">
                 <div className="absolute left-4 top-[39px] text-gray-400 group-focus-within:text-violet-400 transition-colors duration-300 pointer-events-none z-10">
                   <Lock className="h-4.5 w-4.5" />
                 </div>
                 <Input
                   label="Confirm New Password"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-violet-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
+                  className="pl-11 pr-11 h-12 text-sm bg-white/5 border-white/10 hover:border-white/20 focus:border-violet-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500 rounded-xl transition-all duration-200"
                   disabled={loading}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-[39px] text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer z-10"
+                  title={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
 
               <div className="flex justify-between items-center mt-2">
