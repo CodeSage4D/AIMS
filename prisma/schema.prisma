@@ -109,6 +109,9 @@ model Intern {
   city                   String
   state                  String
   country                String
+  pinCode                String?          @map("pin_code")
+  citizenship            String?          @map("citizenship")
+  region                 String?          @map("region")
   university             String           @map("university_college")
   degree                 String           @map("degree_course")
   department             String
@@ -128,6 +131,12 @@ model Intern {
   performanceNotes       String?          @map("performance_notes")
   notes                  String?          @map("notes")
   ssidn                  String?          @map("ssidn")
+  bankName               String?          @map("bank_name")
+  accountNumber          String?          @map("account_number")
+  ifscCode               String?          @map("ifsc_code")
+  upiId                  String?          @map("upi_id")
+  branchName             String?          @map("branch_name")
+  panCard                String?          @map("pan_card")
   supervisorId           String?          @map("supervisor_id")
   supervisor             User?            @relation("SupervisorRelation", fields: [supervisorId], references: [id], onDelete: SetNull)
   userId                 String?          @unique @map("user_id")
