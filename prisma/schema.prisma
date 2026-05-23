@@ -22,6 +22,13 @@ enum InternStatus {
   COMPLETED
   TERMINATED
   ARCHIVED
+  PENDING_VERIFICATION
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum EmploymentType {
@@ -68,6 +75,7 @@ model User {
   fullName                  String                 @map("full_name")
   role                      Role                   @default(INTERN)
   changePasswordRequired    Boolean                @default(false) @map("change_password_required")
+  status                    UserStatus             @default(APPROVED)
   createdAt                 DateTime               @default(now()) @map("created_at")
   updatedAt                 DateTime               @updatedAt @map("updated_at")
   interns                   Intern[]               @relation("SupervisorRelation")
