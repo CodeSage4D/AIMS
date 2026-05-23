@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AuthProvider from "@/components/layout/SessionProvider";
 import "./globals.css";
 
 /**
@@ -23,7 +24,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#070a13" />
       </head>
       <body className="min-h-full font-sans antialiased text-foreground bg-background">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
