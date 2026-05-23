@@ -18,6 +18,27 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ user, children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeUser, setActiveUser] = useState(user);
+
+  useEffect(() => {
+    const syncUser = () => {
+      if (user.role === "FOUNDER") {
+        const previewRole = localStorage.getItem("aims-preview-role");
+        if (previewRole && previewRole !== "FOUNDER") {
+          setActiveUser({
+            ...user,
+            role: previewRole,
+          });
+          return;
+        }
+      }
+      setActiveUser(user);
+    };
+
+    syncUser();
+    window.addEventListener("aims-preview-role-change", syncUser);
+    return () => window.removeEventListener("aims-preview-role-change", syncUser);
+  }, [user]);
 
   // Automatic Idle Inactivity & Tab Background Timeout Listener
   useEffect(() => {
@@ -160,12 +181,12 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
         )}
 
         {/* 2. Navigation Sidebar Column */}
-        <Sidebar user={user} isOpen={isSidebarOpen} onClose={closeSidebar} />
+        <Sidebar user={activeUser} isOpen={isSidebarOpen} onClose={closeSidebar} />
 
         {/* 3. Right Hand Main Viewport Column */}
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           {/* Top Header bar */}
-          <Header user={user} onMenuToggle={toggleSidebar} />
+          <Header user={activeUser} onMenuToggle={toggleSidebar} />
 
           {/* Scrollable Content Workspace */}
           <main className="flex-1 overflow-y-auto px-6 py-8 relative">
