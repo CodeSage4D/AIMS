@@ -9,6 +9,7 @@ import InternsFilter from "@/components/layout/InternsFilter";
 import RosterActions from "@/components/layout/RosterActions";
 import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
 import { formatDate } from "@/lib/utils";
+import { hasPermission } from "@/lib/permissions";
 
 interface PageProps {
   searchParams: Promise<{
@@ -21,10 +22,11 @@ interface PageProps {
 export default async function InternsPage({ searchParams }: PageProps) {
   const session = await auth();
   const userRole = (session?.user as any)?.role || "INTERN";
+  const userId = (session?.user as any)?.id;
   
-  // Guard access. Only FOUNDER, HR, and TEAM_LEAD can view directories
-  if (userRole === "INTERN") {
-    return <AccessDeniedShield requiredRole="TEAM_LEAD / HR / FOUNDER" currentRole={userRole} />;
+  const hasAccess = await hasPermission(userId, userRole, "onboardingAccess");
+  if (!hasAccess) {
+    return <AccessDeniedShield requiredRole="Intern Directory" currentRole={userRole} />;
   }
 
   const isSuperUser = userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR";
