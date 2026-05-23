@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Calendar, CheckCircle2, ShieldCheck, AlertTriangle, Users, BookOpen } from "lucide-react";
+import { Calendar, CheckCircle2, ShieldCheck, AlertTriangle, Users, BookOpen, Clock, Lock, Unlock, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 interface InternOption {
   id: string;
@@ -20,6 +21,172 @@ interface AttendanceRollProps {
 
 export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role || "INTERN";
+  const userId = (session?.user as any)?.id;
+
+  // Self Attendance states
+  const [selfAttendance, setSelfAttendance] = useState<any[]>([]);
+  const [selfActionLoading, setSelfActionLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+  const [selfSuccess, setSelfSuccess] = useState<string | null>(null);
+
+  const fetchSelfAttendanceLogs = async () => {
+    try {
+      const res = await fetch("/api/attendance/history");
+      if (res.ok) {
+        const data = await res.json();
+        setSelfAttendance(data.history || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch self attendance logs:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchSelfAttendanceLogs();
+    }
+  }, [session]);
+
+  const getSelfTodayRecord = () => {
+    const today = new Date();
+    const offsetIST = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(today.getTime() + offsetIST);
+    
+    const dateStringIST = `${todayIST.getUTCFullYear()}-${(todayIST.getUTCMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${todayIST.getUTCDate().toString().padStart(2, "0")}`;
+
+    return selfAttendance.find((att) => {
+      const attDate = new Date(att.date);
+      const attYear = attDate.getUTCFullYear();
+      const attMonth = attDate.getUTCMonth() + 1;
+      const attDay = attDate.getUTCDate();
+      const attString = `${attYear}-${attMonth.toString().padStart(2, "0")}-${attDay
+        .toString()
+        .padStart(2, "0")}`;
+      return attString === dateStringIST;
+    });
+  };
+
+  const selfTodayRecord = getSelfTodayRecord();
+
+  const handleSelfCheckIn = async () => {
+    setSelfActionLoading(true);
+    setSelfError(null);
+    setSelfSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/check-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to log check-in.");
+      setSelfSuccess(data.message || "Checked in successfully!");
+      await fetchSelfAttendanceLogs();
+    } catch (err: any) {
+      setSelfError(err.message || "Check-in failed.");
+    } finally {
+      setSelfActionLoading(false);
+    }
+  };
+
+  const handleSelfCheckOut = async () => {
+    setSelfActionLoading(true);
+    setSelfError(null);
+    setSelfSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/check-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to log check-out.");
+      setSelfSuccess(data.message || "Checked out successfully!");
+      await fetchSelfAttendanceLogs();
+    } catch (err: any) {
+      setSelfError(err.message || "Check-out failed.");
+    } finally {
+      setSelfActionLoading(false);
+    }
+  };
+
+  const handleSelfPauseWork = async (reason: string = "Break") => {
+    setSelfActionLoading(true);
+    setSelfError(null);
+    setSelfSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/pause", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to pause session.");
+      setSelfSuccess(data.message || "Work session paused successfully!");
+      await fetchSelfAttendanceLogs();
+    } catch (err: any) {
+      setSelfError(err.message || "Work pause failed.");
+    } finally {
+      setSelfActionLoading(false);
+    }
+  };
+
+  const handleSelfResumeWork = async () => {
+    setSelfActionLoading(true);
+    setSelfError(null);
+    setSelfSuccess(null);
+    try {
+      const res = await fetch("/api/attendance/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to resume session.");
+      setSelfSuccess(data.message || "Work session resumed successfully!");
+      await fetchSelfAttendanceLogs();
+    } catch (err: any) {
+      setSelfError(err.message || "Work resume failed.");
+    } finally {
+      setSelfActionLoading(false);
+    }
+  };
+
+  const lastTelemetrySent = React.useRef<number>(0);
+
+  useEffect(() => {
+    if (!selfTodayRecord || selfTodayRecord.checkOut || selfTodayRecord.status === "WORK_PAUSED") {
+      return;
+    }
+
+    const sendTelemetry = async () => {
+      const now = Date.now();
+      const fiveMinutesMs = 5 * 60 * 1000;
+      if (now - lastTelemetrySent.current < fiveMinutesMs) {
+        return;
+      }
+      
+      lastTelemetrySent.current = now;
+      try {
+        await fetch("/api/attendance/telemetry", { method: "POST" });
+      } catch (err) {
+        console.error("Telemetry heartbeat dispatch failed:", err);
+      }
+    };
+
+    const handleUserActivity = () => {
+      sendTelemetry();
+    };
+
+    window.addEventListener("mousemove", handleUserActivity);
+    window.addEventListener("keydown", handleUserActivity);
+
+    return () => {
+      window.removeEventListener("mousemove", handleUserActivity);
+      window.removeEventListener("keydown", handleUserActivity);
+    };
+  }, [selfTodayRecord]);
 
   // Selected Date state (Defaults to today in YYYY-MM-DD local format)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -148,6 +315,153 @@ export default function AttendanceRoll({ initialInterns }: AttendanceRollProps) 
       </CardHeader>
 
       <CardContent className="p-6 space-y-6">
+        {/* Self-Service Clock Station for Executive Roles */}
+        {session?.user && (userRole === "FOUNDER" || userRole === "HR" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "TEAM_LEAD") && (
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-[#0c1220] via-[#0d1629] to-[#050b18] p-5 shadow-2xl backdrop-blur-md mb-6">
+            <div className="absolute -right-20 -bottom-20 h-40 w-40 rounded-full bg-indigo-500/10 blur-[60px] pointer-events-none" />
+            <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25">
+                  <Clock className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+                  <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-indigo-300">
+                    Executive Check-In Station
+                  </span>
+                </div>
+                <h3 className="text-md font-heading font-extrabold text-white">
+                  My Daily Attendance Board
+                </h3>
+                <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-xl">
+                  As an administrative or executive team member, log your own daily shifts here. Session telemetry handles activity logs automatically.
+                </p>
+                
+                {(selfSuccess || selfError) && (
+                  <div className="mt-2.5">
+                    {selfSuccess && (
+                      <p className="text-[11px] font-semibold text-emerald-400 flex items-center space-x-1.5">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{selfSuccess}</span>
+                      </p>
+                    )}
+                    {selfError && (
+                      <p className="text-[11px] font-semibold text-rose-400 flex items-center space-x-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{selfError}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+                <div className="flex flex-col space-y-1">
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-gray-400">Shift Status</span>
+                  {!selfTodayRecord ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Not Checked In</span>
+                    </div>
+                  ) : selfTodayRecord.status === "ABSENT" ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Absent</span>
+                    </div>
+                  ) : selfTodayRecord.status === "WORK_PAUSED" ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                      <AlertTriangle className="h-4 w-4 animate-pulse" />
+                      <span>Paused (Break)</span>
+                    </div>
+                  ) : selfTodayRecord.checkOut ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Checked Out</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Active Shift {selfTodayRecord.status === "LATE" && "(Late)"}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {!selfTodayRecord || selfTodayRecord.status === "ABSENT" ? (
+                    <Button
+                      onClick={handleSelfCheckIn}
+                      disabled={selfActionLoading}
+                      type="button"
+                      variant="primary"
+                      className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                    >
+                      {selfActionLoading ? (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <Clock className="h-4 w-4 shrink-0" />
+                      )}
+                      <span>Clock In</span>
+                    </Button>
+                  ) : selfTodayRecord.checkOut ? (
+                    <div className="flex items-center space-x-2 text-xs text-gray-400 font-bold px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl select-none">
+                      <CheckCircle className="h-4 w-4 text-emerald-400" />
+                      <span>Shift Logged</span>
+                    </div>
+                  ) : selfTodayRecord.status === "WORK_PAUSED" ? (
+                    <Button
+                      onClick={handleSelfResumeWork}
+                      disabled={selfActionLoading}
+                      type="button"
+                      variant="primary"
+                      className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                    >
+                      {selfActionLoading ? (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <Unlock className="h-4 w-4 shrink-0" />
+                      )}
+                      <span>Resume</span>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          const reason = prompt("Enter pause reason (e.g. Lunch Break, Client Call):", "Break");
+                          if (reason !== null) handleSelfPauseWork(reason);
+                        }}
+                        disabled={selfActionLoading}
+                        type="button"
+                        variant="secondary"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/30 text-amber-400 shadow-md shadow-amber-600/15"
+                      >
+                        {selfActionLoading ? (
+                          <span className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        ) : (
+                          <Lock className="h-4 w-4 shrink-0" />
+                        )}
+                        <span>Break</span>
+                      </Button>
+
+                      <Button
+                        onClick={handleSelfCheckOut}
+                        disabled={selfActionLoading}
+                        type="button"
+                        variant="primary"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
+                      >
+                        {selfActionLoading ? (
+                          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                        ) : (
+                          <Clock className="h-4 w-4 shrink-0" />
+                        )}
+                        <span>Clock Out</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Alerts Message */}
         {message && (
           <div
