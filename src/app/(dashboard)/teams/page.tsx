@@ -2,6 +2,7 @@ import React from "react";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
+import { getRoleMeta } from "@/lib/roles";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import {
   Users,
@@ -258,15 +259,25 @@ export default async function TeamsPage() {
                             </span>
                           </div>
 
-                          <div className="space-y-0.5">
-                            <h4 className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">
-                              {member.fullName}
-                            </h4>
-                            <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                              <Cpu className="h-3 w-3 text-cyan-400" />
-                              <span>{member.roleDomain}</span>
-                            </p>
-                          </div>
+                          {(() => {
+                            const roleMeta = getRoleMeta(member.roleDomain);
+                            return (
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors leading-snug">
+                                  {member.fullName}
+                                </h4>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] text-gray-300 flex items-center gap-1 font-bold">
+                                    <Cpu className="h-3 w-3 text-cyan-400 shrink-0" />
+                                    <span>{roleMeta.roleName} ({roleMeta.shortCode})</span>
+                                  </p>
+                                  <span className={`inline-block text-[8px] font-heading font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/5 ${
+                                    roleMeta.appointmentSource === "Founder-appointed" ? "text-amber-450" : roleMeta.appointmentSource === "HR-appointed" ? "text-cyan-400" : "text-emerald-450"
+                                  }`}>{roleMeta.appointmentSource}</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <div className="pt-3 border-t border-white/[0.04] space-y-2 text-[10px]">

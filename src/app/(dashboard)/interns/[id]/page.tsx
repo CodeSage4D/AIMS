@@ -89,6 +89,9 @@ export default async function InternWorkspacePage({ params }: PageProps) {
     notFound();
   }
 
+  const { parseInternNotes } = await import("@/lib/roles");
+  const customProfile = parseInternNotes(intern.notes);
+
   // 2. Scope access verification for standard mentors
   if (!isAdmin && intern.supervisorId !== (session?.user as any)?.id) {
     return (
@@ -255,7 +258,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
 
       {/* 3. Primary Structured Split Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Hand: Core Demographics, Contacts & Performance (1/3 Width) */}
+        {/* Left Hand: Core Identity Details, Contacts & Performance (1/3 Width) */}
         <div className="lg:col-span-1 space-y-6">
           {/* Card A: Profile Details */}
           <Card className="border-border/60">
@@ -300,15 +303,33 @@ export default async function InternWorkspacePage({ params }: PageProps) {
               </div>
 
               <div className="space-y-2 border-t border-border/40 pt-4">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Contact Files</span>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Contact & Links</span>
                 <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80">
                   <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <a href={`mailto:${intern.email}`} className="hover:text-primary hover:underline truncate select-all">{intern.email}</a>
                 </div>
-                <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80">
+                <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80 pb-1.5 border-b border-border/20">
                   <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="select-all">{intern.phoneNumber}</span>
                 </div>
+                {customProfile.linkedIn && (
+                  <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80 pt-1">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider shrink-0 w-16">LinkedIn:</span>
+                    <a href={customProfile.linkedIn} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline truncate select-all">{customProfile.linkedIn.replace("https://", "")}</a>
+                  </div>
+                )}
+                {customProfile.gitHub && (
+                  <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider shrink-0 w-16">GitHub:</span>
+                    <a href={customProfile.gitHub} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline truncate select-all">{customProfile.gitHub.replace("https://", "")}</a>
+                  </div>
+                )}
+                {customProfile.bloodGroup && (
+                  <div className="flex items-center space-x-2 text-xs font-medium text-foreground/80">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider shrink-0 w-16">Blood Group:</span>
+                    <span className="text-foreground font-bold uppercase">{customProfile.bloodGroup}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 border-t border-border/40 pt-4">
@@ -378,6 +399,10 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                   </span>
                   <div className="p-3 bg-secondary/15 rounded-md border border-border/40 text-xs font-semibold text-foreground space-y-2">
                     <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">Account Holder Name:</span>
+                      <span>{customProfile.accountHolderName || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground font-medium">Bank Name:</span>
                       <span>{intern.bankName || "Not Provided"}</span>
                     </div>
@@ -396,6 +421,10 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground font-medium">Branch Name:</span>
                       <span>{intern.branchName || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">Payment Preference:</span>
+                      <span className="uppercase">{customProfile.paymentPreference ? customProfile.paymentPreference.replace("_", " ") : "Not Provided"}</span>
                     </div>
                     <div className="flex justify-between border-t border-border/40 pt-2 mt-1">
                       <span className="text-muted-foreground font-medium">PAN Card:</span>

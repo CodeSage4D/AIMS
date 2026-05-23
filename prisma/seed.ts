@@ -32,23 +32,23 @@ async function main() {
   // 2. Hydrate access roles
   console.log("Creating administrative system users...");
   
-  const founderPasswordHash = bcrypt.hashSync("aims-demo-founder-2026", 10);
-  const hrPasswordHash = bcrypt.hashSync("aims-demo-hr-2026", 10);
-  const leadPasswordHash = bcrypt.hashSync("aims-demo-lead-2026", 10);
-  const internPasswordHash = bcrypt.hashSync("aims-demo-intern-2026", 10);
+  const founderPasswordHash = bcrypt.hashSync("aims-official-founder-2026", 10);
+  const hrPasswordHash = bcrypt.hashSync("aims-official-hr-2026", 10);
+  const leadPasswordHash = bcrypt.hashSync("aims-official-lead-2026", 10);
+  const internPasswordHash = bcrypt.hashSync("aims-official-intern-2026", 10);
 
   const founderUser = await prisma.user.create({
     data: {
-      email: "founder@aurxon.demo",
+      email: "founder@aurxon.com",
       passwordHash: founderPasswordHash,
-      fullName: "Aurxon Founder (Elite)",
+      fullName: "Karann Mishra",
       role: Role.FOUNDER,
     },
   });
 
   const hrUser = await prisma.user.create({
     data: {
-      email: "hr@aurxon.demo",
+      email: "hr@aurxon.com",
       passwordHash: hrPasswordHash,
       fullName: "Aurxon HR Manager",
       role: Role.HR,
@@ -57,7 +57,7 @@ async function main() {
 
   const leadUser = await prisma.user.create({
     data: {
-      email: "lead@aurxon.demo",
+      email: "lead@aurxon.com",
       passwordHash: leadPasswordHash,
       fullName: "Aurxon Team Lead",
       role: Role.TEAM_LEAD,
@@ -69,7 +69,7 @@ async function main() {
   // Create an intern user credential for Aarav Sharma (forced password reset active)
   const aaravInternUser = await prisma.user.create({
     data: {
-      email: "aarav@aurxon.demo",
+      email: "aarav@aurxon.com",
       username: "AXN-SWE-2605-AS01",
       passwordHash: internPasswordHash,
       fullName: "Aarav Sharma",
@@ -84,7 +84,7 @@ async function main() {
       fullName: "Aarav Sharma",
       gender: "Male",
       dateOfBirth: new Date("2004-08-15"),
-      email: "aarav@aurxon.demo",
+      email: "aarav@aurxon.com",
       phoneNumber: "+91 9876543210",
       address: "123 Glacial Tech Lane, Suite 400",
       city: "New Delhi",
@@ -121,7 +121,17 @@ async function main() {
     },
   });
 
-  // 3. Log initial system startup
+  // 3. Seed default system settings
+  await prisma.systemSetting.upsert({
+    where: { key: "allow_intern_bank_updates" },
+    update: {},
+    create: {
+      key: "allow_intern_bank_updates",
+      value: JSON.stringify({ allowed: false }),
+    },
+  });
+
+  // 4. Log initial system startup
   await prisma.activityLog.create({
     data: {
       userId: founderUser.id,

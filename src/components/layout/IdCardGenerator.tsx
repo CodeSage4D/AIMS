@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { UploadCloud, AlertTriangle, ShieldCheck, Download, Sparkles, RefreshCw } from "lucide-react";
+import { getRoleMeta } from "@/lib/roles";
 
 interface IdCardGeneratorProps {
   fullName: string;
@@ -28,6 +29,7 @@ export default function IdCardGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const roleMeta = getRoleMeta(roleDomain);
 
   // Fetch saved configuration on mount
   useEffect(() => {
@@ -199,17 +201,22 @@ export default function IdCardGenerator({
       ctx.fillText(fullName, width / 2, 300);
 
       // Department & Domain Role
-      ctx.font = "bold 13px sans-serif";
+      const roleMeta = getRoleMeta(roleDomain);
+      ctx.font = "bold 12px sans-serif";
       ctx.fillStyle = secondaryColor;
-      ctx.fillText(roleDomain.toUpperCase(), width / 2, 325);
+      ctx.fillText(`${roleDomain.toUpperCase()} (${roleMeta.shortCode})`, width / 2, 325);
       
       ctx.font = "500 11px sans-serif";
       ctx.fillStyle = "#94a3b8"; // Muted Slate
-      ctx.fillText(department, width / 2, 345);
+      ctx.fillText(department, width / 2, 343);
+
+      ctx.font = "bold 8px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillText(roleMeta.appointmentSource.toUpperCase(), width / 2, 355);
 
       // Separator
       ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.fillRect(40, 365, width - 80, 1);
+      ctx.fillRect(40, 368, width - 80, 1);
 
       // Official Intern ID
       ctx.textAlign = "left";
@@ -509,8 +516,17 @@ export default function IdCardGenerator({
                 <span className="text-sm font-heading font-extrabold tracking-wide block">{fullName}</span>
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider block ${
                   theme === "glacial" ? "text-sky-300" : theme === "gold" ? "text-amber-300" : theme === "matrix" ? "text-emerald-300" : theme === "cyber" ? "text-fuchsia-300" : "text-orange-400"
-                }`}>{roleDomain}</span>
-                <span className="text-[9px] text-slate-400/90 block font-medium uppercase tracking-wide">{department}</span>
+                }`}>{roleDomain} ({roleMeta.shortCode})</span>
+                <div className="flex flex-col items-center space-y-1 mt-0.5">
+                  <span className="text-[9px] text-slate-400/90 block font-medium uppercase tracking-wide">{department}</span>
+                  <span className={`text-[7.5px] font-heading font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-white/[0.04] border-white/10 ${
+                    roleMeta.appointmentSource === "Founder-appointed"
+                      ? "text-amber-400"
+                      : roleMeta.appointmentSource === "HR-appointed"
+                      ? "text-sky-400"
+                      : "text-emerald-450"
+                  }`}>{roleMeta.appointmentSource}</span>
+                </div>
               </div>
             </div>
 

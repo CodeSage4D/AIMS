@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { getRoleMeta, parseInternNotes } from "@/lib/roles";
 import {
   User,
   KeyRound,
@@ -18,7 +19,9 @@ import {
   Eye,
   Inbox,
   UserCheck,
-  Contact
+  Contact,
+  Globe,
+  Plus
 } from "lucide-react";
 import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { cn, formatDate } from "@/lib/utils";
@@ -59,6 +62,7 @@ interface ProfileSettingsClientProps {
     supervisedCount: number;
     tasksAssignedCount: number;
   };
+  allowBankUpdates?: boolean;
 }
 
 export default function ProfileSettingsClient({
@@ -66,10 +70,83 @@ export default function ProfileSettingsClient({
   internProfile,
   initialRequests,
   stats,
+  allowBankUpdates = false,
 }: ProfileSettingsClientProps) {
   const router = useRouter();
   const isIntern = user.role === "INTERN";
+  const roleMeta = internProfile ? getRoleMeta(internProfile.roleDomain) : null;
   const isManager = user.role === "FOUNDER" || user.role === "HR";
+
+  // Parse notes JSON properties
+  const customProfile = internProfile ? parseInternNotes(internProfile.notes) : {};
+
+  // Form states for direct permitted updates
+  const [directLinkedIn, setDirectLinkedIn] = useState(customProfile.linkedIn || "");
+  const [directGitHub, setDirectGitHub] = useState(customProfile.gitHub || "");
+  const [directBloodGroup, setDirectBloodGroup] = useState(customProfile.bloodGroup || "");
+  const [directPinCode, setDirectPinCode] = useState(internProfile?.pinCode || "");
+
+  const [directAccountHolder, setDirectAccountHolder] = useState(customProfile.accountHolderName || "");
+  const [directBankName, setDirectBankName] = useState(internProfile?.bankName || "");
+  const [directAccountNumber, setDirectAccountNumber] = useState(internProfile?.accountNumber || "");
+  const [directIfscCode, setDirectIfscCode] = useState(internProfile?.ifscCode || "");
+  const [directBranchName, setDirectBranchName] = useState(internProfile?.branchName || "");
+  const [directUpiId, setDirectUpiId] = useState(internProfile?.upiId || "");
+  const [directPaymentPref, setDirectPaymentPref] = useState(customProfile.paymentPreference || "BANK_TRANSFER");
+
+  const handleDirectProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
+    if (directLinkedIn && (!directLinkedIn.startsWith("https://") || !directLinkedIn.includes("linkedin.com/"))) {
+      setError("LinkedIn link must be a valid https://linkedin.com URL.");
+      setLoading(false);
+      return;
+    }
+    if (directGitHub && (!directGitHub.startsWith("https://") || !directGitHub.includes("github.com/"))) {
+      setError("GitHub link must be a valid https://github.com URL.");
+      setLoading(false);
+      return;
+    }
+
+    if (directPinCode && !/^\d{6}$/.test(directPinCode)) {
+      setError("PIN code must be a valid 6-digit number.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedIn: directLinkedIn.trim(),
+          gitHub: directGitHub.trim(),
+          bloodGroup: directBloodGroup.trim(),
+          pinCode: directPinCode.trim(),
+          accountHolderName: directAccountHolder.trim(),
+          bankName: directBankName.trim(),
+          accountNumber: directAccountNumber.trim(),
+          ifscCode: directIfscCode.trim(),
+          branchName: directBranchName.trim(),
+          upiId: directUpiId.trim(),
+          paymentPreference: directPaymentPref,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update profile details.");
+
+      setSuccess("Profile and banking details successfully updated!");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Failed to update profile details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections" | "idcard">("overview");
@@ -326,14 +403,17 @@ export default function ProfileSettingsClient({
                 )}
               </p>
 
-              {isIntern && internProfile ? (
-                <div className="text-xs text-muted-foreground font-medium space-y-1">
+              {isIntern && internProfile && roleMeta ? (
+                <div className="text-xs text-muted-foreground font-medium space-y-1.5">
                   <p>
                     Intern ID: <span className="font-mono text-primary font-bold">{internProfile.internId}</span> • Department: <span className="text-foreground font-bold">{internProfile.department}</span>
                   </p>
-                  <p>
-                    Role Domain: <span className="text-foreground font-bold">{internProfile.roleDomain}</span>
-                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span>Designation: <span className="text-foreground font-bold">{roleMeta.roleName} ({roleMeta.shortCode})</span></span>
+                    <span className={`text-[8.5px] font-heading font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-secondary border border-border/40 ${
+                      roleMeta.appointmentSource === "Founder-appointed" ? "text-amber-500" : roleMeta.appointmentSource === "HR-appointed" ? "text-sky-500" : "text-emerald-500"
+                    }`}>{roleMeta.appointmentSource}</span>
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground font-medium">
@@ -469,6 +549,26 @@ export default function ProfileSettingsClient({
                     <div className="flex justify-between py-1.5 border-b border-border/30">
                       <span>Region / Origin</span>
                       <span className="text-foreground font-bold">{internProfile.region || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>LinkedIn Profile</span>
+                      {customProfile.linkedIn ? (
+                        <a href={customProfile.linkedIn} target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline truncate max-w-[180px]">{customProfile.linkedIn.replace("https://", "")}</a>
+                      ) : (
+                        <span className="text-foreground/50 italic">Not Provided</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>GitHub Profile</span>
+                      {customProfile.gitHub ? (
+                        <a href={customProfile.gitHub} target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline truncate max-w-[180px]">{customProfile.gitHub.replace("https://", "")}</a>
+                      ) : (
+                        <span className="text-foreground/50 italic">Not Provided</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>Blood Group</span>
+                      <span className="text-foreground font-bold uppercase">{customProfile.bloodGroup || "Not Provided"}</span>
                     </div>
                     <div className="flex justify-between py-1.5">
                       <span>Direct Supervisor</span>
@@ -620,6 +720,10 @@ export default function ProfileSettingsClient({
               <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-muted-foreground">
                 <div className="space-y-3">
                   <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>Account Holder Name</span>
+                    <span className="text-foreground font-bold">{customProfile.accountHolderName || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
                     <span>Bank Name</span>
                     <span className="text-foreground font-bold">{internProfile.bankName || "Not Provided"}</span>
                   </div>
@@ -644,6 +748,10 @@ export default function ProfileSettingsClient({
                   <div className="flex justify-between py-1.5 border-b border-border/30">
                     <span>PAN Card</span>
                     <span className="text-foreground font-bold font-mono select-all">{internProfile.panCard || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>Payment Preference</span>
+                    <span className="text-foreground font-bold uppercase">{customProfile.paymentPreference ? customProfile.paymentPreference.replace("_", " ") : "Not Provided"}</span>
                   </div>
                 </div>
               </CardContent>
@@ -742,6 +850,152 @@ export default function ProfileSettingsClient({
                 </form>
               </CardContent>
             </Card>
+
+            {/* Update Permitted Profile & Bank Details Card */}
+            {internProfile && (
+              <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground col-span-1 md:col-span-2">
+                <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
+                  <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                    <Contact className="h-4.5 w-4.5 text-primary" />
+                    <span>Personal Profile & Secure Banking Updates</span>
+                  </CardTitle>
+                  <CardDescription className="text-[10px] text-muted-foreground">
+                    Directly modify allowed metadata fields and registered disbursement banking profiles.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <form onSubmit={handleDirectProfileUpdate} className="space-y-6">
+                    <div className="space-y-4">
+                      <span className="text-[11px] font-heading font-bold text-foreground uppercase tracking-widest block border-b border-border/20 pb-1">
+                        1. Personal Details
+                      </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                          label="LinkedIn Profile URL"
+                          placeholder="https://linkedin.com/in/username"
+                          value={directLinkedIn}
+                          onChange={(e) => setDirectLinkedIn(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="GitHub Profile URL"
+                          placeholder="https://github.com/username"
+                          value={directGitHub}
+                          onChange={(e) => setDirectGitHub(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="Blood Group"
+                          placeholder="e.g. O+, A-, B+, AB+"
+                          value={directBloodGroup}
+                          onChange={(e) => setDirectBloodGroup(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="Mailing PIN Code"
+                          placeholder="6-digit PIN code (e.g. 110001)"
+                          value={directPinCode}
+                          onChange={(e) => setDirectPinCode(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 border-t border-border/40 pt-4">
+                      <div className="flex items-center justify-between border-b border-border/20 pb-1">
+                        <span className="text-[11px] font-heading font-bold text-foreground uppercase tracking-widest block">
+                          2. Disbursement Bank Details
+                        </span>
+                        {!allowBankUpdates && isIntern && (
+                          <span className="text-[9px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                            Locked by Administration
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                          label="Account Holder Name"
+                          placeholder="Enter name exactly as in bank record..."
+                          value={directAccountHolder}
+                          onChange={(e) => setDirectAccountHolder(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="Bank Name"
+                          placeholder="e.g. State Bank of India..."
+                          value={directBankName}
+                          onChange={(e) => setDirectBankName(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="Bank Account Number"
+                          placeholder="Enter account number..."
+                          value={directAccountNumber}
+                          onChange={(e) => setDirectAccountNumber(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="IFSC Code"
+                          placeholder="11-character IFSC (e.g. SBIN0001234)..."
+                          value={directIfscCode}
+                          onChange={(e) => setDirectIfscCode(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="Branch Name"
+                          placeholder="e.g. Connaught Place..."
+                          value={directBranchName}
+                          onChange={(e) => setDirectBranchName(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
+                          label="UPI ID (Optional)"
+                          placeholder="e.g. username@okaxis"
+                          value={directUpiId}
+                          onChange={(e) => setDirectUpiId(e.target.value)}
+                          disabled={!allowBankUpdates && isIntern}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <div className="flex flex-col space-y-1.5 w-full">
+                          <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                            Payment Method Preference
+                          </label>
+                          <select
+                            value={directPaymentPref}
+                            onChange={(e) => setDirectPaymentPref(e.target.value)}
+                            disabled={!allowBankUpdates && isIntern}
+                            className="flex h-11 w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer disabled:opacity-60"
+                          >
+                            <option value="BANK_TRANSFER">Bank Transfer</option>
+                            <option value="UPI">UPI / Instant Pay</option>
+                            <option value="CASH">Direct Cash</option>
+                          </select>
+                        </div>
+                      </div>
+                      {!allowBankUpdates && isIntern && (
+                        <p className="text-[10px] text-muted-foreground leading-normal bg-secondary/15 p-2.5 rounded-lg border border-border/40 mt-2">
+                          <span className="font-bold text-amber-500">Notice:</span> Disbursement banking updates are locked. If you need to make changes, please request correction or ask Founder/HR.
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="h-10 text-xs font-semibold bg-primary hover:bg-primary/95 text-white rounded-xl shadow w-full mt-2"
+                      isLoading={loading}
+                    >
+                      Save Profile & Banking Changes
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 

@@ -38,7 +38,7 @@ export default async function LogsPage() {
     });
   } catch (err) {
     console.error("Database connection failed, using fallback mock activity trails inside /logs server wrapper:", err);
-    // Secure Fallback mocks for robust local testing and UI demonstration
+    // Secure Fallback mocks for robust local testing and UI presentation
     logs = [
       {
         id: "log-1",

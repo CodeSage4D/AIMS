@@ -64,7 +64,7 @@ export default async function DocumentsPage() {
     }
   } catch (err) {
     console.error("Database connection failed, using high-fidelity mock data fallback inside /documents server wrapper:", err);
-    // Secure Fallback mocks for robust local testing and UI demonstration
+    // Secure Fallback mocks for robust local testing and UI presentation
     interns = [
       {
         id: "uuid-aarav",

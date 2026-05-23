@@ -422,7 +422,7 @@ export default function LoginPage() {
                   <Input
                     label="Corporate Email Address"
                     type="email"
-                    placeholder="aarav@aurxon.demo"
+                    placeholder="aarav@aurxon.com"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className={`pl-11 h-12 text-sm rounded-xl transition-all duration-200 ${

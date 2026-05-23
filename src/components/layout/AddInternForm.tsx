@@ -42,6 +42,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     city: "",
     state: "",
     country: "India",
+    pinCode: "",
     university: "",
     degree: "",
     department: "Engineering",
@@ -59,6 +60,17 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     ssidn: "",
     supervisorId: "",
     username: "",
+    linkedIn: "",
+    gitHub: "",
+    bloodGroup: "",
+    bankName: "",
+    accountNumber: "",
+    ifscCode: "",
+    upiId: "",
+    branchName: "",
+    panCard: "",
+    accountHolderName: "",
+    paymentPreference: "BANK_TRANSFER",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -261,7 +273,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
             </div>
           )}
 
-          {/* TAB 1: PERSONAL & DEMOGRAPHICS */}
+          {/* TAB 1: PERSONAL & IDENTITY DETAILS */}
           {activeTab === 1 && (
             <div className="space-y-5 animate-fadeIn">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -355,7 +367,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   value={formData.address}
                   onChange={handleChange}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Input
                     label="City"
                     name="city"
@@ -375,6 +387,13 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                     name="country"
                     placeholder="Enter country"
                     value={formData.country}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="PIN Code"
+                    name="pinCode"
+                    placeholder="6-digit PIN"
+                    value={formData.pinCode}
                     onChange={handleChange}
                   />
                 </div>
@@ -587,7 +606,108 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 />
               </div>
 
-              <div className="flex flex-col space-y-1.5 w-full">
+              <div className="border-t border-border/40 pt-5 space-y-4">
+                <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                  Personal Connections & Social Profiles
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    label="LinkedIn Profile URL"
+                    name="linkedIn"
+                    placeholder="https://linkedin.com/in/username"
+                    value={formData.linkedIn}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="GitHub Profile URL"
+                    name="gitHub"
+                    placeholder="https://github.com/username"
+                    value={formData.gitHub}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Blood Group"
+                    name="bloodGroup"
+                    placeholder="e.g. O+, AB-"
+                    value={formData.bloodGroup}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-border/40 pt-5 space-y-4">
+                <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                  Disbursement Banking Account Profile
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Account Holder Name"
+                    name="accountHolderName"
+                    placeholder="Exact name as in bank records"
+                    value={formData.accountHolderName}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Bank Name"
+                    name="bankName"
+                    placeholder="e.g. State Bank of India"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Bank Account Number"
+                    name="accountNumber"
+                    placeholder="Enter account number"
+                    value={formData.accountNumber}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="IFSC Code"
+                    name="ifscCode"
+                    placeholder="11-digit IFSC (e.g. SBIN0001234)"
+                    value={formData.ifscCode}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Branch Name"
+                    name="branchName"
+                    placeholder="Enter branch name"
+                    value={formData.branchName}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="UPI ID (Optional)"
+                    name="upiId"
+                    placeholder="e.g. name@okaxis"
+                    value={formData.upiId}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="PAN Card Identifier"
+                    name="panCard"
+                    placeholder="e.g. ABCDE1234F"
+                    value={formData.panCard}
+                    onChange={handleChange}
+                  />
+                  <div className="flex flex-col space-y-1.5 w-full">
+                    <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                      Payment Method Preference
+                    </label>
+                    <select
+                      name="paymentPreference"
+                      value={formData.paymentPreference}
+                      onChange={handleChange}
+                      className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer"
+                    >
+                      <option value="BANK_TRANSFER">Bank Transfer</option>
+                      <option value="UPI">UPI / Instant Pay</option>
+                      <option value="CASH">Direct Cash</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-1.5 w-full border-t border-border/40 pt-5">
                 <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
                   Internal Notes & Remarks
                 </label>

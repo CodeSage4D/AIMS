@@ -4,7 +4,7 @@ import { EmploymentType, InternStatus } from "@prisma/client";
 
 /**
  * Checks if the given userId is valid and exists in the database.
- * If the userId is null, undefined, starts with "demo-", or does not exist in the database,
+ * If the userId is null, undefined, starts with "offline-", or does not exist in the database,
  * it returns null. Otherwise, it returns the verified userId.
  * This prevents foreign key constraint violations when logged in via mock offline credentials.
  */
@@ -13,7 +13,7 @@ export async function getSafeUserId(
   tx?: any
 ): Promise<string | null> {
   if (!userId) return null;
-  if (userId.startsWith("demo-")) return null;
+  if (userId.startsWith("offline-")) return null;
 
   try {
     const client = tx || db;

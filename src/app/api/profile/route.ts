@@ -330,6 +330,152 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: true, message: "Profile successfully updated." }, { status: 200 });
     }
 
+    // SCENARIO 3: Direct Permitted Fields Profile Update
+    if (
+      body.linkedIn !== undefined ||
+      body.gitHub !== undefined ||
+      body.bloodGroup !== undefined ||
+      body.pinCode !== undefined ||
+      body.bankName !== undefined ||
+      body.accountNumber !== undefined ||
+      body.ifscCode !== undefined ||
+      body.upiId !== undefined ||
+      body.branchName !== undefined ||
+      body.panCard !== undefined ||
+      body.accountHolderName !== undefined ||
+      body.paymentPreference !== undefined
+    ) {
+      const dbUser = await db.user.findUnique({
+        where: { id: user.id },
+      });
+
+      if (!dbUser) {
+        return NextResponse.json({ error: "User not found." }, { status: 404 });
+      }
+
+      const internProfile = await db.intern.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!internProfile) {
+        return NextResponse.json({ error: "No intern profile associated with this account." }, { status: 404 });
+      }
+
+      // Check if trying to update bank details
+      const isUpdatingBank = 
+        body.bankName !== undefined ||
+        body.accountNumber !== undefined ||
+        body.ifscCode !== undefined ||
+        body.upiId !== undefined ||
+        body.branchName !== undefined ||
+        body.panCard !== undefined ||
+        body.accountHolderName !== undefined ||
+        body.paymentPreference !== undefined;
+
+      if (isUpdatingBank && user.role === "INTERN") {
+        let isBankAllowed = false;
+        const offSetting = await db.systemSetting.findUnique({
+          where: { key: "allow_intern_bank_updates" },
+        });
+        if (offSetting) {
+          const parsed = JSON.parse(offSetting.value);
+          isBankAllowed = !!parsed.allowed;
+        }
+
+        if (!isBankAllowed) {
+          return NextResponse.json(
+            { error: "Forbidden. Self bank details modification is restricted by administration." },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Validate social links format if provided
+      if (body.linkedIn) {
+        const ln = body.linkedIn.trim();
+        if (!ln.startsWith("https://") || !ln.includes("linkedin.com/")) {
+          return NextResponse.json({ error: "Validation failed. LinkedIn link must be a valid https://linkedin.com URL." }, { status: 400 });
+        }
+      }
+      if (body.gitHub) {
+        const gh = body.gitHub.trim();
+        if (!gh.startsWith("https://") || !gh.includes("github.com/")) {
+          return NextResponse.json({ error: "Validation failed. GitHub link must be a valid https://github.com URL." }, { status: 400 });
+        }
+      }
+
+      // Pincode validation: 6 digits
+      if (body.pinCode !== undefined) {
+        const pc = String(body.pinCode).trim();
+        if (pc && !/^\d{6}$/.test(pc)) {
+          return NextResponse.json({ error: "Validation failed. PIN code must be a valid 6-digit number." }, { status: 400 });
+        }
+      }
+
+      // Build update payloads
+      const dataToUpdate: any = {};
+      if (body.pinCode !== undefined) dataToUpdate.pinCode = body.pinCode;
+      if (body.bankName !== undefined) dataToUpdate.bankName = body.bankName;
+      if (body.accountNumber !== undefined) dataToUpdate.accountNumber = body.accountNumber;
+      if (body.ifscCode !== undefined) dataToUpdate.ifscCode = body.ifscCode;
+      if (body.upiId !== undefined) dataToUpdate.upiId = body.upiId;
+      if (body.branchName !== undefined) dataToUpdate.branchName = body.branchName;
+      if (body.panCard !== undefined) dataToUpdate.panCard = body.panCard;
+
+      // Custom fields serialization
+      const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
+      const existingCustom = parseInternNotes(internProfile.notes);
+
+      const nextLinkedIn = body.linkedIn !== undefined ? body.linkedIn : existingCustom.linkedIn;
+      const nextGitHub = body.gitHub !== undefined ? body.gitHub : existingCustom.gitHub;
+      const nextBloodGroup = body.bloodGroup !== undefined ? body.bloodGroup : existingCustom.bloodGroup;
+      const nextAccountHolder = body.accountHolderName !== undefined ? body.accountHolderName : existingCustom.accountHolderName;
+      const nextPaymentPref = body.paymentPreference !== undefined ? body.paymentPreference : existingCustom.paymentPreference;
+      const nextCustomNotes = existingCustom.customNotes || "";
+
+      dataToUpdate.notes = serializeInternNotes({
+        linkedIn: nextLinkedIn || "",
+        gitHub: nextGitHub || "",
+        bloodGroup: nextBloodGroup || "",
+        accountHolderName: nextAccountHolder || "",
+        paymentPreference: nextPaymentPref || "",
+        customNotes: nextCustomNotes || "",
+      });
+
+      // Write direct update and log
+      await db.$transaction(async (tx) => {
+        const safeUserId = await getSafeUserId(user.id, tx);
+        
+        // Audit log bank update if bank details changed
+        if (isUpdatingBank) {
+          await tx.permissionChangeLog.create({
+            data: {
+              changedById: user.id,
+              targetId: user.id,
+              previousRole: internProfile.roleDomain,
+              newRole: internProfile.roleDomain,
+              details: `Self-update of disbursement banking metadata.`,
+            },
+          });
+        }
+
+        await tx.intern.update({
+          where: { id: internProfile.id },
+          data: dataToUpdate,
+        });
+
+        await tx.activityLog.create({
+          data: {
+            userId: safeUserId,
+            action: "UPDATE_PROFILE_FIELDS",
+            description: `Successfully updated permitted profile and banking fields.`,
+          },
+        });
+      });
+
+      return NextResponse.json({ success: true, message: "Profile successfully updated." }, { status: 200 });
+    }
+
     return NextResponse.json({ error: "Validation failed. Invalid parameters." }, { status: 400 });
   } catch (err: any) {
     console.error("Error updating profile:", err);

@@ -159,6 +159,19 @@ export default async function ProfilePage() {
     updatedAt: req.updatedAt instanceof Date ? req.updatedAt.toISOString() : req.updatedAt,
   }));
 
+  // Fetch bank details editing allowance
+  let allowBankUpdates = false;
+  try {
+    const bankSetting = await db.systemSetting.findUnique({
+      where: { key: "allow_intern_bank_updates" },
+    });
+    if (bankSetting) {
+      allowBankUpdates = JSON.parse(bankSetting.value).allowed || false;
+    }
+  } catch (e) {
+    console.warn("Error fetching bank setting:", e);
+  }
+
   const serializedUser = {
     id: user.id,
     fullName: user.fullName,
@@ -176,6 +189,16 @@ export default async function ProfilePage() {
         department: internProfile.department,
         roleDomain: internProfile.roleDomain,
         startDate: internProfile.startDate instanceof Date ? internProfile.startDate.toISOString() : internProfile.startDate,
+        pinCode: internProfile.pinCode,
+        citizenship: internProfile.citizenship,
+        region: internProfile.region,
+        bankName: internProfile.bankName,
+        accountNumber: internProfile.accountNumber,
+        ifscCode: internProfile.ifscCode,
+        upiId: internProfile.upiId,
+        branchName: internProfile.branchName,
+        panCard: internProfile.panCard,
+        notes: internProfile.notes,
         supervisor: internProfile.supervisor
           ? {
               fullName: internProfile.supervisor.fullName,
@@ -191,6 +214,7 @@ export default async function ProfilePage() {
       internProfile={serializedIntern}
       initialRequests={serializedRequests}
       stats={stats}
+      allowBankUpdates={allowBankUpdates}
     />
   );
 }

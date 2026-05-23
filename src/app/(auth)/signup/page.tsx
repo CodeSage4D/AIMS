@@ -252,7 +252,7 @@ export default function SignupPage() {
                   <Input
                     label="Corporate Email Address"
                     type="email"
-                    placeholder="name@aurxon.demo"
+                    placeholder="name@aurxon.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${

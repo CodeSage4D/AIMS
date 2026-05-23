@@ -2455,7 +2455,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <g className="cert-font-inter" fontSize="12" fill={certTheme.bodyColor} textAnchor="middle">
                     <text x="421" y="290" fontWeight="400" opacity="0.85">for outstanding professional performance, dedicated execution, and corporate contributions</text>
                     <text x="421" y="315" fontWeight="400" opacity="0.85">
-                      demonstrated during their tenure as a <tspan fill={certTheme.accentColor} fontWeight="800">{content.role || "Software Engineering Intern"}</tspan> in the
+                      exhibited during their tenure as a <tspan fill={certTheme.accentColor} fontWeight="800">{content.role || "Software Engineering Intern"}</tspan> in the
                     </text>
                     <text x="421" y="340" fontWeight="400" opacity="0.85">
                       domain of <tspan fill={certTheme.accentColor} fontWeight="800">{content.department || "Development"}</tspan> at <tspan fontWeight="800" fill="#ffffff">{content.companyName || "AURXON SYSTEMS"}</tspan>

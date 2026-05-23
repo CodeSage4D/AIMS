@@ -215,7 +215,7 @@ export function generateExperienceLetterDraft(intern: {
         day: "numeric",
       });
 
-  const perfNotes = intern.performanceNotes || "demonstrated high technical aptitude, active learning ability, and positive team spirit throughout the program.";
+  const perfNotes = intern.performanceNotes || "exhibited high technical aptitude, active learning ability, and positive team spirit throughout the program.";
 
   return {
     title: "CERTIFICATE OF WORK EXPERIENCE & COMPLETION",

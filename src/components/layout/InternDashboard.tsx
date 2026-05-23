@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { getRoleMeta } from "@/lib/roles";
 import {
   CalendarDays,
   CheckSquare,
@@ -580,9 +581,23 @@ export default function InternDashboard({
             <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold text-white tracking-tight leading-tight">
               Hello, <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">{internProfile.fullName}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-medium">
-              Intern ID: <span className="font-mono text-cyan-400 font-bold">{internProfile.internId}</span> • Department: <span className="font-bold text-white">{internProfile.department}</span> ({internProfile.roleDomain})
-            </p>
+            {(() => {
+              const roleMeta = getRoleMeta(internProfile.roleDomain);
+              return (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs sm:text-sm text-gray-300 leading-relaxed font-medium">
+                  <p>
+                    ID: <span className="font-mono text-cyan-400 font-bold">{internProfile.internId}</span> • Department: <span className="font-bold text-white">{internProfile.department}</span>
+                  </p>
+                  <span className="hidden sm:inline text-white/20">•</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-white font-bold">{roleMeta.roleName} ({roleMeta.shortCode})</span>
+                    <span className={`text-[8.5px] font-heading font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 border border-white/5 ${
+                      roleMeta.appointmentSource === "Founder-appointed" ? "text-amber-400" : roleMeta.appointmentSource === "HR-appointed" ? "text-cyan-400" : "text-emerald-450"
+                    }`}>{roleMeta.appointmentSource}</span>
+                  </div>
+                </div>
+              );
+            })()}
             {internProfile.supervisor && (
               <div className="flex items-center space-x-2 text-xs text-gray-400 bg-white/5 border border-white/5 rounded-lg px-3 py-1.5 w-fit">
                 <User className="h-3.5 w-3.5 text-indigo-400" />

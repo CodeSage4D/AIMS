@@ -101,8 +101,8 @@ npx prisma db seed
 npm run dev
 ```
 Open **[http://localhost:3000](http://localhost:3000)** in your browser and sign in:
-* **Admin Role**: `admin@aurxon.demo` / `aims-demo-admin-2026`
-* **Mentor Role**: `mentor@aurxon.demo` / `aims-demo-mentor-2026`
+* **Founder Role**: `founder@aurxon.com` / `aims-official-founder-2026`
+* **HR Manager Role**: `hr@aurxon.com` / `aims-official-hr-2026`
 
 ---
 

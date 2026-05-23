@@ -64,6 +64,16 @@ export async function POST(req: Request) {
 
     const parsedEmploymentType = employmentType || "INTERN";
 
+    if (roleDomain) {
+      const { isFounderOnlyRole } = await import("@/lib/roles");
+      if (isFounderOnlyRole(roleDomain) && userRole !== "FOUNDER") {
+        return NextResponse.json(
+          { error: `Access Denied. Only the Founder has final permission to appoint or assign the special role: '${roleDomain}'.` },
+          { status: 403 }
+        );
+      }
+    }
+
     // 4. Basic parameter validations (endDate is optional for PERMANENT/CONTRACT employee types)
     if (!fullName || !email || !phoneNumber || !startDate || (parsedEmploymentType === "INTERN" && !endDate)) {
       return NextResponse.json(
@@ -161,7 +171,7 @@ export async function POST(req: Request) {
           finalAssignedId = computedId;
 
           // Create linked User account for the intern/employee
-          const defaultPassword = "aims-demo-intern-2026";
+          const defaultPassword = "aims-official-intern-2026";
           const passwordHash = bcrypt.hashSync(defaultPassword, 10);
           
           const createdUser = await tx.user.create({
@@ -173,6 +183,16 @@ export async function POST(req: Request) {
               role: "INTERN",
               changePasswordRequired: true,
             },
+          });
+
+          const { serializeInternNotes } = await import("@/lib/roles");
+          const serializedNotes = serializeInternNotes({
+            linkedIn: body.linkedIn || "",
+            gitHub: body.gitHub || "",
+            bloodGroup: body.bloodGroup || "",
+            accountHolderName: body.accountHolderName || "",
+            paymentPreference: body.paymentPreference || "",
+            customNotes: notes || "",
           });
 
           // Create corresponding Intern record
@@ -188,6 +208,7 @@ export async function POST(req: Request) {
               city: city || "",
               state: state || "",
               country: country || "India",
+              pinCode: body.pinCode || null,
               university,
               degree,
               department,
@@ -201,8 +222,14 @@ export async function POST(req: Request) {
               emergencyContactName,
               emergencyContactNumber,
               skills,
-              notes: notes || "",
+              notes: serializedNotes,
               ssidn: ssidn || null,
+              bankName: body.bankName || null,
+              accountNumber: body.accountNumber || null,
+              ifscCode: body.ifscCode || null,
+              upiId: body.upiId || null,
+              branchName: body.branchName || null,
+              panCard: body.panCard || null,
               supervisorId: supervisorId || null,
               status: "ACTIVE", // Onboards directly into active list
               userId: createdUser.id,
@@ -286,7 +313,7 @@ export async function POST(req: Request) {
     const { sendOnboardingWelcomeEmail } = await import("@/lib/emailService");
     sendOnboardingWelcomeEmail(
       { fullName: intern.fullName, email: intern.email, internId: intern.internId },
-      "aims-demo-intern-2026",
+      "aims-official-intern-2026",
       loginUrl
     ).catch((err) => console.error("Asynchronous welcome email dispatch failed:", err));
 
@@ -454,6 +481,22 @@ export async function PUT(req: Request) {
       );
     }
 
+    // Founder designation restriction check
+    if (updateData.roleDomain !== undefined && updateData.roleDomain !== existing.roleDomain) {
+      const { isFounderOnlyRole } = await import("@/lib/roles");
+      if (isFounderOnlyRole(updateData.roleDomain) && userRole !== "FOUNDER") {
+        return NextResponse.json(
+          { error: `Access Denied. Only the Founder has final permission to appoint or assign the special role: '${updateData.roleDomain}'.` },
+          { status: 403 }
+        );
+      }
+    }
+
+    const actorUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true, role: true }
+    });
+
     // Strict input validation for updates if provided
     const nameRegex = /^[a-zA-Z\s]+$/;
     const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
@@ -509,7 +552,33 @@ export async function PUT(req: Request) {
     if (updateData.paymentStatus !== undefined) dataToUpdate.paymentStatus = updateData.paymentStatus;
     if (updateData.emergencyContactName !== undefined) dataToUpdate.emergencyContactName = updateData.emergencyContactName;
     if (updateData.emergencyContactNumber !== undefined) dataToUpdate.emergencyContactNumber = updateData.emergencyContactNumber;
-    if (updateData.notes !== undefined) dataToUpdate.notes = updateData.notes;
+    if (updateData.pinCode !== undefined) dataToUpdate.pinCode = updateData.pinCode;
+    if (updateData.bankName !== undefined) dataToUpdate.bankName = updateData.bankName;
+    if (updateData.accountNumber !== undefined) dataToUpdate.accountNumber = updateData.accountNumber;
+    if (updateData.ifscCode !== undefined) dataToUpdate.ifscCode = updateData.ifscCode;
+    if (updateData.upiId !== undefined) dataToUpdate.upiId = updateData.upiId;
+    if (updateData.branchName !== undefined) dataToUpdate.branchName = updateData.branchName;
+    if (updateData.panCard !== undefined) dataToUpdate.panCard = updateData.panCard;
+
+    // Handle Notes & Serialized Custom properties
+    const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
+    const existingCustom = parseInternNotes(existing.notes);
+    const nextCustomNotes = updateData.notes !== undefined ? updateData.notes : existingCustom.customNotes;
+    const nextLinkedIn = updateData.linkedIn !== undefined ? updateData.linkedIn : existingCustom.linkedIn;
+    const nextGitHub = updateData.gitHub !== undefined ? updateData.gitHub : existingCustom.gitHub;
+    const nextBloodGroup = updateData.bloodGroup !== undefined ? updateData.bloodGroup : existingCustom.bloodGroup;
+    const nextAccountHolder = updateData.accountHolderName !== undefined ? updateData.accountHolderName : existingCustom.accountHolderName;
+    const nextPaymentPref = updateData.paymentPreference !== undefined ? updateData.paymentPreference : existingCustom.paymentPreference;
+
+    dataToUpdate.notes = serializeInternNotes({
+      linkedIn: nextLinkedIn || "",
+      gitHub: nextGitHub || "",
+      bloodGroup: nextBloodGroup || "",
+      accountHolderName: nextAccountHolder || "",
+      paymentPreference: nextPaymentPref || "",
+      customNotes: nextCustomNotes || "",
+    });
+
     if (updateData.ssidn !== undefined) dataToUpdate.ssidn = updateData.ssidn || null;
     if (updateData.supervisorId !== undefined) dataToUpdate.supervisorId = updateData.supervisorId || null;
     if (updateData.status !== undefined) dataToUpdate.status = updateData.status as any;
@@ -557,6 +626,48 @@ export async function PUT(req: Request) {
           await tx.user.update({
             where: { id: existing.userId },
             data: userUpdateData,
+          });
+        }
+      }
+
+      // Audit Role updates!
+      if (updateData.roleDomain !== undefined && updateData.roleDomain !== existing.roleDomain && existing.userId) {
+        const { getRoleMeta } = await import("@/lib/roles");
+        const meta = getRoleMeta(updateData.roleDomain);
+        
+        await tx.permissionChangeLog.create({
+          data: {
+            changedById: userId,
+            targetId: existing.userId,
+            previousRole: existing.roleDomain,
+            newRole: updateData.roleDomain,
+            details: `Corporate Designation appointed. Source: ${meta.appointmentSource}. Access: ${meta.accessLevel}. Operator: ${actorUser?.fullName || "AIMS Manager"}.`,
+          },
+        });
+      }
+
+      // Audit Bank details updates!
+      if (existing.userId) {
+        const { parseInternNotes } = await import("@/lib/roles");
+        const existingCustom = parseInternNotes(existing.notes);
+        const bankChanged = 
+          (updateData.bankName !== undefined && updateData.bankName !== existing.bankName) ||
+          (updateData.accountNumber !== undefined && updateData.accountNumber !== existing.accountNumber) ||
+          (updateData.ifscCode !== undefined && updateData.ifscCode !== existing.ifscCode) ||
+          (updateData.upiId !== undefined && updateData.upiId !== existing.upiId) ||
+          (updateData.branchName !== undefined && updateData.branchName !== existing.branchName) ||
+          (updateData.accountHolderName !== undefined && updateData.accountHolderName !== existingCustom.accountHolderName) ||
+          (updateData.paymentPreference !== undefined && updateData.paymentPreference !== existingCustom.paymentPreference);
+
+        if (bankChanged) {
+          await tx.permissionChangeLog.create({
+            data: {
+              changedById: userId,
+              targetId: existing.userId,
+              previousRole: existing.roleDomain,
+              newRole: existing.roleDomain,
+              details: `Corporate bank details changed. Operator: ${actorUser?.fullName || "AIMS Manager"}.`,
+            },
           });
         }
       }

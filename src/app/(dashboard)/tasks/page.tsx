@@ -93,7 +93,7 @@ export default async function TasksPage() {
     }
   } catch (err) {
     console.error("Database connection failed, using high-fidelity mock data fallback inside /tasks server wrapper:", err);
-    // Secure Fallback mocks for robust local testing and UI demonstration
+    // Secure Fallback mocks for robust local testing and UI presentation
     interns = [
       { id: "uuid-aarav", internId: "AXN-SWE-BE-2605-AS01", fullName: "Aarav Sharma" },
       { id: "uuid-ananya", internId: "AXN-PED-UX-2605-AI01", fullName: "Ananya Iyer" },
@@ -114,7 +114,7 @@ export default async function TasksPage() {
       {
         id: "task-2",
         title: "Seed Data Infrastructure",
-        description: "Write transactional seed handlers in prisma/seed.ts including demo user credentials and activity logs.",
+        description: "Write transactional seed handlers in prisma/seed.ts including official user credentials and activity logs.",
         deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
         status: "PENDING",
         intern: { id: "uuid-aarav", internId: "AXN-SWE-BE-2605-AS01", fullName: "Aarav Sharma" },
