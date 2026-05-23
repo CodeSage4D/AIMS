@@ -41,7 +41,7 @@ async function main() {
     data: {
       email: "founder@aurxon.com",
       passwordHash: founderPasswordHash,
-      fullName: "Karann Mishra",
+      fullName: "Karan Mishra",
       role: Role.FOUNDER,
     },
   });
