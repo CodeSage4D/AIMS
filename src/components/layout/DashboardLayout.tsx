@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { CurrencyProvider } from "@/lib/useCurrency";
+import { useRouter } from "next/navigation";
 
 interface DashboardLayoutProps {
   user: {
@@ -17,8 +18,17 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ user, children }: DashboardLayoutProps) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeUser, setActiveUser] = useState(user);
+
+  // Redirect unauthenticated sessions instantly to login page (safeguards back button cache states)
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   useEffect(() => {
     const syncUser = () => {
@@ -160,6 +170,17 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
       window.removeEventListener("focus", handleVisibilityChange);
     };
   }, []);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#070a13] flex flex-col items-center justify-center space-y-4 select-none">
+        <div className="h-10 w-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        <p className="text-[10px] text-gray-400 font-heading font-bold tracking-widest uppercase animate-pulse">
+          Authenticating Enterprise Session...
+        </p>
+      </div>
+    );
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
