@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon } from "lucide-react";
+import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,6 +18,12 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [department, setDepartment] = useState("Software Engineering");
   const [requestedPosition, setRequestedPosition] = useState("");
+  const [pinCode, setPinCode] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifscCode, setIfscCode] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [upiId, setUpiId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successCode, setSuccessCode] = useState<string | null>(null);
@@ -76,6 +82,12 @@ export default function SignupPage() {
           username,
           department,
           requestedPosition,
+          pinCode,
+          bankName,
+          accountNumber,
+          ifscCode,
+          branchName,
+          upiId,
         }),
       });
 
@@ -90,6 +102,12 @@ export default function SignupPage() {
         setPhone("");
         setUsername("");
         setRequestedPosition("");
+        setPinCode("");
+        setBankName("");
+        setAccountNumber("");
+        setIfscCode("");
+        setBranchName("");
+        setUpiId("");
       }
     } catch (err) {
       setError("Failed to communicate with enrollment services.");
@@ -367,6 +385,152 @@ export default function SignupPage() {
                     disabled={loading}
                     required
                   />
+                </div>
+
+                {/* Mailing PIN Code */}
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                  }`}>
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <Input
+                    label="Mailing PIN Code"
+                    type="text"
+                    placeholder="e.g. 110001"
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value)}
+                    className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                {/* Disbursement Bank Details */}
+                <div className="border-t border-white/5 pt-4 my-2">
+                  <span className={`text-[10px] font-heading font-extrabold uppercase tracking-widest block mb-3 ${
+                    currentTheme === "dark" ? "text-indigo-400 animate-pulse" : "text-indigo-600"
+                  }`}>
+                    Disbursement Bank Details
+                  </span>
+                  
+                  <div className="space-y-4">
+                    {/* Bank Name */}
+                    <div className="relative group flex flex-col">
+                      <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                        currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                      }`}>
+                        <Landmark className="h-4 w-4" />
+                      </div>
+                      <Input
+                        label="Bank Name"
+                        type="text"
+                        placeholder="e.g. HDFC Bank"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                          currentTheme === "dark"
+                            ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                            : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                        }`}
+                        disabled={loading}
+                      />
+                    </div>
+
+                    {/* Account Number & IFSC Code Row */}
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="relative group flex flex-col">
+                        <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                          currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                        }`}>
+                          <CreditCard className="h-4 w-4" />
+                        </div>
+                        <Input
+                          label="Account Number"
+                          type="text"
+                          placeholder="e.g. 50100234..."
+                          value={accountNumber}
+                          onChange={(e) => setAccountNumber(e.target.value)}
+                          className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                            currentTheme === "dark"
+                              ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                              : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                          }`}
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div className="relative group flex flex-col">
+                        <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                          currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                        }`}>
+                          <Building2 className="h-4 w-4" />
+                        </div>
+                        <Input
+                          label="IFSC Code"
+                          type="text"
+                          placeholder="e.g. HDFC0000240"
+                          value={ifscCode}
+                          onChange={(e) => setIfscCode(e.target.value)}
+                          className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                            currentTheme === "dark"
+                              ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                              : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                          }`}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Branch Name & UPI ID Row */}
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="relative group flex flex-col">
+                        <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                          currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                        }`}>
+                          <Building2 className="h-4 w-4" />
+                        </div>
+                        <Input
+                          label="Branch Name"
+                          type="text"
+                          placeholder="Connaught Place"
+                          value={branchName}
+                          onChange={(e) => setBranchName(e.target.value)}
+                          className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                            currentTheme === "dark"
+                              ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                              : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                          }`}
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div className="relative group flex flex-col">
+                        <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                          currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                        }`}>
+                          <CreditCard className="h-4 w-4" />
+                        </div>
+                        <Input
+                          label="UPI ID (Optional)"
+                          type="text"
+                          placeholder="e.g. name@okhdfc"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                          className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                            currentTheme === "dark"
+                              ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                              : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                          }`}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Submit & Navigation Row */}
