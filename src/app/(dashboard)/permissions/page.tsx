@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
 
 interface UserPermission {
   id: string;
@@ -62,9 +63,18 @@ export default function PermissionsPage() {
 
   // Core state
   const [users, setUsers] = useState<User[]>([]);
+  const [changeLogs, setChangeLogs] = useState<any[]>([]);
+  const [previewRole, setPreviewRole] = useState<string>("FOUNDER");
+  const [isDenied, setIsDenied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPreviewRole(localStorage.getItem("aims-preview-role") || "FOUNDER");
+    }
+  }, []);
   
   // Create / Onboard User Form state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -94,18 +104,17 @@ export default function PermissionsPage() {
 
   // Retrieve user session info
   const currentUser = session?.user as any;
-  const isAuthorized = currentUser?.role === "FOUNDER" || currentUser?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     if (sessionStatus === "loading") return;
 
-    if (!session || !isAuthorized) {
+    if (!session) {
       router.push("/");
       return;
     }
 
     fetchUsers();
-  }, [session, sessionStatus, isAuthorized]);
+  }, [session, sessionStatus]);
 
   const fetchUsers = async () => {
     try {
@@ -115,9 +124,14 @@ export default function PermissionsPage() {
         const data = await res.json();
         if (data.success) {
           setUsers(data.users);
+          setChangeLogs(data.changeLogs || []);
         }
       } else {
-        setErrorMessage("Failed to load users list from AIMS central handlers.");
+        if (res.status === 403 || res.status === 401) {
+          setIsDenied(true);
+        } else {
+          setErrorMessage("Failed to load users list from AIMS central handlers.");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -125,6 +139,18 @@ export default function PermissionsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreviewRoleChange = (role: string) => {
+    setPreviewRole(role);
+    if (role === "FOUNDER") {
+      localStorage.removeItem("aims-preview-role");
+    } else {
+      localStorage.setItem("aims-preview-role", role);
+    }
+    // Trigger window event to sync with DashboardLayout
+    window.dispatchEvent(new Event("aims-preview-role-change"));
+    setSuccessMessage(`Preview Mode updated! You are now viewing the workspace as: ${role}`);
   };
 
   // Preset permissions automatically when creating different roles
@@ -398,6 +424,10 @@ export default function PermissionsPage() {
     }
   };
 
+  if (isDenied) {
+    return <AccessDeniedShield requiredRole="Security Settings" currentRole={currentUser?.role} />;
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8 select-none text-slate-800 dark:text-white max-w-6xl mx-auto pb-12">
       
@@ -459,6 +489,38 @@ export default function PermissionsPage() {
         </div>
       </div>
 
+      {/* 1.5 Founder Interactive Role Preview (Founder Only) */}
+      {currentUser?.role === "FOUNDER" && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-yellow-500/5 dark:bg-yellow-500/10 border border-yellow-500/15 dark:border-yellow-500/20 rounded-2xl animate-fadeIn">
+          <div className="flex items-center space-x-2 shrink-0">
+            <ShieldAlert className="h-4.5 w-4.5 text-yellow-600 dark:text-yellow-400 animate-pulse" />
+            <span className="text-xs font-bold text-yellow-800 dark:text-yellow-400">Founder Role Preview Console:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { role: "FOUNDER", label: "Elite Founder" },
+              { role: "SUPER_ADMIN", label: "Super Admin" },
+              { role: "HR", label: "HR Admin" },
+              { role: "ADMIN", label: "Admin Manager" },
+              { role: "TEAM_LEAD", label: "Supervisor" },
+              { role: "INTERN", label: "Active Intern" },
+            ].map((btn) => (
+              <button
+                key={btn.role}
+                onClick={() => handlePreviewRoleChange(btn.role)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-heading font-extrabold uppercase border tracking-wider transition-all cursor-pointer ${
+                  previewRole === btn.role
+                    ? "bg-yellow-500 border-yellow-600 text-slate-950 shadow-md shadow-yellow-500/10"
+                    : "bg-transparent border-slate-200 dark:border-white/[0.08] hover:border-yellow-500/50 text-slate-650 dark:text-gray-400"
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 2. Management Workspace Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -466,8 +528,8 @@ export default function PermissionsPage() {
         <Card className="lg:col-span-2 border-slate-200 dark:border-white/[0.08] bg-white/75 dark:bg-[#0b0f19]/60 backdrop-blur-md flex flex-col justify-between shadow-sm dark:shadow-2xl">
           <CardHeader className="border-b border-slate-200 dark:border-white/[0.06] pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-slate-900 dark:text-white">User Security Directory</CardTitle>
-              <CardDescription className="text-slate-500 dark:text-gray-400">Comprehensive directory of all system participants, admins, and active interns.</CardDescription>
+              <CardTitle className="text-slate-900 dark:text-white">Security Permission Matrix</CardTitle>
+              <CardDescription className="text-slate-500 dark:text-gray-400">Chronological access mapping matrix. Toggle access points (✅ / ❌) instantly.</CardDescription>
             </div>
             
             <div className="relative max-w-xs w-full">
@@ -488,72 +550,127 @@ export default function PermissionsPage() {
                 No matching accounts or system profiles found.
               </div>
             ) : (
-              filteredUsers.map((user) => {
-                const isFounder = user.role === "FOUNDER";
-                const isSuperAdmin = user.role === "SUPER_ADMIN";
-                const isSelf = user.id === currentUser?.id;
-                
-                return (
-                  <div
-                    key={user.id}
-                    className={`p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-all cursor-pointer ${selectedUser?.id === user.id ? "bg-indigo-50/40 dark:bg-white/[0.02]" : ""}`}
-                    onClick={() => setSelectedUser(user)}
-                  >
-                    <div className="flex items-center space-x-3.5 min-w-0">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-heading font-extrabold select-none shrink-0 border ${isFounder ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-sm" : isSuperAdmin ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs" : user.role === "HR" ? "bg-pink-500/10 border-pink-500/20 text-pink-600 dark:text-pink-400 text-xs" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs"}`}>
-                        {(user.fullName?.[0] || user.email?.[0] || "?").toUpperCase()}
-                      </div>
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.01] text-[9px] font-heading font-bold text-slate-500 dark:text-gray-450 uppercase tracking-widest">
+                      <th className="py-3.5 px-4">User Profile</th>
+                      <th className="py-3.5 px-3">Role</th>
+                      <th className="py-3.5 px-3 text-center">Dashboard</th>
+                      <th className="py-3.5 px-3 text-center">Attendance</th>
+                      <th className="py-3.5 px-3 text-center">Tasks</th>
+                      <th className="py-3.5 px-3 text-center">Documents</th>
+                      <th className="py-3.5 px-3 text-center">Settings</th>
+                      <th className="py-3.5 px-3 text-center">Onboard</th>
+                      <th className="py-3.5 px-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150 dark:divide-white/[0.04]">
+                    {filteredUsers.map((user) => {
+                      const isFounder = user.role === "FOUNDER";
+                      const isSuperAdmin = user.role === "SUPER_ADMIN";
+                      const isSelf = user.id === currentUser?.id;
                       
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs font-bold text-slate-800 dark:text-white truncate">{user.fullName}</span>
-                          {isSelf && (
-                            <span className="text-[8px] font-mono bg-indigo-150 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded font-extrabold uppercase">
-                              YOU
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-slate-400 dark:text-gray-450 truncate block">{user.email}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-end space-x-4 shrink-0">
-                      <div className="text-right sm:text-right flex flex-col items-end">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-heading font-extrabold uppercase border tracking-wider select-none ${isFounder ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" : isSuperAdmin ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" : user.role === "HR" ? "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20" : user.role === "ADMIN" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"}`}>
-                          {user.role}
-                        </span>
-                        
-                        {user.internProfile?.status && (
-                          <span className="text-[8px] text-slate-400 dark:text-gray-400 font-medium mt-1 uppercase">
-                            Intern Status: {user.internProfile.status}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Purple Shield Indicator */}
-                      <div className="flex items-center space-x-1.5">
-                        {!isFounder && (currentUser?.role === "FOUNDER" || (currentUser?.role === "SUPER_ADMIN" && !isSuperAdmin)) && (
+                      const userPerms = user.permission || {
+                        dashboardAccess: true,
+                        attendanceAccess: true,
+                        taskAccess: true,
+                        documentAccess: true,
+                        approvalAccess: false,
+                        settingsAccess: false,
+                        analyticsAccess: true,
+                        onboardingAccess: false,
+                      } as any;
+
+                      const renderToggle = (key: keyof UserPermission) => {
+                        const isGranted = !!userPerms[key];
+                        const isDisabled = isFounder || (isSuperAdmin && currentUser?.role !== "FOUNDER") || actionLoading === `${user.id}-${key}`;
+                        return (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteUser(user);
+                              if (!isDisabled) handleTogglePermission(user, key);
                             }}
-                            disabled={actionLoading === `${user.id}-delete`}
-                            className="p-2 rounded-lg text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/10 transition-colors"
-                            title="Delete administrative account permanently"
+                            disabled={isDisabled}
+                            className={`p-1.5 rounded-lg border transition-all inline-flex items-center justify-center cursor-pointer ${
+                              isGranted 
+                                ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-250 dark:border-emerald-500/25 text-emerald-600 dark:text-emerald-400 hover:scale-105 shadow-sm"
+                                : "bg-red-50 dark:bg-red-500/10 border-red-250 dark:border-red-500/25 text-red-600 dark:text-red-400 hover:scale-105 shadow-sm"
+                            } ${isDisabled ? "opacity-45 cursor-not-allowed hover:scale-100 shadow-none" : ""}`}
+                            title={`Toggle ${key} override`}
                           >
-                            {actionLoading === `${user.id}-delete` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                            {actionLoading === `${user.id}-${key}` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : isGranted ? (
+                              <Check className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
                             ) : (
-                              <Trash2 className="h-4 w-4" />
+                              <X className="h-3 w-3 text-red-550 dark:text-red-400" />
                             )}
                           </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+                        );
+                      };
+
+                      return (
+                        <tr 
+                          key={user.id} 
+                          onClick={() => setSelectedUser(user)}
+                          className={`hover:bg-slate-55/60 dark:hover:bg-white/[0.01] transition-all cursor-pointer ${selectedUser?.id === user.id ? "bg-indigo-50/20 dark:bg-white/[0.02]" : ""}`}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3.5 min-w-0">
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-heading font-extrabold select-none shrink-0 border text-xs ${isFounder ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400" : isSuperAdmin ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400"}`}>
+                                {(user.fullName?.[0] || user.email?.[0] || "?").toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="text-xs font-bold text-slate-800 dark:text-white truncate block max-w-[110px]">{user.fullName}</span>
+                                  {isSelf && (
+                                    <span className="text-[7px] font-mono bg-indigo-150 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded font-extrabold uppercase">YOU</span>
+                                  )}
+                                </div>
+                                <span className="text-[9px] text-slate-400 dark:text-gray-450 truncate block max-w-[130px]">{user.email}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-heading font-extrabold uppercase border tracking-wider select-none ${isFounder ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" : isSuperAdmin ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" : user.role === "HR" ? "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20" : user.role === "ADMIN" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"}`}>
+                              {user.role}
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("dashboardAccess")}</td>
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("attendanceAccess")}</td>
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("taskAccess")}</td>
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("documentAccess")}</td>
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("settingsAccess")}</td>
+                          <td className="py-3 px-3 text-center">{isFounder ? <Check className="h-3 w-3 text-yellow-500 mx-auto" /> : renderToggle("onboardingAccess")}</td>
+
+                          <td className="py-3 px-3 text-center">
+                            {!isFounder && (currentUser?.role === "FOUNDER" || (currentUser?.role === "SUPER_ADMIN" && !isSuperAdmin)) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteUser(user);
+                                }}
+                                disabled={actionLoading === `${user.id}-delete`}
+                                className="p-1.5 rounded-lg text-red-500 dark:text-red-400 hover:text-red-650 dark:hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Delete user"
+                              >
+                                {actionLoading === `${user.id}-delete` ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -682,6 +799,63 @@ export default function PermissionsPage() {
           )}
         </Card>
       </div>
+
+      {/* 3. Security Audit Trail Logs (Full Width) */}
+      <Card className="border-slate-200 dark:border-white/[0.08] bg-white/75 dark:bg-[#0b0f19]/60 backdrop-blur-md p-5 sm:p-6 shadow-sm dark:shadow-2xl">
+        <CardHeader className="p-0 pb-3 border-b border-slate-200 dark:border-white/[0.06] mb-4">
+          <CardTitle className="text-sm font-heading font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
+            <ShieldAlert className="h-4.5 w-4.5 text-indigo-500 dark:text-indigo-400" />
+            <span>Security Permissions Audit Trail</span>
+          </CardTitle>
+          <CardDescription className="text-[10px] text-slate-500 dark:text-gray-400">
+            Immutable, chronological system ledger capturing permission overrides and designation promotions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto w-full">
+            {changeLogs.length === 0 ? (
+              <p className="text-xs text-slate-400 dark:text-gray-500 py-6 text-center font-medium">No permission modifications recorded in AIMS ledger.</p>
+            ) : (
+              <table className="w-full text-left text-xs border-collapse min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-white/[0.04] text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest bg-slate-50 dark:bg-white/[0.01]">
+                    <th className="py-2.5 px-3">Authorized Operator</th>
+                    <th className="py-2.5 px-3">Target Profile</th>
+                    <th className="py-2.5 px-3">Transition</th>
+                    <th className="py-2.5 px-3">Modification Details</th>
+                    <th className="py-2.5 px-3">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04] text-slate-700 dark:text-gray-300">
+                  {changeLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.01]">
+                      <td className="py-3 px-3">
+                        <span className="font-bold text-slate-900 dark:text-white block">{log.changedBy?.fullName}</span>
+                        <span className="text-[9px] text-slate-400 dark:text-gray-500 block uppercase font-mono">{log.changedBy?.role}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-bold text-slate-900 dark:text-white block">{log.target?.fullName}</span>
+                        <span className="text-[9px] text-slate-400 dark:text-gray-500 block uppercase font-mono">{log.target?.role}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-gray-300 px-2 py-0.5 rounded font-mono">
+                          {log.previousRole} → {log.newRole}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-semibold font-mono text-[10px] text-indigo-650 dark:text-indigo-400 whitespace-pre-wrap max-w-sm">
+                        {log.details}
+                      </td>
+                      <td className="py-3 px-3 font-medium text-slate-400 dark:text-gray-500 whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Onboard / Create Modal Dialog Overlay */}
       {showCreateModal && (
