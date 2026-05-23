@@ -319,9 +319,65 @@ html:not(.dark) {
   button.bg-gradient-to-r *,
   .bg-gradient-to-r .text-white,
   .bg-gradient-to-r span,
+  .bg-gradient-to-r a,
   a.bg-gradient-to-r span,
-  .inline-flex.bg-primary\/10 span,
+  .inline-flex.bg-primary\/10 span {
+    color: #ffffff !important;
+  }
+
+  /* In light mode, resolve general .text-white class text to dark slate to maintain high-contrast readability,
+     unless it is inside a button, primary backdrop, alert, or has an explicitly colored background badge */
   .text-white {
+    color: #0f172a !important;
+  }
+
+  /* Re-allow true white color on buttons, gradient backgrounds, or colored alerts/badges */
+  .bg-primary,
+  .bg-primary *,
+  .bg-gradient-to-r,
+  .bg-gradient-to-r *,
+  .bg-indigo-600,
+  .bg-indigo-600 *,
+  .bg-emerald-600,
+  .bg-emerald-600 *,
+  .bg-cyan-600,
+  .bg-cyan-600 *,
+  .bg-blue-600,
+  .bg-blue-600 *,
+  .bg-amber-600,
+  .bg-amber-600 *,
+  .bg-red-600,
+  .bg-red-600 *,
+  .bg-emerald-500,
+  .bg-emerald-500 *,
+  .bg-cyan-500,
+  .bg-cyan-500 *,
+  .bg-blue-500,
+  .bg-blue-500 *,
+  .bg-indigo-500,
+  .bg-indigo-500 *,
+  button.bg-primary,
+  button.bg-primary *,
+  button.bg-gradient-to-r,
+  button.bg-gradient-to-r * {
+    --tw-text-opacity: 1 !important;
+  }
+  
+  /* Solid white overrides for text-white elements inside colored states */
+  .bg-primary .text-white,
+  .bg-gradient-to-r .text-white,
+  .bg-indigo-600 .text-white,
+  .bg-emerald-600 .text-white,
+  .bg-cyan-600 .text-white,
+  .bg-blue-600 .text-white,
+  .bg-amber-600 .text-white,
+  .bg-red-600 .text-white,
+  .bg-emerald-500 .text-white,
+  .bg-cyan-500 .text-white,
+  .bg-blue-500 .text-white,
+  .bg-indigo-500 .text-white,
+  button.bg-primary .text-white,
+  button.bg-gradient-to-r .text-white {
     color: #ffffff !important;
   }
 
