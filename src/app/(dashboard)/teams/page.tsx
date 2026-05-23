@@ -99,7 +99,7 @@ export default async function TeamsPage() {
   const teamKeys = Object.keys(teamsMap).sort();
 
   return (
-    <div className="space-y-6 sm:space-y-8 select-none animate-fadeIn text-white max-w-6xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn text-white max-w-6xl mx-auto">
       
       {/* 1. Header Hero Panel */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0c1220] via-[#0d1629] to-[#050b18] p-6 sm:p-8 shadow-2xl backdrop-blur-md">
