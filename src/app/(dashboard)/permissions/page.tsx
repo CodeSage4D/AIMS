@@ -22,7 +22,8 @@ import {
   Settings,
   TrendingUp,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Copy
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -44,8 +45,10 @@ interface UserPermission {
 interface User {
   id: string;
   email: string;
+  username: string | null;
   fullName: string;
   role: string;
+  status: string;
   createdAt: string;
   permission: UserPermission | null;
   internProfile: {
@@ -54,6 +57,7 @@ interface User {
     status: string;
     roleDomain: string;
     department: string;
+    phoneNumber: string;
   } | null;
 }
 
@@ -84,6 +88,16 @@ export default function PermissionsPage() {
   const [onboardRole, setOnboardRole] = useState("ADMIN");
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardError, setOnboardError] = useState("");
+
+  // Review Onboarding Modal States
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewUser, setReviewUser] = useState<User | null>(null);
+  const [reviewRole, setReviewRole] = useState("INTERN");
+  const [officialId, setOfficialId] = useState("");
+  const [activationCode, setActivationCode] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewCopied, setReviewCopied] = useState(false);
   
   // Custom permissions presets per role creation
   const [customPerms, setCustomPerms] = useState({
@@ -375,8 +389,80 @@ export default function PermissionsPage() {
     }
   };
 
-  // Filter users by search box query
-  const filteredUsers = users.filter(
+  const handleOpenReviewModal = (user: User) => {
+    setReviewUser(user);
+    setReviewRole("INTERN");
+    setActivationCode(null);
+    setReviewError("");
+    setReviewCopied(false);
+    
+    // Generate a smart, professional default ID format: AXN-[DEPT-PREFIX]-2605-[RandomHex]
+    const dept = user.internProfile?.department || "General";
+    let prefix = "GEN";
+    if (dept.toLowerCase().includes("software")) prefix = "SWE";
+    else if (dept.toLowerCase().includes("resource")) prefix = "HR";
+    else if (dept.toLowerCase().includes("product")) prefix = "PM";
+    else if (dept.toLowerCase().includes("data")) prefix = "DA";
+    else if (dept.toLowerCase().includes("operation")) prefix = "OPS";
+    else if (dept.toLowerCase().includes("marketing")) prefix = "MKT";
+    
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const defaultOfficialId = `AXN-${prefix}-2605-${randomSuffix}`;
+    setOfficialId(defaultOfficialId);
+    
+    setShowReviewModal(true);
+  };
+
+  const handleReviewAction = async (status: "APPROVED" | "REJECTED") => {
+    if (!reviewUser) return;
+    setReviewError("");
+    setReviewLoading(true);
+
+    try {
+      const res = await fetch("/api/permissions/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: reviewUser.id,
+          role: reviewRole,
+          internId: officialId,
+          status,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setReviewError(data.error || "Failed to process verification transaction.");
+      } else {
+        if (status === "APPROVED") {
+          setActivationCode(data.tempPassword);
+          setSuccessMessage(`Approved and activated workspace for ${reviewUser.fullName}!`);
+        } else {
+          setSuccessMessage(`Enrollment request for ${reviewUser.fullName} has been rejected.`);
+          setShowReviewModal(false);
+          fetchUsers();
+        }
+      }
+    } catch (err) {
+      setReviewError("An unexpected communication error occurred.");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleReviewCopy = () => {
+    if (activationCode) {
+      navigator.clipboard.writeText(activationCode);
+      setReviewCopied(true);
+      setTimeout(() => setReviewCopied(false), 3000);
+    }
+  };
+
+  const pendingUsers = users.filter((u) => u.status === "PENDING");
+  const activeUsers = users.filter((u) => u.status !== "PENDING");
+
+  // Filter active users by search box query
+  const filteredUsers = activeUsers.filter(
     (u) =>
       u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -519,6 +605,75 @@ export default function PermissionsPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Pending Registrations Queue */}
+      {pendingUsers.length > 0 && (
+        <Card className="border-amber-550/25 bg-amber-500/5 dark:bg-amber-500/10 border backdrop-blur-md p-5 sm:p-6 shadow-md dark:shadow-2xl rounded-2xl animate-fadeIn">
+          <CardHeader className="p-0 pb-3 border-b border-amber-500/10 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-heading font-extrabold text-amber-850 dark:text-amber-400 flex items-center space-x-2">
+                <UserCheck className="h-4.5 w-4.5 animate-pulse text-amber-600 dark:text-amber-450" />
+                <span>Pending Enrollment Verification Queue</span>
+              </CardTitle>
+              <CardDescription className="text-[10px] text-amber-800/80 dark:text-amber-300/80 font-medium">
+                New registrants awaiting profile verification, role designation, and workspace activation.
+              </CardDescription>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950 uppercase tracking-wider self-start sm:self-center">
+              {pendingUsers.length} enrollees
+            </span>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-amber-500/10 text-[9px] font-bold text-amber-800/70 dark:text-amber-400/70 uppercase tracking-widest bg-amber-500/5">
+                    <th className="py-2.5 px-3">Registrant Name</th>
+                    <th className="py-2.5 px-3">Corporate Email / User</th>
+                    <th className="py-2.5 px-3">Phone Number</th>
+                    <th className="py-2.5 px-3">Department</th>
+                    <th className="py-2.5 px-3">Requested Position</th>
+                    <th className="py-2.5 px-3 text-center">Verify Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-500/10 text-slate-800 dark:text-gray-300">
+                  {pendingUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-amber-500/5">
+                      <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
+                        {user.fullName}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="block font-medium">{user.email}</span>
+                        <span className="text-[9px] text-slate-400 dark:text-gray-500 block font-mono">@{user.username}</span>
+                      </td>
+                      <td className="py-3 px-3 font-semibold font-mono text-[10px] text-slate-650 dark:text-gray-400">
+                        {user.internProfile?.phoneNumber || "N/A"}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 font-bold uppercase text-[9px]">
+                          {user.internProfile?.department || "General"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-medium text-slate-650 dark:text-gray-400">
+                        {user.internProfile?.roleDomain || "Intern"}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <Button
+                          onClick={() => handleOpenReviewModal(user)}
+                          variant="secondary"
+                          className="h-8 text-[10px] font-bold bg-amber-500 hover:bg-amber-600 border border-amber-600/30 text-slate-950 rounded-lg px-3 cursor-pointer shadow-sm active:scale-95 transition-all"
+                        >
+                          Review Request
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* 2. Management Workspace Layout Grid */}
@@ -1002,6 +1157,179 @@ export default function PermissionsPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review Enrollment Modal Dialog Overlay */}
+      {showReviewModal && reviewUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-[#050b18]/80 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0c1220] p-6 shadow-2xl space-y-5 animate-scaleIn select-none text-slate-800 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/[0.06] pb-4">
+              <div>
+                <h3 className="text-md font-heading font-extrabold text-slate-900 dark:text-white">
+                  Review Workforce Registration
+                </h3>
+                <p className="text-[10px] text-slate-455 dark:text-gray-450">
+                  Verify profile credentials, assign corporate role, and activate user workspace.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReviewModal(false);
+                  fetchUsers();
+                }}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {reviewError && (
+              <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400 shrink-0" />
+                <span>{reviewError}</span>
+              </div>
+            )}
+
+            {activationCode ? (
+              <div className="space-y-5 text-center py-4">
+                <div className="flex justify-center">
+                  <div className="p-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <UserCheck className="h-10 w-10 text-emerald-555 animate-bounce" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Workspace Account Activated!</h4>
+                  <p className="text-[11px] text-gray-550 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                    Corporate profile activated under ID <span className="font-bold text-slate-800 dark:text-slate-200">{officialId}</span>. The temporary password has been transactionally saved:
+                  </p>
+                </div>
+
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/25 rounded-xl flex flex-col items-center space-y-2">
+                  <span className="text-[8px] uppercase font-bold tracking-widest text-emerald-600 dark:text-emerald-400">Temporary Onboarding Credentials</span>
+                  <div className="flex items-center space-x-3 bg-black/20 dark:bg-black/40 px-4 py-2 rounded-lg border border-white/5 w-full justify-between">
+                    <code className="text-base font-mono font-bold tracking-wider text-emerald-500 select-all">{activationCode}</code>
+                    <button
+                      onClick={handleReviewCopy}
+                      className="p-1.5 hover:bg-white/10 rounded transition-colors text-emerald-500 hover:text-emerald-400 cursor-pointer"
+                    >
+                      {reviewCopied ? <Check className="h-4.5 w-4.5 text-emerald-400" /> : <Copy className="h-4.5 w-4.5 text-emerald-500" />}
+                    </button>
+                  </div>
+                  <span className="text-[9px] text-gray-405">Provide this temporary code to the enrolee to complete onboarding.</span>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    onClick={() => {
+                      setShowReviewModal(false);
+                      fetchUsers();
+                    }}
+                    variant="primary"
+                    className="h-10 text-xs font-bold px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl cursor-pointer"
+                  >
+                    Complete Review
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-150 dark:border-white/[0.04] text-xs leading-normal">
+                  <div>
+                    <span className="text-[9px] text-slate-450 dark:text-gray-555 block font-bold uppercase tracking-wider">Full Name</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{reviewUser.fullName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-450 dark:text-gray-555 block font-bold uppercase tracking-wider">Requested Position</span>
+                    <span className="font-bold text-indigo-550 dark:text-indigo-400">{reviewUser.internProfile?.roleDomain}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-450 dark:text-gray-555 block font-bold uppercase tracking-wider">Corporate Email</span>
+                    <span className="font-bold text-slate-900 dark:text-white truncate block max-w-[170px]">{reviewUser.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-450 dark:text-gray-555 block font-bold uppercase tracking-wider">Phone / User</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {reviewUser.internProfile?.phoneNumber || "N/A"} <span className="text-[10px] text-slate-400 font-normal">(@{reviewUser.username})</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-heading font-extrabold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">
+                      Official Intern / Employee ID Code
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. AXN-SWE-2605-AS01"
+                      value={officialId}
+                      onChange={(e) => setOfficialId(e.target.value)}
+                      disabled={reviewLoading}
+                      className="w-full h-10 px-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] focus:border-indigo-500/40 focus:outline-none rounded-lg text-xs font-semibold text-slate-800 dark:text-white transition-all uppercase placeholder:text-slate-400 dark:placeholder:text-gray-550"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-heading font-extrabold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">
+                      Assigned Workspace Corporate Role
+                    </label>
+                    <select
+                      value={reviewRole}
+                      onChange={(e) => setReviewRole(e.target.value)}
+                      disabled={reviewLoading}
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-indigo-500/40 rounded-lg text-xs font-semibold cursor-pointer text-slate-800 dark:text-white"
+                    >
+                      <option value="INTERN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Intern / Employee</option>
+                      <option value="TEAM_LEAD" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Team Lead / Supervisor</option>
+                      <option value="ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Admin Manager</option>
+                      <option value="HR" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">HR Administrator</option>
+                      {currentUser?.role === "FOUNDER" && <option value="SUPER_ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Super Admin Director</option>}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-white/[0.06]">
+                  <Button
+                    onClick={() => handleReviewAction("REJECTED")}
+                    disabled={reviewLoading}
+                    variant="secondary"
+                    className="h-10 text-xs font-bold rounded-lg px-4 border border-red-500/20 hover:border-red-500/35 bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-all cursor-pointer"
+                  >
+                    Reject Registration
+                  </Button>
+
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      onClick={() => {
+                        setShowReviewModal(false);
+                        fetchUsers();
+                      }}
+                      disabled={reviewLoading}
+                      variant="secondary"
+                      className="h-10 text-xs font-semibold rounded-lg px-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:hover:border-white/20 transition-all dark:text-white cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      onClick={() => handleReviewAction("APPROVED")}
+                      disabled={reviewLoading}
+                      variant="primary"
+                      className="h-10 text-xs font-bold rounded-lg px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 transition-all text-white flex items-center justify-center space-x-2 cursor-pointer"
+                    >
+                      {reviewLoading ? (
+                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                      ) : (
+                        <span>Verify & Approve</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
