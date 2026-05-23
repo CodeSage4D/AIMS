@@ -37,6 +37,7 @@ export async function GET(req: Request) {
         email: true,
         fullName: true,
         role: true,
+        status: true,
         createdAt: true,
         permission: true,
         internProfile: {
@@ -46,6 +47,7 @@ export async function GET(req: Request) {
             status: true,
             roleDomain: true,
             department: true,
+            phoneNumber: true,
           },
         },
       },
