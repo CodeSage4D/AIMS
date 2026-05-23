@@ -257,11 +257,20 @@ export default function ProfileSettingsClient({
       city: "City",
       state: "State",
       country: "Country",
+      pinCode: "PIN Code",
+      citizenship: "Citizenship",
+      region: "Region / Origin",
       university: "University / College Name",
       degree: "Degree / Course",
       department: "Program Department",
       roleDomain: "Assigned Role Domain",
       batchSemester: "Batch / Semester",
+      bankName: "Bank Name",
+      accountNumber: "Bank Account Number",
+      ifscCode: "IFSC Code",
+      upiId: "UPI ID",
+      branchName: "Branch Name",
+      panCard: "PAN Card",
     };
     return maps[f] || f;
   };
@@ -398,7 +407,8 @@ export default function ProfileSettingsClient({
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 1: Details */}
             <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
               <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
@@ -431,6 +441,18 @@ export default function ProfileSettingsClient({
                     <div className="flex justify-between py-1.5 border-b border-border/30">
                       <span>Joining Date</span>
                       <span className="text-foreground font-bold">{formatDate(internProfile.startDate)}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>PIN Code</span>
+                      <span className="text-foreground font-bold font-mono">{internProfile.pinCode || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>Citizenship</span>
+                      <span className="text-foreground font-bold">{internProfile.citizenship || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-border/30">
+                      <span>Region / Origin</span>
+                      <span className="text-foreground font-bold">{internProfile.region || "Not Provided"}</span>
                     </div>
                     <div className="flex justify-between py-1.5">
                       <span>Direct Supervisor</span>
@@ -566,7 +588,57 @@ export default function ProfileSettingsClient({
               </CardContent>
             </Card>
           </div>
-        )}
+
+          {/* Corporate Bank Account Details Card */}
+          {internProfile && (
+            <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground mt-6">
+              <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
+                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                  <User className="h-4.5 w-4.5 text-primary" />
+                  <span>Corporate Bank Account Details</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-muted-foreground">
+                  Your registered corporate disbursement bank account metadata
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-muted-foreground">
+                <div className="space-y-3">
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>Bank Name</span>
+                    <span className="text-foreground font-bold">{internProfile.bankName || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>Account Number</span>
+                    <span className="text-foreground font-bold font-mono select-all">{internProfile.accountNumber || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>IFSC Code</span>
+                    <span className="text-foreground font-bold font-mono select-all">{internProfile.ifscCode || "Not Provided"}</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>UPI ID</span>
+                    <span className="text-foreground font-bold select-all">{internProfile.upiId || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>Branch Name</span>
+                    <span className="text-foreground font-bold">{internProfile.branchName || "Not Provided"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span>PAN Card</span>
+                    <span className="text-foreground font-bold font-mono select-all">{internProfile.panCard || "Not Provided"}</span>
+                  </div>
+                </div>
+              </CardContent>
+              <div className="p-3.5 rounded-xl bg-secondary/15 border border-border/40 text-[10px] leading-relaxed text-muted-foreground mt-4">
+                <span className="font-bold text-primary block mb-0.5">Need to update bank or onboarding details?</span>
+                Submit a Correction Request under the **Correction Requests** tab. The administration team will transactionally review, verify, and apply authorized corrections.
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
 
         {/* TAB 2: ACCOUNT SETTINGS */}
         {activeTab === "settings" && (
@@ -690,11 +762,20 @@ export default function ProfileSettingsClient({
                           <option value="city" className="bg-card text-foreground">City</option>
                           <option value="state" className="bg-card text-foreground">State</option>
                           <option value="country" className="bg-card text-foreground">Country</option>
+                          <option value="pinCode" className="bg-card text-foreground">PIN Code</option>
+                          <option value="citizenship" className="bg-card text-foreground">Citizenship</option>
+                          <option value="region" className="bg-card text-foreground">Region / Origin</option>
                           <option value="university" className="bg-card text-foreground">University / College</option>
                           <option value="degree" className="bg-card text-foreground">Degree / Course</option>
                           <option value="batchSemester" className="bg-card text-foreground">Batch / Semester</option>
                           <option value="department" className="bg-card text-foreground">Department Program</option>
                           <option value="roleDomain" className="bg-card text-foreground">Role Domain</option>
+                          <option value="bankName" className="bg-card text-foreground">Bank Name</option>
+                          <option value="accountNumber" className="bg-card text-foreground">Bank Account Number</option>
+                          <option value="ifscCode" className="bg-card text-foreground">IFSC Code</option>
+                          <option value="upiId" className="bg-card text-foreground">UPI ID</option>
+                          <option value="branchName" className="bg-card text-foreground">Branch Name</option>
+                          <option value="panCard" className="bg-card text-foreground">PAN Card</option>
                         </select>
                       </div>
 
