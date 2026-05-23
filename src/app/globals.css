@@ -265,7 +265,6 @@ html:not(.dark) {
   }
 
   /* Force highly readable slate text colors for white theme */
-  .text-white,
   .text-slate-100,
   .text-slate-200,
   .text-gray-100,
@@ -321,7 +320,8 @@ html:not(.dark) {
   .bg-gradient-to-r .text-white,
   .bg-gradient-to-r span,
   a.bg-gradient-to-r span,
-  .inline-flex.bg-primary\/10 span {
+  .inline-flex.bg-primary\/10 span,
+  .text-white {
     color: #ffffff !important;
   }
 
