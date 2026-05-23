@@ -57,6 +57,115 @@ export default function CalendarPage() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Live clock state
+  const [liveDateTime, setLiveDateTime] = useState<string>("");
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      setLiveDateTime(
+        now.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }) + " | " + now.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }) + " IST"
+      );
+    };
+
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Personal Planner states
+  interface PersonalTodo {
+    id: string;
+    title: string;
+    description?: string;
+    date: string;
+    type: "TODO" | "REMINDER";
+    completed: boolean;
+  }
+
+  const [personalTodos, setPersonalTodos] = useState<PersonalTodo[]>([]);
+  const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
+  const [todoTitle, setTodoTitle] = useState("");
+  const [todoDesc, setTodoDesc] = useState("");
+  const [todoDate, setTodoDate] = useState("");
+  const [todoType, setTodoType] = useState<"TODO" | "REMINDER">("TODO");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("aims_personal_todos");
+    if (saved) {
+      try {
+        setPersonalTodos(JSON.parse(saved));
+      } catch (err) {
+        console.error("Failed to parse personal todos:", err);
+      }
+    }
+  }, []);
+
+  const savePersonalTodos = (updated: PersonalTodo[]) => {
+    setPersonalTodos(updated);
+    localStorage.setItem("aims_personal_todos", JSON.stringify(updated));
+  };
+
+  const handleCreateTodo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!todoTitle || !todoDate) return;
+
+    const newTodo: PersonalTodo = {
+      id: "todo-" + Math.random().toString(36).substring(2, 9),
+      title: todoTitle.trim(),
+      description: todoDesc.trim(),
+      date: todoDate,
+      type: todoType,
+      completed: false,
+    };
+
+    const updated = [...personalTodos, newTodo];
+    savePersonalTodos(updated);
+
+    // Reset form
+    setTodoTitle("");
+    setTodoDesc("");
+    setTodoDate("");
+    setTodoType("TODO");
+    setIsTodoModalOpen(false);
+    setSuccess("Personal plan successfully saved to calendar!");
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleToggleTodo = (id: string) => {
+    const updated = personalTodos.map((t) =>
+      t.id === id ? { ...t, completed: !t.completed } : t
+    );
+    savePersonalTodos(updated);
+  };
+
+  const handleDeleteTodo = (id: string) => {
+    if (!confirm("Remove this item from your calendar?")) return;
+    const updated = personalTodos.filter((t) => t.id !== id);
+    savePersonalTodos(updated);
+  };
+
+  const getPersonalTodosForDay = (day: number) => {
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+    return personalTodos.filter((t) => t.date === dateStr);
+  };
+
+  const handleDayClick = (dayNumber: number) => {
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${dayNumber.toString().padStart(2, "0")}`;
+    setTodoDate(dateStr);
+    setIsTodoModalOpen(true);
+  };
+
   // Modal / Form States
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
@@ -316,6 +425,11 @@ export default function CalendarPage() {
             <p className="text-xs text-gray-300 font-medium">
               Synchronize upcoming client meetings, intern evaluation deadlines, national holidays, and active leaves. Bypasses absent checks on weekly offs automatically.
             </p>
+            {/* Live IST clock badge */}
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 font-heading font-extrabold text-[11px] w-fit shadow-md backdrop-blur-md mt-2">
+              <Clock className="h-3.5 w-3.5 text-indigo-400 shrink-0 animate-pulse" />
+              <span>{liveDateTime || "Loading Current System Time..."}</span>
+            </div>
           </div>
           
           {(userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR") && (
@@ -392,8 +506,9 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={`day-${day}`}
+                    onClick={() => handleDayClick(day)}
                     className={cn(
-                      "h-16 sm:h-20 rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between items-start border bg-card/40 transition-all hover:bg-secondary/20",
+                      "h-16 sm:h-20 rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between items-start border bg-card/40 transition-all hover:bg-secondary/20 cursor-pointer select-none",
                       isToday ? "border-indigo-500 bg-indigo-500/5 shadow-inner" : "border-border/60"
                     )}
                   >
@@ -409,6 +524,7 @@ export default function CalendarPage() {
                       {dailyHolidays.map((h) => (
                         <div
                           key={h.id}
+                          onClick={(e) => e.stopPropagation()}
                           className="bg-amber-500/15 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded truncate font-heading font-extrabold uppercase"
                           title={`Holiday: ${h.title}`}
                         >
@@ -420,6 +536,7 @@ export default function CalendarPage() {
                       {dailyLeaves.map((l) => (
                         <div
                           key={l.id}
+                          onClick={(e) => e.stopPropagation()}
                           className="bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded truncate font-bold font-heading uppercase"
                           title={`Leave: ${l.intern?.fullName || "Intern"}`}
                         >
@@ -431,6 +548,7 @@ export default function CalendarPage() {
                       {dailyEvents.map((ev) => (
                         <div
                           key={ev.id}
+                          onClick={(e) => e.stopPropagation()}
                           className={cn(
                             "text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded truncate font-semibold font-heading uppercase",
                             ev.type === "MEETING" ? "bg-blue-500/15 border border-blue-500/20 text-blue-500" : "bg-rose-500/15 border border-rose-500/20 text-rose-500 animate-pulse"
@@ -438,6 +556,28 @@ export default function CalendarPage() {
                           title={`${ev.type}: ${ev.title}`}
                         >
                           {ev.type === "MEETING" ? "📞" : "🚨"} {ev.title}
+                        </div>
+                      ))}
+
+                      {/* 4. Personal Todos/Reminders Block */}
+                      {getPersonalTodosForDay(day).map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleTodo(t.id);
+                          }}
+                          className={cn(
+                            "text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded truncate font-bold font-heading uppercase cursor-pointer transition-all border",
+                            t.completed
+                              ? "bg-gray-500/10 border-gray-500/20 text-gray-400 line-through opacity-70"
+                              : t.type === "TODO"
+                              ? "bg-cyan-500/15 border-cyan-500/20 text-cyan-400 font-extrabold"
+                              : "bg-pink-500/15 border-pink-500/20 text-pink-400 font-extrabold"
+                          )}
+                          title={`Personal ${t.type} (Click to toggle complete): ${t.title}`}
+                        >
+                          {t.type === "TODO" ? (t.completed ? "✅" : "📌") : "🔔"} {t.title}
                         </div>
                       ))}
                     </div>
@@ -514,6 +654,83 @@ export default function CalendarPage() {
                         </span>
                         <span>By: {eItem.creator?.fullName || "Supervisor"}</span>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Personal Planner Checklist Sidebar Card */}
+          <Card className="border-border/60 bg-card/60 backdrop-blur-md shadow-xl select-none">
+            <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <Sparkles className="h-5 w-5 text-indigo-400" />
+                  <span>Personal Planner List</span>
+                </CardTitle>
+                <CardDescription className="text-[11px]">Manage personal todos & reminders.</CardDescription>
+              </div>
+              <Button
+                onClick={() => {
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  setTodoDate(todayStr);
+                  setIsTodoModalOpen(true);
+                }}
+                variant="secondary"
+                size="sm"
+                className="h-8 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg px-2.5 text-white flex items-center space-x-1"
+              >
+                <PlusCircle className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Add Item</span>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4">
+              {personalTodos.length === 0 ? (
+                <div className="py-8 text-center text-xs font-semibold text-muted-foreground">
+                  No personal plans scheduled. Click any date cell to schedule!
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[16rem] overflow-y-auto pr-1">
+                  {personalTodos.map((todo) => (
+                    <div
+                      key={todo.id}
+                      className={cn(
+                        "p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all",
+                        todo.completed
+                          ? "bg-gray-500/5 border-gray-500/10 text-muted-foreground opacity-60"
+                          : "bg-secondary/15 border-border/40 hover:border-indigo-500/30"
+                      )}
+                    >
+                      <div className="flex items-center space-x-2 min-w-0 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => handleToggleTodo(todo.id)}
+                          className="h-4 w-4 rounded border-white/10 bg-white/5 text-indigo-600 focus:ring-0 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              "font-bold text-foreground block truncate",
+                              todo.completed && "line-through text-gray-500"
+                            )}
+                          >
+                            {todo.type === "TODO" ? "📌" : "🔔"} {todo.title}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground block font-semibold">
+                            Date: {todo.date}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleDeleteTodo(todo.id)}
+                        className="p-1 rounded text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer shrink-0 transition-colors"
+                        title="Remove plan"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -724,6 +941,99 @@ export default function CalendarPage() {
                       isLoading={submitLoading}
                     >
                       Register Holiday
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Personal Todo/Reminder Scheduling Overlay Modal */}
+      {isTodoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 transition-opacity animate-fadeIn select-none">
+          <div className="w-full max-w-md">
+            <Card className="border-white/10 bg-[#0b0f19]/85 backdrop-blur-xl shadow-2xl relative">
+              <CardHeader className="pb-4">
+                <CardTitle>Schedule Personal Plan</CardTitle>
+                <CardDescription>Mark a private todo task or important calendar reminder.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateTodo} className="space-y-4">
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                      Item Title
+                    </label>
+                    <Input
+                      type="text"
+                      required
+                      value={todoTitle}
+                      onChange={(e) => setTodoTitle(e.target.value)}
+                      placeholder="e.g. Audit security logs, Send HR report"
+                      className="bg-white/5 border-white/10 text-white rounded-xl"
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                      Description / Private Notes
+                    </label>
+                    <textarea
+                      value={todoDesc}
+                      onChange={(e) => setTodoDesc(e.target.value)}
+                      placeholder="Details of the personal todo or reminder..."
+                      rows={2.5}
+                      className="flex w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/70"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                        Target Date
+                      </label>
+                      <Input
+                        type="date"
+                        required
+                        value={todoDate}
+                        onChange={(e) => setTodoDate(e.target.value)}
+                        className="bg-white/5 border-white/10 text-white rounded-xl font-medium"
+                      />
+                    </div>
+
+                    <div className="flex flex-col space-y-1.5">
+                      <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                        Item Category
+                      </label>
+                      <select
+                        value={todoType}
+                        onChange={(e) => setTodoType(e.target.value as any)}
+                        required
+                        className="flex h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none cursor-pointer"
+                      >
+                        <option value="TODO" className="bg-[#0b0f19]">Personal Todo (📌)</option>
+                        <option value="REMINDER" className="bg-[#0b0f19]">Reminder Alarm (🔔)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-3.5 pt-4 border-t border-white/[0.08]">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsTodoModalOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                    >
+                      Save to Calendar
                     </Button>
                   </div>
                 </form>
