@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AddInternForm from "@/components/layout/AddInternForm";
 import AccessDeniedShield from "@/components/layout/AccessDeniedShield";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function AddInternPage() {
   const session = await auth();
@@ -13,10 +14,11 @@ export default async function AddInternPage() {
   }
 
   const userRole = (session.user as any).role || "INTERN";
+  const userId = (session.user as any).id;
 
-  // Strict Security Check: FOUNDER ONLY!
-  if (userRole !== "FOUNDER") {
-    return <AccessDeniedShield requiredRole="FOUNDER" currentRole={userRole} />;
+  const hasAccess = await hasPermission(userId, userRole, "onboardingAccess");
+  if (!hasAccess) {
+    return <AccessDeniedShield requiredRole="Onboard Interns" currentRole={userRole} />;
   }
 
   let mentors: any[] = [];
