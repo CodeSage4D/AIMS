@@ -16,19 +16,12 @@ export async function POST(req: Request) {
 
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
+    const userName = session.user.name || "AIMS User";
+    const userEmail = session.user.email || "";
 
-    if (userRole !== "INTERN") {
-      return NextResponse.json({ error: "Only interns can pause their work session." }, { status: 403 });
-    }
-
-    // 2. Fetch the linked Intern profile
-    const intern = await db.intern.findUnique({
-      where: { userId },
-    });
-
-    if (!intern) {
-      return NextResponse.json({ error: "Intern profile not found." }, { status: 404 });
-    }
+    // Fetch or create profile dynamically
+    const { getOrCreateInternProfile } = await import("@/lib/safeUser");
+    const intern = await getOrCreateInternProfile(userId, userRole, userName, userEmail);
 
     // 3. Resolve current date & IST (UTC + 5.5 Hours)
     const now = new Date();
