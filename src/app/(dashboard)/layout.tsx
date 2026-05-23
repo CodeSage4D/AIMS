@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ForcePasswordChange from "@/components/layout/ForcePasswordChange";
 
+export const dynamic = "force-dynamic";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
