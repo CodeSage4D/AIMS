@@ -220,7 +220,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     };
 
     return (
-      <div className="space-y-6 select-none relative animate-fadeIn text-foreground">
+      <div className="space-y-6 relative animate-fadeIn text-foreground">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
@@ -344,6 +344,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           roleDomain={myRecord.roleDomain}
                           status={myRecord.status}
                           dbInternId={myRecord.id}
+                          employmentType={myRecord.employmentType}
                         />
                       </div>
                     );
@@ -1006,7 +1007,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   });
 
   return (
-    <div className="space-y-6 select-none relative animate-fadeIn text-foreground">
+    <div className="space-y-6 relative animate-fadeIn text-foreground">
       {/* 1. Header controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
