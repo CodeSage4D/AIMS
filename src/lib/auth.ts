@@ -56,6 +56,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
 
           if (user) {
+            if (user.status === "PENDING") {
+              throw new Error("Your account registration is pending review by the administration.");
+            }
+            if (user.status === "REJECTED") {
+              throw new Error("Your account registration has been rejected.");
+            }
             const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
             if (isPasswordValid) {
               return {
