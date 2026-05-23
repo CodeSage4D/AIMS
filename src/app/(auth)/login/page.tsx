@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -284,9 +285,8 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/signup")}
+                  <Link
+                    href="/signup"
                     className={`transition-colors cursor-pointer ${
                       currentTheme === "dark" 
                         ? "text-indigo-400 hover:text-indigo-300" 
@@ -294,7 +294,7 @@ export default function LoginPage() {
                     }`}
                   >
                     Onboard / Register Account
-                  </button>
+                  </Link>
 
                   <button
                     type="button"
@@ -313,9 +313,8 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex justify-center text-[10px] sm:text-[11px] font-semibold pt-2 border-t border-slate-200 dark:border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/recovery")}
+                  <Link
+                    href="/recovery"
                     className={`transition-colors cursor-pointer ${
                       currentTheme === "dark" 
                         ? "text-amber-500 hover:text-amber-400" 
@@ -323,7 +322,7 @@ export default function LoginPage() {
                     }`}
                   >
                     Founder Administrative Recovery Console
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Authentication Button */}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -370,16 +371,15 @@ export default function SignupPage() {
 
                 {/* Submit & Navigation Row */}
                 <div className="flex justify-between items-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/login")}
+                  <Link
+                    href="/login"
                     className={`flex items-center space-x-1 text-xs transition-colors font-semibold cursor-pointer ${
                       currentTheme === "dark" ? "text-gray-400 hover:text-white" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                     <span>Back to Login</span>
-                  </button>
+                  </Link>
                 </div>
 
                 <Button
