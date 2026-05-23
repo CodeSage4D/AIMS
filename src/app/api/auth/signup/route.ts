@@ -5,7 +5,20 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const { fullName, email, phone, username, department, requestedPosition } = await req.json();
+    const { 
+      fullName, 
+      email, 
+      phone, 
+      username, 
+      department, 
+      requestedPosition,
+      pinCode,
+      bankName,
+      accountNumber,
+      ifscCode,
+      branchName,
+      upiId
+    } = await req.json();
 
     if (!fullName || !email || !phone || !username || !department || !requestedPosition) {
       return NextResponse.json(
@@ -85,6 +98,12 @@ export async function POST(req: Request) {
           city: "PENDING",
           state: "PENDING",
           country: "PENDING",
+          pinCode: pinCode ? pinCode.trim() : null,
+          bankName: bankName ? bankName.trim() : null,
+          accountNumber: accountNumber ? accountNumber.trim() : null,
+          ifscCode: ifscCode ? ifscCode.trim() : null,
+          branchName: branchName ? branchName.trim() : null,
+          upiId: upiId ? upiId.trim() : null,
           university: "PENDING",
           degree: "PENDING",
           department: department.trim(),
