@@ -549,7 +549,7 @@ export default function InternDashboard({
   const lateDays = attendance.filter((a) => a.status === "LATE").length;
 
   return (
-    <div className="space-y-6 sm:space-y-8 select-none relative animate-fadeIn text-white">
+    <div className="space-y-6 sm:space-y-8 relative animate-fadeIn text-white">
       
       {/* Notifications banner */}
       {error && (
