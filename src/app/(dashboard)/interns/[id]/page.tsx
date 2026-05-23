@@ -310,8 +310,8 @@ export default async function InternWorkspacePage({ params }: PageProps) {
               </div>
 
               <div className="space-y-2 border-t border-border/40 pt-4">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Residency Address</span>
-                <div className="flex items-start space-x-2 text-xs font-medium text-foreground/80 leading-relaxed">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Residency & Origin Details</span>
+                <div className="flex items-start space-x-2 text-xs font-medium text-foreground/80 leading-relaxed mb-2">
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   <span>
                     {intern.address ? `${intern.address}, ` : ""}
@@ -319,6 +319,20 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                     {intern.state && `${intern.state}, `}
                     {intern.country}
                   </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-xs font-semibold pt-1">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">PIN Code</span>
+                    <span className="text-foreground">{intern.pinCode || "Not Provided"}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">Citizenship</span>
+                    <span className="text-foreground">{intern.citizenship || "Not Provided"}</span>
+                  </div>
+                </div>
+                <div className="space-y-0.5 pt-2">
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Region / Country Origin</span>
+                  <span className="text-foreground">{intern.region || "Not Provided"}</span>
                 </div>
               </div>
 
@@ -354,6 +368,40 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                   </span>
                 </div>
               </div>
+
+              {isAdmin && (
+                <div className="space-y-2 border-t border-border/40 pt-4">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
+                    Corporate Bank Details (Admin Only)
+                  </span>
+                  <div className="p-3 bg-secondary/15 rounded-md border border-border/40 text-xs font-semibold text-foreground space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">Bank Name:</span>
+                      <span>{intern.bankName || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">Account Number:</span>
+                      <span className="font-mono select-all text-primary">{intern.accountNumber || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">IFSC Code:</span>
+                      <span className="font-mono select-all">{intern.ifscCode || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">UPI ID:</span>
+                      <span className="select-all">{intern.upiId || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-medium">Branch Name:</span>
+                      <span>{intern.branchName || "Not Provided"}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border/40 pt-2 mt-1">
+                      <span className="text-muted-foreground font-medium">PAN Card:</span>
+                      <span className="font-mono select-all text-emerald-400">{intern.panCard || "Not Provided"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1 border-t border-border/40 pt-4">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Supervisor & Mentor</span>
