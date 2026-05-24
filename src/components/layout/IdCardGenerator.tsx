@@ -200,7 +200,26 @@ export default function IdCardGenerator({
   };
 
   const drawCardOnCanvas = (ctx: CanvasRenderingContext2D, width: number, height: number, imgElement?: HTMLImageElement): Promise<void> => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      // Load corporate AIMS logo image first for high contrast header identity
+      let logoImg: HTMLImageElement | null = null;
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = "/Logo-AIMS/Light-Mode-Logo.png";
+        await new Promise<void>((resImg) => {
+          img.onload = () => {
+            logoImg = img;
+            resImg();
+          };
+          img.onerror = () => {
+            resImg(); // Resolve gracefully without blocking preview compilation
+          };
+        });
+      } catch (e) {
+        console.warn("Canvas logo load exception:", e);
+      }
+
       // 1. High Contrast Background Gradient (Light-themed)
       let bgGradient = ctx.createLinearGradient(0, 0, width, height);
       bgGradient.addColorStop(0, design.bgColorStart);
@@ -258,8 +277,21 @@ export default function IdCardGenerator({
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 1;
 
-      ctx.font = "900 24px sans-serif";
-      ctx.fillText("AURXON", width / 2, 46);
+      // Aligned text and separator heights
+      let textY = 46;
+      let subtitleY = 65;
+      let sepY = 80;
+
+      if (logoImg) {
+        const logoSize = 24;
+        ctx.drawImage(logoImg, width / 2 - logoSize / 2, 28, logoSize, logoSize);
+        textY = 70;
+        subtitleY = 89;
+        sepY = 104;
+      }
+
+      ctx.font = "900 22px sans-serif";
+      ctx.fillText("AURXON", width / 2, textY);
 
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
@@ -267,11 +299,11 @@ export default function IdCardGenerator({
 
       ctx.font = "bold 9px sans-serif";
       ctx.fillStyle = "#334155"; // Slate-700
-      ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, 65);
+      ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, subtitleY);
 
       // Horizontal separator
       ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
-      ctx.fillRect(30, 80, width - 60, 1.5);
+      ctx.fillRect(30, sepY, width - 60, 1.5);
 
       // 4. Draw Profile Picture Frame
       const centerX = width / 2;
@@ -836,12 +868,17 @@ export default function IdCardGenerator({
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
 
             {/* Header Area */}
-            <div className="text-center space-y-0.5 relative z-10 pt-1.5">
-              <h4 className="text-sm font-heading font-extrabold tracking-widest text-slate-900">
+            <div className="flex flex-col items-center justify-center space-y-1 relative z-10 pt-1 select-none">
+              <img
+                src="/Logo-AIMS/Light-Mode-Logo.png"
+                alt="AIMS Logo"
+                className="h-6 w-auto object-contain shrink-0"
+              />
+              <h4 className="text-xs font-heading font-extrabold tracking-widest text-slate-900 leading-none mt-1.5">
                 AURXON
               </h4>
               <span 
-                className="text-[8.5px] font-black uppercase tracking-widest block"
+                className="text-[8px] font-black uppercase tracking-widest block leading-none"
                 style={{ color: design.primaryColor }}
               >
                 WORKFORCE CREDENTIAL
