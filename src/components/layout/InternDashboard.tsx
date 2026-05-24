@@ -25,7 +25,9 @@ import {
   TrendingUp,
   Check,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FolderOpen,
+  ArrowRight
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import NoticeBoard from "@/components/layout/NoticeBoard";
@@ -104,6 +106,17 @@ export default function InternDashboard({
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [documents, setDocuments] = useState<DocumentItem[]>(initialDocuments);
   const [leaves, setLeaves] = useState<any[]>([]);
+
+  // Portfolio & Tabs States
+  const [activeTab, setActiveTab] = useState<"dashboard" | "portfolio">("dashboard");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectDesc, setProjectDesc] = useState("");
+  const [projectRole, setProjectRole] = useState("");
+  const [projectTech, setProjectTech] = useState("");
+  const [projectUrl, setProjectUrl] = useState("");
+  const [projectStatus, setProjectStatus] = useState("IN_PROGRESS");
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
 
   // Interactive UI States
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
@@ -297,6 +310,88 @@ export default function InternDashboard({
     };
   }, [todayRecord]);
 
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch("/api/portfolio");
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+      }
+    } catch (err) {
+      console.error("Failed to load portfolio projects:", err);
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setPortfolioLoading(true);
+
+    if (!projectTitle || !projectDesc || !projectRole) {
+      setError("Please fill out the project title, description, and role.");
+      setPortfolioLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/portfolio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: projectTitle,
+          description: projectDesc,
+          roleInProject: projectRole,
+          technologies: projectTech,
+          deliverableUrl: projectUrl,
+          status: projectStatus,
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create project record.");
+      }
+
+      setSuccess("Portfolio project logged successfully!");
+      setProjectTitle("");
+      setProjectDesc("");
+      setProjectRole("");
+      setProjectTech("");
+      setProjectUrl("");
+      setProjectStatus("IN_PROGRESS");
+      await fetchProjects();
+    } catch (err: any) {
+      setError(err.message || "Failed to log portfolio project.");
+    } finally {
+      setPortfolioLoading(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm("Are you sure you want to delete this portfolio project log?")) {
+      return;
+    }
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch(`/api/portfolio?id=${projectId}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete project record.");
+      }
+
+      setSuccess("Portfolio project deleted successfully.");
+      await fetchProjects();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete portfolio project.");
+    }
+  };
+
   // Fetch Leaves and refresh data on mount
   const fetchLeaves = async () => {
     try {
@@ -312,6 +407,7 @@ export default function InternDashboard({
 
   useEffect(() => {
     fetchLeaves();
+    fetchProjects();
   }, []);
 
   // Calendar Helpers
@@ -543,10 +639,57 @@ export default function InternDashboard({
 
   const completedTasks = tasks.filter((t) => t.status === "COMPLETED").length;
   const taskCompletionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 100;
-
   const presentDays = attendance.filter((a) => a.status === "PRESENT").length;
   const leaveDays = attendance.filter((a) => a.status === "LEAVE").length;
   const lateDays = attendance.filter((a) => a.status === "LATE").length;
+
+  const isNewHire = (() => {
+    if (internProfile.status === "ONBOARDING" || internProfile.status === "PENDING_VERIFICATION") {
+      return true;
+    }
+    const start = new Date(internProfile.startDate);
+    const diffTime = Math.abs(Date.now() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  })();
+
+  const milestones = [
+    {
+      id: "identity",
+      title: "Security & Mentorship Setup",
+      description: internProfile.supervisor 
+        ? `Mentor assigned: ${internProfile.supervisor.fullName}`
+        : "Pending mentor allocation by HR/Founder",
+      isCompleted: !!internProfile.supervisor,
+    },
+    {
+      id: "attendance",
+      title: "Log First Shift Clock-In",
+      description: todayRecord 
+        ? "First attendance footprint logged in systems!"
+        : "Clock-in from the Daily Station below to start your shift",
+      isCompleted: !!todayRecord,
+    },
+    {
+      id: "compliance",
+      title: `Compliance Docs (${totalVerifiedDocs}/${REQUIRED_DOCS.length})`,
+      description: totalVerifiedDocs === REQUIRED_DOCS.length
+        ? "All compliance vault credentials fully verified!"
+        : "Upload and obtain verification for required documents",
+      isCompleted: totalVerifiedDocs === REQUIRED_DOCS.length,
+    },
+    {
+      id: "portfolio",
+      title: "Log Your First Portfolio Project",
+      description: projects.length > 0
+        ? `Logged ${projects.length} work project record(s)!`
+        : "Navigate to the Work Portfolio tab to register your first log",
+      isCompleted: projects.length > 0,
+    }
+  ];
+
+  const completedMilestones = milestones.filter(m => m.isCompleted).length;
+  const onboardingProgress = Math.round((completedMilestones / milestones.length) * 100);
 
   return (
     <div className="space-y-6 sm:space-y-8 relative animate-fadeIn text-white">
@@ -562,6 +705,81 @@ export default function InternDashboard({
         <div className="flex items-center space-x-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs z-40">
           <CheckCircle className="h-4.5 w-4.5 shrink-0" />
           <span className="font-semibold leading-normal">{success}</span>
+        </div>
+      )}
+
+      {/* 0. Glowing Onboarding Welcome Card */}
+      {isNewHire && (
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/20 bg-gradient-to-br from-[#1c160c] via-[#0f111a] to-[#060814] p-6 shadow-xl shadow-amber-500/[0.02] backdrop-blur-md animate-fadeIn">
+          <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/10 blur-[50px] pointer-events-none" />
+          
+          <div className="relative z-10 space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-amber-300">
+                    Personal Onboarding Roadmap
+                  </span>
+                </div>
+                <h3 className="text-lg font-heading font-extrabold text-white">
+                  Welcome to AURXON! Let's get you set up.
+                </h3>
+                <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-2xl">
+                  Complete these essential milestone targets to finalize your enrolee setup and activate your full learning dashboard parameters.
+                </p>
+              </div>
+              <div className="flex items-center space-x-3 bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl self-start md:self-auto">
+                <div className="text-right">
+                  <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-widest">Progress</span>
+                  <span className="text-lg font-heading font-extrabold text-amber-400">{onboardingProgress}%</span>
+                </div>
+                <div className="w-10 h-10 rounded-full border-2 border-amber-500/20 flex items-center justify-center relative shrink-0">
+                  <svg className="w-8 h-8 transform -rotate-90">
+                    <circle cx="16" cy="16" r="14" fill="transparent" stroke="rgba(245, 158, 11, 0.1)" strokeWidth="2" />
+                    <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f59e0b" strokeWidth="2"
+                      strokeDasharray={`${2 * Math.PI * 14}`}
+                      strokeDashoffset={`${2 * Math.PI * 14 * (1 - onboardingProgress / 100)}`}
+                      className="transition-all duration-500"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+              {milestones.map((m) => (
+                <div 
+                  key={m.id}
+                  className={cn(
+                    "p-4 rounded-xl border transition-all duration-300 flex flex-col justify-between space-y-3",
+                    m.isCompleted
+                      ? "bg-emerald-500/[0.03] border-emerald-500/20 hover:border-emerald-500/35 text-emerald-400"
+                      : "bg-white/[0.02] border-white/[0.06] hover:border-white/10 text-white"
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-[10px] font-heading font-extrabold tracking-widest uppercase text-muted-foreground block truncate">
+                      {m.id.toUpperCase()} TARGET
+                    </span>
+                    {m.isCompleted ? (
+                      <div className="h-4.5 w-4.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-3 w-3 text-emerald-400" />
+                      </div>
+                    ) : (
+                      <div className="h-4.5 w-4.5 rounded-full bg-amber-500/10 border border-amber-500/25 flex items-center justify-center animate-pulse shrink-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className={cn("text-xs font-bold", m.isCompleted ? "text-emerald-300" : "text-white")}>{m.title}</h4>
+                    <p className="text-[10px] text-gray-400 leading-normal line-clamp-2">{m.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -630,231 +848,265 @@ export default function InternDashboard({
         </div>
       </div>
 
-      {/* Self-Service Check-In Widget */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0c1220] via-[#0d1629] to-[#050b18] p-5 sm:p-6 shadow-2xl backdrop-blur-md select-none">
-        <div className="absolute -right-20 -bottom-20 h-40 w-40 rounded-full bg-cyan-500/10 blur-[60px] pointer-events-none" />
-        <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-2.5">
-            <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <Clock className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-emerald-300">
-                Daily Check-In Station
-              </span>
-            </div>
-            <h3 className="text-lg font-heading font-extrabold text-white">
-              Self-Service Attendance Portal
-            </h3>
-            <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-xl">
-              Log your daily attendance directly from your portal. The daily check-in window closes at <span className="text-cyan-400 font-bold">11:00 AM IST</span>. Checks-in after <span className="text-amber-400 font-bold">9:30 AM IST</span> are logged as <span className="text-amber-400 font-bold">LATE</span>.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
-            {/* Status Indicator */}
-            <div className="flex flex-col space-y-1">
-              <span className="text-[9px] uppercase font-bold tracking-widest text-gray-400">Current Status</span>
-              {!todayRecord ? (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Not Checked In</span>
-                </div>
-              ) : todayRecord.status === "ABSENT" ? (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Absent (Overridable)</span>
-                </div>
-              ) : todayRecord.status === "WORK_PAUSED" ? (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-                  <AlertTriangle className="h-4 w-4 animate-pulse" />
-                  <span>Work Paused (Break)</span>
-                </div>
-              ) : todayRecord.checkOut ? (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Checked Out</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                  <CheckCircle className="h-4 w-4 animate-bounce" />
-                  <span>Checked In {todayRecord.status === "LATE" && "(Late)"}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center space-x-3">
-              {!todayRecord || todayRecord.status === "ABSENT" ? (
-                <Button
-                  onClick={handleSelfCheckIn}
-                  disabled={actionLoading}
-                  variant="primary"
-                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
-                >
-                  {actionLoading ? (
-                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <Clock className="h-4 w-4 shrink-0" />
-                  )}
-                  <span>Clock In Now</span>
-                </Button>
-              ) : todayRecord.checkOut ? (
-                <div className="flex items-center space-x-2 text-xs text-gray-400 font-bold px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl select-none">
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
-                  <span>Attendance Complete</span>
-                </div>
-              ) : todayRecord.status === "WORK_PAUSED" ? (
-                <Button
-                  onClick={handleResumeWork}
-                  disabled={actionLoading}
-                  variant="primary"
-                  className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
-                >
-                  {actionLoading ? (
-                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <Unlock className="h-4 w-4 shrink-0" />
-                  )}
-                  <span>Resume Work</span>
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    onClick={() => {
-                      const reason = prompt("Enter pause reason (e.g. Lunch Break, Meeting):", "Break");
-                      if (reason !== null) handlePauseWork(reason);
-                    }}
-                    disabled={actionLoading}
-                    variant="secondary"
-                    className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/30 text-amber-400 shadow-md shadow-amber-600/15"
-                  >
-                    {actionLoading ? (
-                      <span className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                    ) : (
-                      <Lock className="h-4 w-4 shrink-0" />
-                    )}
-                    <span>Pause Work</span>
-                  </Button>
-
-                  <Button
-                    onClick={handleSelfCheckOut}
-                    disabled={actionLoading}
-                    variant="primary"
-                    className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
-                  >
-                    {actionLoading ? (
-                      <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                    ) : (
-                      <Clock className="h-4 w-4 shrink-0" />
-                    )}
-                    <span>Clock Out Now</span>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Premium Tab Switcher */}
+      <div className="flex items-center space-x-2 bg-[#0b0f19]/60 border border-white/[0.08] rounded-xl p-1.5 w-fit select-none backdrop-blur-md">
+        <button
+          onClick={() => setActiveTab("dashboard")}
+          className={cn(
+            "px-5 py-2 text-xs font-heading font-extrabold uppercase tracking-wider rounded-lg transition-all duration-300",
+            activeTab === "dashboard"
+              ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/10 border border-white/5"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+          )}
+        >
+          Workspace Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab("portfolio")}
+          className={cn(
+            "px-5 py-2 text-xs font-heading font-extrabold uppercase tracking-wider rounded-lg transition-all duration-300 flex items-center space-x-1.5",
+            activeTab === "portfolio"
+              ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/10 border border-white/5"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+          )}
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          <span>Work Portfolio</span>
+          {projects.length > 0 && (
+            <span className="bg-white/10 border border-white/10 text-[9px] font-mono px-1.5 py-0.2 rounded-full text-cyan-300">
+              {projects.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* 2. Interactive Analytical Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Attendance Counter */}
-        <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-3">
-            <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-              Present Attendance
-            </span>
-            <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-              <Activity className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{presentDays}</span>
-            <span className="text-xs text-muted-foreground font-semibold ml-2">Days Logged</span>
-            <p className="text-[10px] text-muted-foreground mt-2 flex gap-2">
-              <span className="text-indigo-400 font-bold">{leaveDays} Leaves</span>
-              <span className="text-amber-400 font-bold">{lateDays} Lates</span>
-            </p>
-          </div>
-        </Card>
+      {activeTab === "dashboard" ? (
+        <>
+          {/* Self-Service Check-In Widget */}
+          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0c1220] via-[#0d1629] to-[#050b18] p-5 sm:p-6 shadow-2xl backdrop-blur-md select-none">
+            <div className="absolute -right-20 -bottom-20 h-40 w-40 rounded-full bg-cyan-500/10 blur-[60px] pointer-events-none" />
+            <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="space-y-2.5">
+                <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <Clock className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-emerald-300">
+                    Daily Check-In Station
+                  </span>
+                </div>
+                <h3 className="text-lg font-heading font-extrabold text-white">
+                  Self-Service Attendance Portal
+                </h3>
+                <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-xl">
+                  Log your daily attendance directly from your portal. The daily check-in window closes at <span className="text-cyan-400 font-bold">11:00 AM IST</span>. Checks-in after <span className="text-amber-400 font-bold">9:30 AM IST</span> are logged as <span className="text-amber-400 font-bold">LATE</span>.
+                </p>
+              </div>
 
-        {/* Task Completion Rate */}
-        <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-3">
-            <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-              Task Checklist Completion
-            </span>
-            <div className="p-2 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
-              <CheckSquare className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-end justify-between">
-              <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{taskCompletionRate}%</span>
-              <span className="text-[10px] text-muted-foreground font-bold">{completedTasks} of {tasks.length} Completed</span>
-            </div>
-            <div className="w-full bg-white/5 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
-              <div
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${taskCompletionRate}%` }}
-              />
-            </div>
-          </div>
-        </Card>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+                {/* Status Indicator */}
+                <div className="flex flex-col space-y-1">
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-gray-400">Current Status</span>
+                  {!todayRecord ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Not Checked In</span>
+                    </div>
+                  ) : todayRecord.status === "ABSENT" ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Absent (Overridable)</span>
+                    </div>
+                  ) : todayRecord.status === "WORK_PAUSED" ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                      <AlertTriangle className="h-4 w-4 animate-pulse" />
+                      <span>Work Paused (Break)</span>
+                    </div>
+                  ) : todayRecord.checkOut ? (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Checked Out</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold w-fit shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                      <CheckCircle className="h-4 w-4 animate-bounce" />
+                      <span>Checked In {todayRecord.status === "LATE" && "(Late)"}</span>
+                    </div>
+                  )}
+                </div>
 
-        {/* Compliance vault percentage */}
-        <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-3">
-            <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-              Compliance Vault
-            </span>
-            <div className="p-2 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
-              <ShieldCheck className="h-4 w-4" />
+                {/* Action buttons */}
+                <div className="flex items-center space-x-3">
+                  {!todayRecord || todayRecord.status === "ABSENT" ? (
+                    <Button
+                      onClick={handleSelfCheckIn}
+                      disabled={actionLoading}
+                      variant="primary"
+                      className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                    >
+                      {actionLoading ? (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <Clock className="h-4 w-4 shrink-0" />
+                      )}
+                      <span>Clock In Now</span>
+                    </Button>
+                  ) : todayRecord.checkOut ? (
+                    <div className="flex items-center space-x-2 text-xs text-gray-400 font-bold px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl select-none">
+                      <CheckCircle className="h-4 w-4 text-emerald-400" />
+                      <span>Attendance Complete</span>
+                    </div>
+                  ) : todayRecord.status === "WORK_PAUSED" ? (
+                    <Button
+                      onClick={handleResumeWork}
+                      disabled={actionLoading}
+                      variant="primary"
+                      className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-white/5 shadow-md shadow-emerald-600/15"
+                    >
+                      {actionLoading ? (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <Unlock className="h-4 w-4 shrink-0" />
+                      )}
+                      <span>Resume Work</span>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          const reason = prompt("Enter pause reason (e.g. Lunch Break, Meeting):", "Break");
+                          if (reason !== null) handlePauseWork(reason);
+                        }}
+                        disabled={actionLoading}
+                        variant="secondary"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/30 text-amber-400 shadow-md shadow-amber-600/15"
+                      >
+                        {actionLoading ? (
+                          <span className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        ) : (
+                          <Lock className="h-4 w-4 shrink-0" />
+                        )}
+                        <span>Pause Work</span>
+                      </Button>
+
+                      <Button
+                        onClick={handleSelfCheckOut}
+                        disabled={actionLoading}
+                        variant="primary"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl text-xs font-bold font-heading flex items-center justify-center space-x-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-white/5 shadow-md shadow-cyan-600/15"
+                      >
+                        {actionLoading ? (
+                          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                        ) : (
+                          <Clock className="h-4 w-4 shrink-0" />
+                        )}
+                        <span>Clock Out Now</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <div className="flex items-end justify-between">
-              <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{complianceRate}%</span>
-              <span className="text-[10px] text-muted-foreground font-bold">{totalVerifiedDocs} of {REQUIRED_DOCS.length} Verified</span>
-            </div>
-            <div className="w-full bg-white/5 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${complianceRate}%` }}
-              />
-            </div>
+
+          {/* 2. Interactive Analytical Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Attendance Counter */}
+            <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3">
+                <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                  Present Attendance
+                </span>
+                <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+                  <Activity className="h-4 w-4" />
+                </div>
+              </div>
+              <div>
+                <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{presentDays}</span>
+                <span className="text-xs text-muted-foreground font-semibold ml-2">Days Logged</span>
+                <p className="text-[10px] text-muted-foreground mt-2 flex gap-2">
+                  <span className="text-indigo-400 font-bold">{leaveDays} Leaves</span>
+                  <span className="text-amber-400 font-bold">{lateDays} Lates</span>
+                </p>
+              </div>
+            </Card>
+
+            {/* Task Completion Rate */}
+            <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3">
+                <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                  Task Checklist Completion
+                </span>
+                <div className="p-2 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
+                  <CheckSquare className="h-4 w-4" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{taskCompletionRate}%</span>
+                  <span className="text-[10px] text-muted-foreground font-bold">{completedTasks} of {tasks.length} Completed</span>
+                </div>
+                <div className="w-full bg-white/5 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${taskCompletionRate}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Compliance vault percentage */}
+            <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3">
+                <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                  Compliance Vault
+                </span>
+                <div className="p-2 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+                  <ShieldCheck className="h-4.5 w-4.5" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-heading font-extrabold tracking-tight text-white">{complianceRate}%</span>
+                  <span className="text-[10px] text-muted-foreground font-bold">{totalVerifiedDocs} of {REQUIRED_DOCS.length} Verified</span>
+                </div>
+                <div className="w-full bg-white/5 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${complianceRate}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Start Date / Onboarding status */}
+            <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3">
+                <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                  Portal Onboarding State
+                </span>
+                <div className="p-2 rounded bg-violet-500/10 border border-violet-500/20 text-violet-400 shrink-0">
+                  <Clock className="h-4 w-4" />
+                </div>
+              </div>
+              <div>
+                <span className="text-lg font-heading font-extrabold text-white">
+                  {internProfile.status === "ACTIVE" ? "FULLY ACTIVE" : "ONBOARDING READY"}
+                </span>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Started {new Date(internProfile.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+            </Card>
+
           </div>
-        </Card>
 
-        {/* Start Date / Onboarding status */}
-        <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-3">
-            <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-              Portal Onboarding State
-            </span>
-            <div className="p-2 rounded bg-violet-500/10 border border-violet-500/20 text-violet-400 shrink-0">
-              <Clock className="h-4 w-4" />
-            </div>
-          </div>
-          <div>
-            <span className="text-lg font-heading font-extrabold text-white">
-              {internProfile.status === "ACTIVE" ? "FULLY ACTIVE" : "ONBOARDING READY"}
-            </span>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Started {new Date(internProfile.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </p>
-          </div>
-        </Card>
+          {/* Announcements & Cheers */}
+          <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
 
-      </div>
-
-      {/* Announcements & Cheers */}
-      <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
-
-      {/* 3. Leave Calendar & Tasks split screen */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 3. Leave Calendar & Tasks split screen */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left: Leave Calendar self service (2/3 width) */}
         <Card className="lg:col-span-2 border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md p-0 overflow-hidden shadow-xl">
@@ -1186,8 +1438,198 @@ export default function InternDashboard({
           )}
         </CardContent>
       </Card>
+    </>
+  ) : (
+    <div className="space-y-6 animate-fadeIn">
+      {/* Work Portfolio tab */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left 1/3: Add New Portfolio Project Log */}
+        <Card className="border-white/[0.08] bg-[#0b0f19]/60 backdrop-blur-md">
+          <CardHeader className="pb-3 border-b border-white/[0.06]">
+            <CardTitle className="flex items-center space-x-2 text-base">
+              <PlusCircle className="h-4.5 w-4.5 text-cyan-400" />
+              <span>Log Portfolio Project</span>
+            </CardTitle>
+            <CardDescription className="text-[11px]">
+              Register a project record to showcase your skills and deliverables to supervisors.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Project Title *
+                </label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g., Compliance System Refactor"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white rounded-xl focus:border-cyan-500/70"
+                />
+              </div>
 
-      {/* 5. Leave Application Overlay Modal */}
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Your Role / Contribution *
+                </label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g., Lead QA Architect / Fullstack Developer"
+                  value={projectRole}
+                  onChange={(e) => setProjectRole(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white rounded-xl focus:border-cyan-500/70"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Deliverable URL (Github, Live App)
+                </label>
+                <Input
+                  type="url"
+                  placeholder="e.g., https://github.com/..."
+                  value={projectUrl}
+                  onChange={(e) => setProjectUrl(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white rounded-xl focus:border-cyan-500/70"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Technologies Used (Comma-separated)
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g., React, Next.js, Prisma, TailwindCSS"
+                  value={projectTech}
+                  onChange={(e) => setProjectTech(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white rounded-xl focus:border-cyan-500/70"
+                />
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Project Status
+                </label>
+                <select
+                  value={projectStatus}
+                  onChange={(e) => setProjectStatus(e.target.value)}
+                  className="flex h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/70 focus:border-cyan-500/70 transition-all cursor-pointer"
+                >
+                  <option value="IN_PROGRESS" className="bg-[#0b0f19] text-white">In Progress</option>
+                  <option value="COMPLETED" className="bg-[#0b0f19] text-white">Completed</option>
+                  <option value="ARCHIVED" className="bg-[#0b0f19] text-white">Archived</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col space-y-1.5">
+                <label className="text-[10px] font-heading font-bold text-gray-400 uppercase tracking-widest">
+                  Description & Scope *
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Describe the project scope, milestones achieved, obstacles bypassed, and your primary deliverables..."
+                  value={projectDesc}
+                  onChange={(e) => setProjectDesc(e.target.value)}
+                  className="flex w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/70 focus:border-cyan-500/70 transition-all placeholder-gray-500"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={portfolioLoading}
+                className="w-full h-11 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold"
+              >
+                {portfolioLoading ? "Saving Log..." : "Submit Portfolio Log"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Right 2/3: Logged Project Showcase */}
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="text-lg font-heading font-extrabold text-white">Logged Project Roster</h3>
+          
+          {projects.length === 0 ? (
+            <div className="border border-white/[0.08] bg-[#0b0f19]/40 rounded-2xl p-12 text-center select-none space-y-4">
+              <FolderOpen className="h-10 w-10 text-gray-500 mx-auto animate-pulse" />
+              <p className="text-xs text-gray-400 font-medium">
+                No work portfolio project logs registered in the database yet. 
+                Fill in the form on the left to start compiling your portfolio record.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {projects.map((proj) => (
+                <Card key={proj.id} className="border-white/[0.08] bg-[#0b0f19]/60 hover:border-cyan-500/35 transition-all duration-300 p-5 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between">
+                      <span className={cn(
+                        "text-[8.5px] font-heading font-extrabold uppercase px-2 py-0.5 rounded tracking-wider border",
+                        proj.status === "COMPLETED" 
+                          ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/20"
+                          : proj.status === "IN_PROGRESS"
+                          ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                          : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                      )}>
+                        {proj.status.replace(/_/g, " ")}
+                      </span>
+                      
+                      <button
+                        onClick={() => handleDeleteProject(proj.id)}
+                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                        title="Delete project log"
+                      >
+                        <XCircle className="h-4.5 w-4.5" />
+                      </button>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-white tracking-tight">{proj.title}</h4>
+                    <p className="text-[10px] text-cyan-400 font-semibold font-heading">Role: {proj.roleInProject}</p>
+                    <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-4 mt-2">
+                      {proj.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/[0.05] space-y-3">
+                    {proj.technologies && proj.technologies.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {proj.technologies.map((tech: string, tIdx: number) => (
+                          <span key={tIdx} className="text-[8px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/15 px-1.5 py-0.2 rounded">
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {proj.deliverableUrl && (
+                      <a
+                        href={proj.deliverableUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center space-x-1 text-[10px] font-bold text-cyan-400 hover:underline"
+                      >
+                        <span>Open Deliverable URL</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  )}
+
+  {/* 5. Leave Application Overlay Modal */}
       {isLeaveOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 transition-opacity animate-fadeIn select-none">
           <div className="w-full max-w-md">
