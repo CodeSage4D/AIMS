@@ -1,0 +1,24 @@
+{
+  "name": "AURXON AIMS",
+  "short_name": "AIMS",
+  "description": "AURXON Internal Management System Workspace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070a13",
+  "theme_color": "#070a13",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/Logo-AIMS/Dark-Mode-Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Logo-AIMS/Light-Mode-Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
