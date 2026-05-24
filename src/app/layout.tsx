@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   title: "AIMS - AURXON Internal Management System",
   description: "Elite enterprise workspace for managing AURXON internal records, attendance rolls, active task flows, and document compliance verification.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/Logo-AIMS/Dark-Mode-Logo.png",
+    shortcut: "/Logo-AIMS/Dark-Mode-Logo.png",
+    apple: "/Logo-AIMS/Dark-Mode-Logo.png",
   },
 };
 
@@ -22,6 +24,7 @@ export default function RootLayout({
     <html lang="en" className="h-full scroll-smooth select-none">
       <head>
         <meta name="theme-color" content="#070a13" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-full font-sans antialiased text-foreground bg-background">
         <AuthProvider>
