@@ -173,11 +173,22 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-[#070a13] flex flex-col items-center justify-center space-y-4 select-none">
-        <div className="h-10 w-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <p className="text-[10px] text-gray-400 font-heading font-bold tracking-widest uppercase animate-pulse">
-          Authenticating Enterprise Session...
-        </p>
+      <div className="min-h-screen bg-[#070a13] flex flex-col items-center justify-center space-y-5 select-none">
+        <div className="relative flex items-center justify-center shrink-0">
+          {/* Pulsing Glow Ring */}
+          <div className="absolute h-24 w-24 rounded-full border border-indigo-500/20 animate-ping duration-3000 pointer-events-none" />
+          <img
+            src="/Logo-AIMS/Dark-Mode-Logo.png"
+            alt="AIMS Enterprise"
+            className="h-16 w-auto object-contain relative z-10 animate-pulse duration-2000 drop-shadow-[0_0_25px_rgba(99,102,241,0.3)]"
+          />
+        </div>
+        <div className="flex items-center space-x-2 animate-fadeIn">
+          <div className="h-3.5 w-3.5 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin shrink-0" />
+          <p className="text-[10px] text-gray-400/90 font-heading font-extrabold tracking-widest uppercase animate-pulse">
+            Authenticating Session...
+          </p>
+        </div>
       </div>
     );
   }
