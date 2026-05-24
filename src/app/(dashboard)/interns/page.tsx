@@ -42,6 +42,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
 
   try {
     const whereClause: any = {
+      deletedAt: null,
       AND: [
         search
           ? {
