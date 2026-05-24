@@ -60,8 +60,12 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     >
       {/* 1. Sidebar Header (Sticky) */}
       <div className="h-16 flex items-center justify-between px-6 border-b border-border/60 shrink-0">
-        <Link href="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-heading font-extrabold tracking-wider bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(59,130,246,0.2)]">
+        <Link href="/" className="flex items-center space-x-2.5">
+          <div className="relative shrink-0 flex items-center">
+            <img src="/Logo-AIMS/Light-Mode-Logo.png" alt="AIMS Logo" className="h-6 w-auto object-contain dark:hidden shrink-0" />
+            <img src="/Logo-AIMS/Dark-Mode-Logo.png" alt="AIMS Logo" className="h-6 w-auto object-contain hidden dark:block shrink-0" />
+          </div>
+          <span className="text-xl font-heading font-extrabold tracking-wider bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(59,130,246,0.2)]">
             AURXON
           </span>
           <span className="text-[9px] font-heading font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 tracking-wider">
