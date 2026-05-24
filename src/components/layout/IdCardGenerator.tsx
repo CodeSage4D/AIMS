@@ -420,7 +420,11 @@ export default function IdCardGenerator({
       ctx.fillStyle = "rgba(15, 23, 42, 0.4)"; // Charcoal opaque footnotes
       ctx.fillText("AURXON SECURE COMPLIANCE BADGE - COMPLIANCE SHIELD ACTIVE", width / 2, 524);
 
-      if (isApproved && cardSignature) {
+      if (cardStatus === "DEACTIVATED") {
+        ctx.font = "bold 7.5px sans-serif";
+        ctx.fillStyle = "#dc2626"; // High contrast Red
+        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED / REVOKED", width / 2, 538);
+      } else if (isApproved && cardSignature) {
         ctx.font = "500 7px monospace";
         ctx.fillStyle = "#0f172a"; // Signature ink black
         // Limit signature stamp width safely
@@ -430,6 +434,28 @@ export default function IdCardGenerator({
         ctx.font = "bold 7.5px sans-serif";
         ctx.fillStyle = "#dc2626"; // High contrast Red
         ctx.fillText("⚠️ UNAPPROVED CREDENTIAL DRAFT", width / 2, 538);
+      }
+
+      // 8. Deactivation Watermark if deactivated
+      if (cardStatus === "DEACTIVATED") {
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(-Math.PI / 6); // -30 degrees
+        ctx.textAlign = "center";
+        
+        // Solid white backing block for readability
+        ctx.fillStyle = "rgba(254, 242, 242, 0.95)";
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(-140, -18, 280, 36, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = "900 13px sans-serif";
+        ctx.fillStyle = "#dc2626"; // Bold Red text
+        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED", 0, 5);
+        ctx.restore();
       }
 
       resolve();
@@ -499,6 +525,11 @@ export default function IdCardGenerator({
 
   const handleDownload = async (format: "PNG" | "JPG" | "PDF") => {
     if (isGenerating) return;
+
+    if (cardStatus === "DEACTIVATED") {
+      setPhotoError("Compliance Suspension: This identity credential has been deactivated and downloads are permanently locked.");
+      return;
+    }
     
     // Safety guard: Standard enrollees cannot download until approved
     const isApproved = cardStatus === "APPROVED";
@@ -682,7 +713,7 @@ export default function IdCardGenerator({
           )}
 
           {/* Pending Alert banner for Interns */}
-          {!isCardApproved && !isAdminActor && (
+          {!isCardApproved && !isAdminActor && cardStatus !== "DEACTIVATED" && (
             <div className="p-4 rounded-xl border border-red-500/25 bg-red-500/5 flex items-start space-x-2.5">
               <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0 mt-0.5 animate-pulse" />
               <div className="space-y-0.5">
@@ -694,14 +725,27 @@ export default function IdCardGenerator({
             </div>
           )}
 
+          {/* Deactivated Compliance Alert block */}
+          {cardStatus === "DEACTIVATED" && (
+            <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start space-x-2.5 animate-fadeIn">
+              <AlertTriangle className="h-4.5 w-4.5 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-rose-500">⚠️ COMPLIANCE DEACTIVATED</h4>
+                <p className="text-[9px] text-rose-450 leading-normal">
+                  This identity credential has been suspended/deactivated by administrative compliance. All exports are locked, and the credential badge is visually revoked.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Download and Save actions */}
           <div className="space-y-3.5 pt-1.5 border-t border-slate-200 dark:border-white/[0.06]">
             
             <Button
               onClick={handleSaveAndGenerate}
-              disabled={isSaving}
+              disabled={isSaving || cardStatus === "DEACTIVATED"}
               variant="outline"
-              className="w-full h-11 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl shadow flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="w-full h-11 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl shadow flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
               isLoading={isSaving}
             >
               <Sparkles className="h-4 w-4" />
@@ -713,7 +757,7 @@ export default function IdCardGenerator({
               <div className="grid grid-cols-3 gap-2.5">
                 <Button
                   onClick={() => handleDownload("PNG")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor)}
+                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -723,7 +767,7 @@ export default function IdCardGenerator({
 
                 <Button
                   onClick={() => handleDownload("JPG")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor)}
+                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -733,7 +777,7 @@ export default function IdCardGenerator({
 
                 <Button
                   onClick={() => handleDownload("PDF")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor)}
+                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -756,6 +800,16 @@ export default function IdCardGenerator({
               background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
             }}
           >
+            {cardStatus === "DEACTIVATED" && (
+              <div className="absolute inset-0 z-40 bg-rose-950/20 backdrop-blur-[1.5px] flex items-center justify-center select-none">
+                <div className="bg-red-650 border-2 border-white px-3 py-1.5 rounded-lg shadow-xl -rotate-12 transform">
+                  <span className="text-white text-[11px] font-heading font-black tracking-widest flex items-center gap-1.5">
+                    ⚠️ COMPLIANCE DEACTIVATED
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Top Tech Accent Line */}
             <div 
               className="absolute top-4 left-5 right-5 h-[4px] rounded-full z-20"
