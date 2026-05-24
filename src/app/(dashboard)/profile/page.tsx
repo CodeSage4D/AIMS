@@ -166,7 +166,8 @@ export default async function ProfilePage() {
       where: { key: "allow_intern_bank_updates" },
     });
     if (bankSetting) {
-      allowBankUpdates = JSON.parse(bankSetting.value).allowed || false;
+      const parsed = JSON.parse(bankSetting.value);
+      allowBankUpdates = typeof parsed === "object" && parsed !== null ? (parsed.allowed || false) : !!parsed;
     }
   } catch (e) {
     console.warn("Error fetching bank setting:", e);
