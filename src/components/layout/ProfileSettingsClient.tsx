@@ -396,6 +396,12 @@ export default function ProfileSettingsClient({
                 </span>
               </div>
               
+              {user.role === "FOUNDER" && (
+                <div className="text-[10px] font-heading font-extrabold tracking-wider text-indigo-550 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-md inline-block uppercase select-none">
+                  ✦ Aurxon Elite Founder
+                </div>
+              )}
+              
               <p className="text-xs text-muted-foreground font-medium">
                 Email: <span className="text-foreground font-bold">{user.email}</span>
                 {user.username && (
@@ -417,7 +423,7 @@ export default function ProfileSettingsClient({
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground font-medium">
-                  Administrative Access • Department: <span className="text-foreground font-bold">System Administration</span>
+                  Administrative Access • Department: <span className="text-foreground font-bold">Founder & Leadership</span>
                 </p>
               )}
             </div>
