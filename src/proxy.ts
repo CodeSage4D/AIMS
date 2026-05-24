@@ -36,8 +36,8 @@ export const config = {
   matcher: [
     /*
      * Protect all standard pages (dashboard, attendance, tasks, profiles)
-     * while explicitly exempting NextAuth API callbacks, static files, images, and public assets.
+     * while explicitly exempting NextAuth API callbacks, static files, images, public assets, and logo folders.
      */
-    "/((?!api|_next/static|_next/image|assets|favicon.ico).*)",
+    "/((?!api|_next/static|_next/image|assets|favicon.ico|Logo-AIMS|manifest.json).*)",
   ],
 };
