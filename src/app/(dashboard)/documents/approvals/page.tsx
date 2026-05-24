@@ -9,7 +9,7 @@ interface DocumentDetail {
   internId: string;
   type: "OFFER_LETTER" | "NDA" | "ID_CARD";
   content: any;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "DEACTIVATED";
   approvedById?: string;
   approvedBy?: { fullName: string; role: string };
   approvedAt?: string;
@@ -159,6 +159,65 @@ export default function ApprovalsPage() {
     }
   };
 
+  const handleDeactivateCard = async (docId: string) => {
+    const feedback = prompt("Please provide a compliance reason for deactivating this credential:");
+    if (feedback === null) return; // Cancelled
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/documents/approvals", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: docId,
+          action: "DEACTIVATE",
+          notes: feedback || "Credential deactivated by compliance.",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Credential deactivated successfully.");
+        await fetchDocuments();
+        const updated = data.document;
+        setSelectedDoc((prev) => prev && prev.id === docId ? { ...prev, ...updated } : prev);
+      } else {
+        alert(data.error || "Deactivation failed.");
+      }
+    } catch (err) {
+      alert("Error occurred during deactivation.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleActivateCard = async (docId: string) => {
+    if (!confirm("Are you sure you want to reactivate and digitally re-sign this deactivated credential?")) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/documents/approvals", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: docId,
+          action: "ACTIVATE",
+          notes: adminNotes || "Credential reactivated.",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Credential reactivated and signed successfully.");
+        await fetchDocuments();
+        const updated = data.document;
+        setSelectedDoc((prev) => prev && prev.id === docId ? { ...prev, ...updated } : prev);
+      } else {
+        alert(data.error || "Reactivation failed.");
+      }
+    } catch (err) {
+      alert("Error occurred during reactivation.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -230,6 +289,7 @@ export default function ApprovalsPage() {
                   <option value="PENDING">Pending Review</option>
                   <option value="APPROVED">Digitally Signed</option>
                   <option value="REJECTED">Rejected / Draft</option>
+                  <option value="DEACTIVATED">Deactivated</option>
                 </select>
               </div>
             </div>
@@ -247,9 +307,9 @@ export default function ApprovalsPage() {
             ) : (
               filteredDocs.map((doc) => (
                 <button
-                  key={doc.id}
-                  onClick={() => handleSelectDoc(doc)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
+                   key={doc.id}
+                   onClick={() => handleSelectDoc(doc)}
+                   className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                     selectedDoc?.id === doc.id
                       ? "border-sky-500 bg-sky-50/40 dark:bg-sky-500/5 text-slate-900 dark:text-white"
                       : "border-slate-100 dark:border-white/5 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300"
@@ -277,6 +337,11 @@ export default function ApprovalsPage() {
                     {doc.status === "REJECTED" && (
                       <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">
                         Rejected
+                      </span>
+                    )}
+                    {doc.status === "DEACTIVATED" && (
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-950/20 text-rose-500 border border-rose-500/20">
+                        Deactivated
                       </span>
                     )}
                   </div>
@@ -332,13 +397,40 @@ export default function ApprovalsPage() {
                   )}
 
                   {selectedDoc.status === "APPROVED" && (
-                    <button
-                      onClick={handlePrint}
-                      className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md cursor-pointer"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      Print / Download PDF
-                    </button>
+                    <>
+                      <button
+                        onClick={handlePrint}
+                        className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md cursor-pointer"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        Print / Download PDF
+                      </button>
+                      <button
+                        onClick={() => handleDeactivateCard(selectedDoc.id)}
+                        disabled={submitting}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-xs font-bold text-red-600 dark:text-red-400 border border-red-500/20 cursor-pointer disabled:opacity-50"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Deactivate Card
+                      </button>
+                    </>
+                  )}
+
+                  {selectedDoc.status === "DEACTIVATED" && (
+                    <>
+                      <button
+                        onClick={() => handleActivateCard(selectedDoc.id)}
+                        disabled={submitting}
+                        className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white shadow-md shadow-sky-600/15 cursor-pointer disabled:opacity-50"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Reactivate & Sign
+                      </button>
+                      <span className="text-xs font-bold text-red-500 bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                        <AlertCircle className="h-4 w-4" />
+                        Deactivated Compliance State.
+                      </span>
+                    </>
                   )}
 
                   {selectedDoc.status === "REJECTED" && (
