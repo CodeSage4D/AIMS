@@ -19,6 +19,9 @@ export default function SignupPage() {
   const [department, setDepartment] = useState("Software Engineering");
   const [requestedPosition, setRequestedPosition] = useState("");
   const [pinCode, setPinCode] = useState("");
+  const [country, setCountry] = useState("India");
+  const [citizenship, setCitizenship] = useState("");
+  const [region, setRegion] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [ifscCode, setIfscCode] = useState("");
@@ -27,6 +30,12 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successCode, setSuccessCode] = useState<string | null>(null);
+
+  // Username validation states
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
   // Theme support
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -60,13 +69,124 @@ export default function SignupPage() {
 
   const currentTheme = mounted ? theme : "dark";
 
+  // Username checking effect
+  useEffect(() => {
+    if (!username.trim()) {
+      setUsernameAvailable(null);
+      setUsernameSuggestions([]);
+      setUsernameError(null);
+      return;
+    }
+
+    setUsernameChecking(true);
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(username.trim())}`);
+        const data = await res.json();
+        if (data.available) {
+          setUsernameAvailable(true);
+          setUsernameError(null);
+          setUsernameSuggestions([]);
+        } else {
+          setUsernameAvailable(false);
+          setUsernameError(data.error || "Username is already taken.");
+          setUsernameSuggestions(data.suggestions || []);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [username]);
+
+  // Validation helpers
+  const isPhoneValid = () => {
+    if (!phone) return true;
+    const cleaned = phone.replace(/[\s\-\(\)]/g, "");
+    if (country.toLowerCase() === "india") {
+      return /^(?:\+91|91)?[6-9]\d{9}$/.test(cleaned);
+    } else {
+      return /^\+\d{7,15}$/.test(cleaned);
+    }
+  };
+
+  const isPinValid = () => {
+    if (!pinCode) return true;
+    const clean = pinCode.trim();
+    if (country.toLowerCase() === "india") {
+      return /^\d{6}$/.test(clean);
+    } else {
+      return /^[a-zA-Z0-9\s-]{3,10}$/.test(clean);
+    }
+  };
+
+  const isAccountNumberValid = () => {
+    if (!accountNumber) return true;
+    return /^\d{9,18}$/.test(accountNumber.trim());
+  };
+
+  const isIfscValid = () => {
+    if (!ifscCode) return true;
+    return /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(ifscCode.trim());
+  };
+
+  const isUpiValid = () => {
+    if (!upiId) return true;
+    return /^[\w.-]+@[\w.-]+$/.test(upiId.trim());
+  };
+
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     if (!fullName || !email || !phone || !username || !department || !requestedPosition) {
-      setError("Please fill in all enrollment fields.");
+      setError("Please fill in all core enrollment fields.");
+      setLoading(false);
+      return;
+    }
+
+    if (usernameAvailable === false) {
+      setError("Please choose a unique and valid username.");
+      setLoading(false);
+      return;
+    }
+
+    if (!isPhoneValid()) {
+      setError(country.toLowerCase() === "india"
+        ? "Indian phone numbers must be exactly 10 digits starting with mobile prefix 6-9."
+        : "International phone numbers must start with a '+' country code followed by 7 to 15 digits."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!isPinValid()) {
+      setError(country.toLowerCase() === "india"
+        ? "Indian PIN codes must be exactly 6 digits."
+        : "International postal codes must be alphanumeric, 3 to 10 characters."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (accountNumber && !isAccountNumberValid()) {
+      setError("Bank account numbers must contain only digits and be between 9 and 18 digits long.");
+      setLoading(false);
+      return;
+    }
+
+    if (ifscCode && !isIfscValid()) {
+      setError("Indian IFSC codes must be exactly 11 characters (first 4 uppercase letters, 5th character '0', last 6 alphanumeric).");
+      setLoading(false);
+      return;
+    }
+
+    if (upiId && !isUpiValid()) {
+      setError("UPI ID must be in a valid format (e.g. handle@bank).");
       setLoading(false);
       return;
     }
@@ -83,6 +203,9 @@ export default function SignupPage() {
           department,
           requestedPosition,
           pinCode,
+          country,
+          citizenship,
+          region,
           bankName,
           accountNumber,
           ifscCode,
@@ -103,6 +226,9 @@ export default function SignupPage() {
         setUsername("");
         setRequestedPosition("");
         setPinCode("");
+        setCountry("India");
+        setCitizenship("");
+        setRegion("");
         setBankName("");
         setAccountNumber("");
         setIfscCode("");
@@ -294,7 +420,7 @@ export default function SignupPage() {
                     <Input
                       label="Phone Number"
                       type="tel"
-                      placeholder="+91 XXXXX"
+                      placeholder={country.toLowerCase() === "india" ? "9876543210" : "+1 555..."}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
@@ -305,6 +431,13 @@ export default function SignupPage() {
                       disabled={loading}
                       required
                     />
+                    {!isPhoneValid() && (
+                      <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                        {country.toLowerCase() === "india" 
+                          ? "Must be 10 digits starting with 6-9." 
+                          : "Must start with + and have 7-15 digits."}
+                      </span>
+                    )}
                   </div>
 
                   <div className="relative group flex flex-col">
@@ -318,8 +451,11 @@ export default function SignupPage() {
                       type="text"
                       placeholder="e.g. aarav12"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        setUsernameAvailable(null);
+                      }}
+                      className={`pl-11 pr-16 h-11 text-xs rounded-xl transition-all duration-200 ${
                         currentTheme === "dark"
                           ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
                           : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
@@ -327,6 +463,46 @@ export default function SignupPage() {
                       disabled={loading}
                       required
                     />
+                    
+                    {/* Status Badge Indicators */}
+                    {usernameChecking && (
+                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-indigo-400 animate-pulse bg-indigo-500/10 px-1.5 py-0.5 rounded">Checking...</span>
+                    )}
+                    {!usernameChecking && usernameAvailable === true && (
+                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Available</span>
+                    )}
+                    {!usernameChecking && usernameAvailable === false && (
+                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Taken</span>
+                    )}
+
+                    {usernameError && (
+                      <span className="text-[9px] text-red-500 font-semibold mt-1 block leading-tight">{usernameError}</span>
+                    )}
+
+                    {!usernameChecking && usernameAvailable === false && usernameSuggestions.length > 0 && (
+                      <div className="mt-1.5 space-y-1">
+                        <span className="text-[9px] text-gray-400 font-semibold block">Suggestions:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {usernameSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => {
+                                setUsername(suggestion);
+                                setUsernameAvailable(null);
+                              }}
+                              className={`px-1.5 py-0.5 text-[9px] font-mono font-medium rounded border transition-all duration-200 cursor-pointer ${
+                                currentTheme === "dark"
+                                  ? "bg-white/5 border-white/10 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-indigo-300 hover:text-white"
+                                  : "bg-slate-100 border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-indigo-600"
+                              }`}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -387,6 +563,76 @@ export default function SignupPage() {
                   />
                 </div>
 
+                {/* Country of Residence Dropdown */}
+                <div className="relative flex flex-col">
+                  <label className={`text-xs font-semibold mb-1.5 transition-colors ${
+                    currentTheme === "dark" ? "text-gray-300" : "text-slate-700"
+                  }`}>
+                    Country of Residence
+                  </label>
+                  <select
+                    value={country}
+                    onChange={(e) => {
+                      setCountry(e.target.value);
+                      setError(null);
+                    }}
+                    className={`px-4 h-11 w-full text-xs rounded-xl border appearance-none transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      currentTheme === "dark"
+                        ? "bg-[#0f172a] border-white/10 text-white hover:border-white/20"
+                        : "bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300"
+                    }`}
+                    disabled={loading}
+                    required
+                  >
+                    <option value="India">India</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Citizenship & Region Row */}
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="relative group flex flex-col">
+                    <Input
+                      label="Citizenship"
+                      type="text"
+                      placeholder="e.g. Indian"
+                      value={citizenship}
+                      onChange={(e) => setCitizenship(e.target.value)}
+                      className={`h-11 text-xs rounded-xl transition-all duration-200 ${
+                        currentTheme === "dark"
+                          ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                          : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                      }`}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+
+                  <div className="relative group flex flex-col">
+                    <Input
+                      label="Region / State"
+                      type="text"
+                      placeholder="e.g. Delhi"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      className={`h-11 text-xs rounded-xl transition-all duration-200 ${
+                        currentTheme === "dark"
+                          ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                          : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                      }`}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
                 {/* Mailing PIN Code */}
                 <div className="relative group flex flex-col">
                   <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
@@ -395,9 +641,9 @@ export default function SignupPage() {
                     <MapPin className="h-4 w-4" />
                   </div>
                   <Input
-                    label="Mailing PIN Code"
+                    label="Mailing PIN / Postal Code"
                     type="text"
-                    placeholder="e.g. 110001"
+                    placeholder={country.toLowerCase() === "india" ? "110001" : "90210"}
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value)}
                     className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
@@ -408,6 +654,13 @@ export default function SignupPage() {
                     disabled={loading}
                     required
                   />
+                  {!isPinValid() && (
+                    <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                      {country.toLowerCase() === "india" 
+                        ? "PIN code must be exactly 6 digits." 
+                        : "Postal code must be alphanumeric (3-10 chars)."}
+                    </span>
+                  )}
                 </div>
 
                 {/* Disbursement Bank Details */}
@@ -462,6 +715,11 @@ export default function SignupPage() {
                           }`}
                           disabled={loading}
                         />
+                        {!isAccountNumberValid() && (
+                          <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                            Must be 9-18 digits.
+                          </span>
+                        )}
                       </div>
 
                       <div className="relative group flex flex-col">
@@ -475,7 +733,7 @@ export default function SignupPage() {
                           type="text"
                           placeholder="e.g. HDFC0000240"
                           value={ifscCode}
-                          onChange={(e) => setIfscCode(e.target.value)}
+                          onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
                           className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
                             currentTheme === "dark"
                               ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
@@ -483,6 +741,11 @@ export default function SignupPage() {
                           }`}
                           disabled={loading}
                         />
+                        {!isIfscValid() && (
+                          <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                            Must be 11 characters (e.g. HDFC0000123).
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -528,6 +791,11 @@ export default function SignupPage() {
                           }`}
                           disabled={loading}
                         />
+                        {!isUpiValid() && (
+                          <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                            Must be format handle@bank.
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
