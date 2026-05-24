@@ -84,7 +84,6 @@ export async function POST(req: Request) {
 
     // Strict input validation for Names and Phone Numbers
     const nameRegex = /^[a-zA-Z\s]+$/;
-    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
 
     if (!nameRegex.test(fullName?.trim() || "")) {
       return NextResponse.json(
@@ -100,18 +99,79 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!phoneRegex.test(phoneNumber?.trim() || "")) {
-      return NextResponse.json(
-        { error: "Primary Phone Number must be a valid number containing between 7 and 15 digits." },
-        { status: 400 }
-      );
+    // Phone number validation: Indian (10 digits) vs International (+ prefix)
+    const cleanedPhone = (phoneNumber || "").replace(/[\s\-\(\)]/g, "");
+    const finalCountry = country?.trim() || "India";
+
+    if (finalCountry.toLowerCase() === "india") {
+      const isIndian = /^(?:\+91|91)?[6-9]\d{9}$/.test(cleanedPhone);
+      if (!isIndian) {
+        return NextResponse.json(
+          { error: "Primary Phone Number must be a valid 10-digit Indian mobile number." },
+          { status: 400 }
+        );
+      }
+    } else {
+      const isIntl = /^\+\d{7,15}$/.test(cleanedPhone);
+      if (!isIntl) {
+        return NextResponse.json(
+          { error: "Primary Phone Number must start with a '+' country code followed by 7 to 15 digits." },
+          { status: 400 }
+        );
+      }
     }
 
-    if (!phoneRegex.test(emergencyContactNumber?.trim() || "")) {
-      return NextResponse.json(
-        { error: "Emergency Contact Number must be a valid number containing between 7 and 15 digits." },
-        { status: 400 }
-      );
+    // Emergency Phone
+    const cleanedEmerPhone = (emergencyContactNumber || "").replace(/[\s\-\(\)]/g, "");
+    if (finalCountry.toLowerCase() === "india") {
+      const isIndian = /^(?:\+91|91)?[6-9]\d{9}$/.test(cleanedEmerPhone);
+      if (!isIndian) {
+        return NextResponse.json(
+          { error: "Emergency Contact Number must be a valid 10-digit Indian mobile number." },
+          { status: 400 }
+        );
+      }
+    } else {
+      const isIntl = /^\+\d{7,15}$/.test(cleanedEmerPhone);
+      if (!isIntl) {
+        return NextResponse.json(
+          { error: "Emergency Contact Number must start with a '+' country code followed by 7 to 15 digits." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // PIN Code validation
+    if (body.pinCode) {
+      const cleanPin = String(body.pinCode).trim();
+      if (finalCountry.toLowerCase() === "india") {
+        if (!/^\d{6}$/.test(cleanPin)) {
+          return NextResponse.json({ error: "Indian PIN codes must be exactly 6 digits." }, { status: 400 });
+        }
+      } else {
+        if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(cleanPin)) {
+          return NextResponse.json({ error: "International postal codes must be alphanumeric, between 3 and 10 characters." }, { status: 400 });
+        }
+      }
+    }
+
+    // Banking validations
+    if (body.accountNumber) {
+      if (!/^\d{9,18}$/.test(String(body.accountNumber).trim())) {
+        return NextResponse.json({ error: "Bank account numbers must contain only digits and be between 9 and 18 digits long." }, { status: 400 });
+      }
+    }
+
+    if (body.ifscCode) {
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(String(body.ifscCode).trim())) {
+        return NextResponse.json({ error: "Indian IFSC codes must be exactly 11 characters (first 4 uppercase letters, 5th character '0', last 6 alphanumeric)." }, { status: 400 });
+      }
+    }
+
+    if (body.upiId) {
+      if (!/^[\w.-]+@[\w.-]+$/.test(String(body.upiId).trim())) {
+        return NextResponse.json({ error: "UPI ID must be in a valid format (e.g. handle@bank)." }, { status: 400 });
+      }
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
@@ -327,6 +387,55 @@ export async function POST(req: Request) {
 }
 
 /**
+ * GET /api/interns
+ * Fetches enrollees with specific filters (e.g. pending registrations or soft-deleted recovery bin).
+ * Only Founder/HR/SUPER_ADMIN can run this query.
+ */
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
+    }
+
+    const userRole = (session.user as any).role;
+    if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Access Denied. Administrative view restricted." }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const filter = searchParams.get("filter"); // "pending" or "deleted"
+
+    if (filter === "pending") {
+      const pending = await db.intern.findMany({
+        where: {
+          status: "PENDING_VERIFICATION",
+          deletedAt: null
+        },
+        orderBy: { createdAt: "desc" }
+      });
+      return NextResponse.json(pending, { status: 200 });
+    }
+
+    if (filter === "deleted") {
+      const deleted = await db.intern.findMany({
+        where: {
+          deletedAt: { not: null }
+        },
+        orderBy: { deletedAt: "desc" }
+      });
+      return NextResponse.json(deleted, { status: 200 });
+    }
+
+    return NextResponse.json({ error: "Invalid filter option." }, { status: 400 });
+
+  } catch (error: any) {
+    console.error("GET Interns API Error:", error);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+  }
+}
+
+/**
  * REST Endpoint for removing an intern profile record.
  * DELETE /api/interns?id=uuid
  */
@@ -353,9 +462,10 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // 3. Extract parameter 'id' from searchParams
+    // 3. Extract parameters 'id' and 'action' from searchParams
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const action = searchParams.get("action") || "delete"; // delete (soft), restore, permanent
 
     if (!id) {
       return NextResponse.json(
@@ -392,28 +502,90 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // 5. Delete intern (deleting the linked user cascades and deletes the intern record)
-    if (intern.userId) {
-      await db.user.delete({
-        where: { id: intern.userId },
+    const safeUserIdDel = await getSafeUserId(userId);
+
+    // RESTORE ACTION (Founder-Only recovery)
+    if (action === "restore") {
+      if (userRole !== "FOUNDER") {
+        return NextResponse.json({ error: "Access Denied. Only the Founder can restore accounts." }, { status: 403 });
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.intern.update({
+          where: { id },
+          data: { deletedAt: null, deletedBy: null }
+        });
+        if (intern.userId) {
+          await tx.user.update({
+            where: { id: intern.userId },
+            data: { deletedAt: null }
+          });
+        }
+        await tx.activityLog.create({
+          data: {
+            userId: safeUserIdDel,
+            action: "RESTORE_INTERN",
+            description: `Founder successfully restored employee/intern ${intern.fullName} (ID: ${intern.internId}) from recovery trash.`,
+          },
+        });
       });
-    } else {
-      await db.intern.delete({
-        where: { id },
-      });
+
+      return NextResponse.json({ success: true, message: `Intern ${intern.fullName} successfully restored.` });
     }
 
-    // 6. Register administrative security log
-    const safeUserIdDel = await getSafeUserId(userId);
-    await db.activityLog.create({
-      data: {
-        userId: safeUserIdDel,
-        action: "DELETE_INTERN",
-        description: `Successfully removed employee/intern ${intern.fullName} (ID: ${intern.internId})`,
-      },
+    // PERMANENT PURGE ACTION (Founder-Only purge)
+    if (action === "permanent") {
+      if (userRole !== "FOUNDER") {
+        return NextResponse.json({ error: "Access Denied. Only the Founder can permanently purge records." }, { status: 403 });
+      }
+
+      await db.$transaction(async (tx) => {
+        if (intern.userId) {
+          await tx.user.delete({
+            where: { id: intern.userId },
+          });
+        } else {
+          await tx.intern.delete({
+            where: { id },
+          });
+        }
+        await tx.activityLog.create({
+          data: {
+            userId: safeUserIdDel,
+            action: "PURGE_INTERN",
+            description: `Founder permanently purged employee/intern ${intern.fullName} (ID: ${intern.internId}) and cascading files.`,
+          },
+        });
+      });
+
+      return NextResponse.json({ success: true, message: `Intern ${intern.fullName} permanently deleted.` });
+    }
+
+    // SOFT DELETE ACTION (Standard cooling cooling stage delete)
+    await db.$transaction(async (tx) => {
+      await tx.intern.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: (session.user as any)?.name || "AIMS Manager"
+        }
+      });
+      if (intern.userId) {
+        await tx.user.update({
+          where: { id: intern.userId },
+          data: { deletedAt: new Date() }
+        });
+      }
+      await tx.activityLog.create({
+        data: {
+          userId: safeUserIdDel,
+          action: "DELETE_INTERN",
+          description: `Successfully soft-deleted employee/intern ${intern.fullName} (ID: ${intern.internId}) into 7-day cooling state.`,
+        },
+      });
     });
 
-    return NextResponse.json({ success: true, message: `Intern ${intern.fullName} successfully removed.` });
+    return NextResponse.json({ success: true, message: `Intern ${intern.fullName} successfully moved to cooling bin.` });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "An internal server error occurred during database deletion." },
@@ -499,7 +671,6 @@ export async function PUT(req: Request) {
 
     // Strict input validation for updates if provided
     const nameRegex = /^[a-zA-Z\s]+$/;
-    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
 
     if (updateData.fullName !== undefined && !nameRegex.test(updateData.fullName?.trim() || "")) {
       return NextResponse.json(
@@ -515,18 +686,72 @@ export async function PUT(req: Request) {
       );
     }
 
-    if (updateData.phoneNumber !== undefined && !phoneRegex.test(updateData.phoneNumber?.trim() || "")) {
-      return NextResponse.json(
-        { error: "Primary Phone Number must be a valid number containing between 7 and 15 digits." },
-        { status: 400 }
-      );
+    const finalCountry = updateData.country || existing.country || "India";
+
+    // Phone validation
+    if (updateData.phoneNumber !== undefined) {
+      const cleaned = String(updateData.phoneNumber).replace(/[\s\-\(\)]/g, "");
+      if (finalCountry.toLowerCase() === "india") {
+        if (!/^(?:\+91|91)?[6-9]\d{9}$/.test(cleaned)) {
+          return NextResponse.json({ error: "Primary Phone Number must be a valid 10-digit Indian mobile number." }, { status: 400 });
+        }
+      } else {
+        if (!/^\+\d{7,15}$/.test(cleaned)) {
+          return NextResponse.json({ error: "Primary Phone Number must start with a '+' country code followed by 7 to 15 digits." }, { status: 400 });
+        }
+      }
     }
 
-    if (updateData.emergencyContactNumber !== undefined && !phoneRegex.test(updateData.emergencyContactNumber?.trim() || "")) {
-      return NextResponse.json(
-        { error: "Emergency Contact Number must be a valid number containing between 7 and 15 digits." },
-        { status: 400 }
-      );
+    // Emergency Phone validation
+    if (updateData.emergencyContactNumber !== undefined) {
+      const cleaned = String(updateData.emergencyContactNumber).replace(/[\s\-\(\)]/g, "");
+      if (finalCountry.toLowerCase() === "india") {
+        if (!/^(?:\+91|91)?[6-9]\d{9}$/.test(cleaned)) {
+          return NextResponse.json({ error: "Emergency Contact Number must be a valid 10-digit Indian mobile number." }, { status: 400 });
+        }
+      } else {
+        if (!/^\+\d{7,15}$/.test(cleaned)) {
+          return NextResponse.json({ error: "Emergency Contact Number must start with a '+' country code followed by 7 to 15 digits." }, { status: 400 });
+        }
+      }
+    }
+
+    // PIN code validation
+    if (updateData.pinCode !== undefined && updateData.pinCode !== null) {
+      const cleanPin = String(updateData.pinCode).trim();
+      if (cleanPin) {
+        if (finalCountry.toLowerCase() === "india") {
+          if (!/^\d{6}$/.test(cleanPin)) {
+            return NextResponse.json({ error: "Indian PIN codes must be exactly 6 digits." }, { status: 400 });
+          }
+        } else {
+          if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(cleanPin)) {
+            return NextResponse.json({ error: "International postal codes must be alphanumeric, between 3 and 10 characters." }, { status: 400 });
+          }
+        }
+      }
+    }
+
+    // Banking validations
+    if (updateData.accountNumber !== undefined && updateData.accountNumber !== null) {
+      const acc = String(updateData.accountNumber).trim();
+      if (acc && !/^\d{9,18}$/.test(acc)) {
+        return NextResponse.json({ error: "Bank account numbers must contain only digits and be between 9 and 18 digits long." }, { status: 400 });
+      }
+    }
+
+    if (updateData.ifscCode !== undefined && updateData.ifscCode !== null) {
+      const ifsc = String(updateData.ifscCode).trim();
+      if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(ifsc)) {
+        return NextResponse.json({ error: "Indian IFSC codes must be exactly 11 characters (first 4 uppercase letters, 5th character '0', last 6 alphanumeric)." }, { status: 400 });
+      }
+    }
+
+    if (updateData.upiId !== undefined && updateData.upiId !== null) {
+      const upi = String(updateData.upiId).trim();
+      if (upi && !/^[\w.-]+@[\w.-]+$/.test(upi)) {
+        return NextResponse.json({ error: "UPI ID must be in a valid format (e.g. handle@bank)." }, { status: 400 });
+      }
     }
 
     // 4. Build selective update payload
@@ -592,25 +817,9 @@ export async function PUT(req: Request) {
         : [];
     }
 
-    // 5. Auto-recompute Intern ID if name, dates, or roles change AND not explicitly specified
-    if (
-      updateData.internId === undefined &&
-      (updateData.fullName !== undefined ||
-        updateData.department !== undefined ||
-        updateData.roleDomain !== undefined ||
-        updateData.startDate !== undefined)
-    ) {
-      const finalName = updateData.fullName !== undefined ? updateData.fullName : existing.fullName;
-      const finalDept = updateData.department !== undefined ? updateData.department : existing.department;
-      const finalRole = updateData.roleDomain !== undefined ? updateData.roleDomain : existing.roleDomain;
-      
-      const rawDate = updateData.startDate !== undefined ? updateData.startDate : existing.startDate;
-      const finalDateStr = rawDate instanceof Date ? rawDate.toISOString() : String(rawDate);
-
-      const { generateInternId } = await import("@/lib/generateInternId");
-      dataToUpdate.internId = await generateInternId(db, finalName, finalDept, finalRole, finalDateStr);
-    } else if (updateData.internId !== undefined) {
-      dataToUpdate.internId = updateData.internId;
+    // 5. Intern ID is strictly permanent. Do NOT regenerate or recompute.
+    if (updateData.internId !== undefined && userRole === "FOUNDER") {
+      dataToUpdate.internId = updateData.internId; // Only Founder can manually override
     }
 
     // 6. Execute update in database (transactional update for both User and Intern)
