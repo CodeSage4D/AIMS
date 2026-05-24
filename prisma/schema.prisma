@@ -78,6 +78,7 @@ model User {
   status                    UserStatus             @default(APPROVED)
   createdAt                 DateTime               @default(now()) @map("created_at")
   updatedAt                 DateTime               @updatedAt @map("updated_at")
+  deletedAt                 DateTime?              @map("deleted_at")
   interns                   Intern[]               @relation("SupervisorRelation")
   tasks                     Task[]
   logs                      ActivityLog[]
@@ -143,6 +144,8 @@ model Intern {
   user                   User?            @relation("InternUserRelation", fields: [userId], references: [id], onDelete: Cascade)
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
+  deletedAt              DateTime?        @map("deleted_at")
+  deletedBy              String?          @map("deleted_by")
   attendance             Attendance[]
   tasks                  Task[]
   documents              Document[]
@@ -152,6 +155,7 @@ model Intern {
   dailyLogs              DailyLog[]
   profileUpdateRequests  ProfileUpdateRequest[]
   events                 Event[]
+  projectRecords         ProjectRecord[]
 
   @@index([fullName])
   @@index([status])
@@ -460,4 +464,19 @@ model PermissionChangeLog {
   @@map("permission_change_logs")
 }
 
+model ProjectRecord {
+  id              String   @id @default(uuid())
+  internId        String   @map("intern_id")
+  intern          Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  technologies    String[] @default([])
+  roleInProject   String   @map("role_in_project")
+  documentName    String?  @map("document_name")
+  deliverableUrl  String?  @map("deliverable_url")
+  status          String   @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, ARCHIVED
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
+  @@map("project_records")
+}
