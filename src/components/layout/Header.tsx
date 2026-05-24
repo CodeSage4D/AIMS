@@ -227,15 +227,25 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
         </div>
       ) : (
         <>
-          {/* Left: Mobile Toggle & Page Title */}
-          <div className="flex items-center space-x-4">
+          {/* Left: Mobile Toggle, Logo & Page Title */}
+          <div className="flex items-center space-x-3">
             <button
               onClick={onMenuToggle}
-              className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors cursor-pointer"
+              className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors cursor-pointer shrink-0"
             >
               <Menu className="h-5.5 w-5.5" />
             </button>
-            <h1 className="hidden md:block text-md font-heading font-bold text-foreground">
+            
+            {/* Mobile-Only Corporate Branding Row */}
+            <Link href="/" className="flex items-center space-x-2 lg:hidden shrink-0">
+              <img src="/Logo-AIMS/Light-Mode-Logo.png" alt="AIMS Logo" className="h-5.5 w-auto object-contain dark:hidden shrink-0" />
+              <img src="/Logo-AIMS/Dark-Mode-Logo.png" alt="AIMS Logo" className="h-5.5 w-auto object-contain hidden dark:block shrink-0" />
+              <span className="text-sm font-heading font-extrabold tracking-wider bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                AURXON
+              </span>
+            </Link>
+
+            <h1 className="hidden lg:block text-md font-heading font-bold text-foreground">
               {getPageTitle(pathname)}
             </h1>
           </div>
