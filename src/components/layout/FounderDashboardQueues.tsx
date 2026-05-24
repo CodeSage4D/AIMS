@@ -90,6 +90,7 @@ export default function FounderDashboardQueues() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [tempPasswordToShow, setTempPasswordToShow] = useState<string | null>(null);
 
   // Onboarding adjustment editing states
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,6 +105,7 @@ export default function FounderDashboardQueues() {
     setLoadingPendings(true);
     setLoadingDeleteds(true);
     setError(null);
+    setTempPasswordToShow(null);
 
     try {
       // 1. Fetch password resets
@@ -202,6 +204,7 @@ export default function FounderDashboardQueues() {
   const handleResolveOnboarding = async (id: string, action: "APPROVE" | "REJECT") => {
     setError(null);
     setSuccess(null);
+    setTempPasswordToShow(null);
     setLoadingPendings(true);
 
     try {
@@ -224,6 +227,9 @@ export default function FounderDashboardQueues() {
         setError(data.error || "Failed to resolve onboarding approval.");
       } else {
         setSuccess(`Self-registration successfully ${action === "APPROVE" ? "approved and sequence ID generated" : "rejected"}.`);
+        if (action === "APPROVE" && data.tempPassword) {
+          setTempPasswordToShow(data.tempPassword);
+        }
         setEditingId(null);
         await fetchData();
       }
@@ -311,9 +317,32 @@ export default function FounderDashboardQueues() {
       )}
 
       {success && (
-        <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold animate-fadeIn">
-          <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
-          <span>{success}</span>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold animate-fadeIn">
+            <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
+            <span>{success}</span>
+          </div>
+          {tempPasswordToShow && (
+            <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fadeIn">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Temporary Onboarding Password Generated</span>
+                <p className="text-xs text-gray-305">Share this password with the intern so she can log in and change it.</p>
+              </div>
+              <div className="flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shrink-0">
+                <code className="text-sm font-mono font-bold text-emerald-450 select-all">{tempPasswordToShow}</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(tempPasswordToShow);
+                    setCopiedId("temp-onboard-pw");
+                    setTimeout(() => setCopiedId(null), 2000);
+                  }}
+                  className="p-1 hover:bg-white/10 rounded transition-colors text-emerald-450 cursor-pointer"
+                >
+                  {copiedId === "temp-onboard-pw" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSafeUserId } from "@/lib/safeUser";
 import { generateInternId } from "@/lib/generateInternId";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 /**
  * POST /api/interns/approve
@@ -95,6 +97,11 @@ export async function POST(req: Request) {
       );
     }
 
+    // Generate a strong, random temporary password
+    const rawTempPassword = `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(rawTempPassword, salt);
+
     // Generate stable sequential Intern ID transactionally
     const result = await db.$transaction(async (tx) => {
       const computedId = await generateInternId(tx, finalName, finalDept, finalRole, finalDateStr);
@@ -111,7 +118,9 @@ export async function POST(req: Request) {
           data: {
             fullName: finalName,
             status: "APPROVED",
-            username: usernameUpdate
+            username: usernameUpdate,
+            passwordHash,
+            changePasswordRequired: true,
           }
         });
       }
@@ -176,7 +185,7 @@ export async function POST(req: Request) {
       return updatedIntern;
     });
 
-    return NextResponse.json({ success: true, intern: result }, { status: 200 });
+    return NextResponse.json({ success: true, intern: result, tempPassword: rawTempPassword }, { status: 200 });
 
   } catch (error: any) {
     console.error("Approve Onboarding API Error:", error);
