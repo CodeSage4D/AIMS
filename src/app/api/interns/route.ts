@@ -90,18 +90,18 @@ export async function POST(req: Request) {
     }
 
     // Strict input validation for Names and Phone Numbers
-    const nameRegex = /^[a-zA-Z\s]+$/;
+    const nameRegex = /^[a-zA-Z\s'\-À-ÿ]+$/;
 
     if (!nameRegex.test(fullName?.trim() || "")) {
       return NextResponse.json(
-        { error: "Full Name must contain alphabetical letters and spaces only." },
+        { error: "Full Name must contain alphabetical letters, spaces, hyphens, apostrophes, and accented characters only." },
         { status: 400 }
       );
     }
 
     if (!nameRegex.test(emergencyContactName?.trim() || "")) {
       return NextResponse.json(
-        { error: "Emergency Contact Name must contain alphabetical letters and spaces only." },
+        { error: "Emergency Contact Name must contain alphabetical letters, spaces, hyphens, apostrophes, and accented characters only." },
         { status: 400 }
       );
     }
@@ -711,18 +711,18 @@ export async function PUT(req: Request) {
     });
 
     // Strict input validation for updates if provided
-    const nameRegex = /^[a-zA-Z\s]+$/;
+    const nameRegex = /^[a-zA-Z\s'\-À-ÿ]+$/;
 
     if (updateData.fullName !== undefined && !nameRegex.test(updateData.fullName?.trim() || "")) {
       return NextResponse.json(
-        { error: "Full Name must contain alphabetical letters and spaces only." },
+        { error: "Full Name must contain alphabetical letters, spaces, hyphens, apostrophes, and accented characters only." },
         { status: 400 }
       );
     }
 
     if (updateData.emergencyContactName !== undefined && !nameRegex.test(updateData.emergencyContactName?.trim() || "")) {
       return NextResponse.json(
-        { error: "Emergency Contact Name must contain alphabetical letters and spaces only." },
+        { error: "Emergency Contact Name must contain alphabetical letters, spaces, hyphens, apostrophes, and accented characters only." },
         { status: 400 }
       );
     }
