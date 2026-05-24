@@ -13,7 +13,8 @@ import {
   Plus,
   Lock,
   Check,
-  CheckSquare
+  CheckSquare,
+  ChevronLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
   // Selection States
   const [activeContact, setActiveContact] = useState<Contact | null>(null); 
   const [activeGroup, setActiveGroup] = useState<GroupItem | null>(null); // Null activeContact + Null activeGroup = General Announcements Board
+  const [mobileChatViewActive, setMobileChatViewActive] = useState(false);
   
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -271,13 +273,14 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
         <div className="flex-1 flex overflow-hidden">
           
           {/* Contacts & Groups Column */}
-          <div className="w-1/3 border-r border-border flex flex-col bg-secondary/10">
+          <div className={cn("w-full md:w-1/3 border-r border-border flex flex-col bg-[#0b0f19]/40 shrink-0", mobileChatViewActive && "hidden md:flex")}>
             {/* General board selector */}
             <div className="p-2 border-b border-border/50">
               <button
                 onClick={() => {
                   setActiveContact(null);
                   setActiveGroup(null);
+                  setMobileChatViewActive(true);
                 }}
                 className={cn(
                   "w-full text-left px-3 py-2 rounded-xl text-xs font-bold font-heading flex items-center space-x-2 border transition-all cursor-pointer",
@@ -320,6 +323,7 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
                       onClick={() => {
                         setActiveContact(null);
                         setActiveGroup(grp);
+                        setMobileChatViewActive(true);
                       }}
                       className={cn(
                         "w-full text-left px-3 py-1.5 rounded-lg border transition-all flex flex-col cursor-pointer",
@@ -357,6 +361,7 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
                       onClick={() => {
                         setActiveGroup(null);
                         setActiveContact(contact);
+                        setMobileChatViewActive(true);
                       }}
                       className={cn(
                         "w-full text-left px-2.5 py-2 rounded-xl border transition-all flex flex-col space-y-0.5 cursor-pointer",
@@ -377,15 +382,24 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
           </div>
 
           {/* Active Chat Column */}
-          <div className="flex-1 flex flex-col bg-background/35">
+          <div className={cn("flex-1 flex flex-col bg-[#0b0f19]/25 backdrop-blur-md", !mobileChatViewActive && "hidden md:flex")}>
             {/* Active Contact Header Banner */}
             <div className="px-4 py-3 bg-muted/15 border-b border-border flex items-center justify-between">
               <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary select-none">
+                {mobileChatViewActive && (
+                  <button
+                    onClick={() => setMobileChatViewActive(false)}
+                    className="md:hidden p-1 mr-1 text-muted-foreground hover:text-foreground flex items-center space-x-1 cursor-pointer shrink-0"
+                  >
+                    <ChevronLeft className="h-4.5 w-4.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Back</span>
+                  </button>
+                )}
+                <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary select-none shrink-0">
                   {activeContact ? activeContact.fullName[0].toUpperCase() : activeGroup ? activeGroup.name[0].toUpperCase() : "G"}
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-extrabold text-foreground truncate">
+                  <h4 className="text-xs font-extrabold text-white truncate">
                     {activeContact ? activeContact.fullName : activeGroup ? activeGroup.name : "General Announcements"}
                   </h4>
                   <p className="text-[9px] text-muted-foreground font-medium truncate uppercase tracking-wide">
@@ -414,7 +428,7 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
             </div>
 
             {/* Messages Display Board */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth [overflow-anchor:none]" style={{ WebkitOverflowScrolling: "touch" }}>
               {messagesLoading && messages.length === 0 ? (
                 <div className="flex justify-center items-center h-full">
                   <Loader2 className="h-6 w-6 text-primary animate-spin" />
@@ -440,7 +454,7 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
                     <div
                       key={msg.id}
                       className={cn(
-                        "flex flex-col max-w-[80%] space-y-1",
+                        "flex flex-col max-w-[85%] space-y-1",
                         isMe ? "ml-auto items-end" : "mr-auto items-start"
                       )}
                     >
@@ -454,8 +468,8 @@ export default function ChatDrawer({ isOpen, onClose, currentUser }: ChatDrawerP
                         className={cn(
                           "px-3.5 py-2.5 rounded-2xl text-xs font-medium leading-relaxed border transition-colors shadow-sm",
                           isMe
-                            ? "bg-primary text-primary-foreground border-primary/20 rounded-tr-none"
-                            : "bg-secondary/40 text-foreground border-border/25 rounded-tl-none"
+                            ? "bg-gradient-to-r from-blue-600 via-indigo-650 to-blue-500 text-white border-blue-500/20 shadow-[0_4px_12px_rgba(59,130,246,0.15)] rounded-tr-none"
+                            : "bg-white/[0.04] dark:bg-white/[0.06] backdrop-blur-md text-gray-200 border-white/10 rounded-tl-none shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
                         )}
                       >
                         {msg.content}
