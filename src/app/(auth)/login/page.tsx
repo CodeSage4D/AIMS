@@ -171,8 +171,24 @@ export default function LoginPage() {
       )}
 
       {/* Main Glass Container */}
-      <div className="relative z-10 w-full max-w-[92%] sm:max-w-md transition-all duration-300">
-        <Card className={`transition-all duration-300 border backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${
+      <div className="relative z-10 w-full max-w-[92%] sm:max-w-md transition-all duration-300 flex flex-col items-center">
+        {/* Large Floating Corporate Logo Branding */}
+        <div className="mb-6 flex flex-col items-center space-y-2.5 select-none pointer-events-none animate-fadeIn shrink-0">
+          <div className="relative flex items-center justify-center p-2.5 rounded-2xl bg-white/5 dark:bg-white/[0.02] border border-slate-200/30 dark:border-white/[0.06] backdrop-blur-md shadow-xl">
+            <img
+              src={currentTheme === "dark" ? "/Logo-AIMS/Dark-Mode-Logo.png" : "/Logo-AIMS/Light-Mode-Logo.png"}
+              alt="AIMS Enterprise Logo"
+              className="h-14 w-auto object-contain drop-shadow-[0_4px_15px_rgba(99,102,241,0.25)] hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+          <span className={`text-[9.5px] font-heading font-extrabold uppercase tracking-[0.25em] ${
+            currentTheme === "dark" ? "text-indigo-400/90" : "text-indigo-600"
+          }`}>
+            AURXON WORKSPACE CONSOLE
+          </span>
+        </div>
+
+        <Card className={`w-full transition-all duration-300 border backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${
           currentTheme === "dark"
             ? "border-white/10 bg-[#0b0f19]/70 shadow-black/60"
             : "border-slate-200/80 bg-white/80 shadow-slate-200/80"
@@ -182,9 +198,14 @@ export default function LoginPage() {
               <div className={`relative group flex items-center justify-center p-0.5 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 shadow-lg ${
                 currentTheme === "dark" ? "shadow-indigo-500/20" : "shadow-indigo-600/10"
               }`}>
-                <div className={`px-4.5 py-1.5 rounded-[10px] transition-all ${
+                <div className={`px-4.5 py-1.5 rounded-[10px] transition-all flex items-center space-x-2.5 ${
                   currentTheme === "dark" ? "bg-[#0b0f19] group-hover:bg-[#0b0f19]/80" : "bg-white group-hover:bg-white/90"
                 }`}>
+                  <img
+                    src={currentTheme === "dark" ? "/Logo-AIMS/Dark-Mode-Logo.png" : "/Logo-AIMS/Light-Mode-Logo.png"}
+                    alt="AIMS Logo"
+                    className="h-5.5 w-auto object-contain shrink-0"
+                  />
                   <span className={`text-2xl font-heading font-extrabold tracking-widest bg-clip-text text-transparent drop-shadow-sm bg-gradient-to-r ${
                     currentTheme === "dark" 
                       ? "from-blue-400 via-indigo-300 to-cyan-400 drop-shadow-[0_2px_4px_rgba(59,130,246,0.3)]" 
