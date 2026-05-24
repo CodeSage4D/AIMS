@@ -77,6 +77,9 @@ export default function ProfileSettingsClient({
   const roleMeta = internProfile ? getRoleMeta(internProfile.roleDomain) : null;
   const isManager = user.role === "FOUNDER" || user.role === "HR";
 
+  const isProfileOwner = internProfile ? internProfile.userId === user.id : true;
+  const canViewBankDetails = user.role === "FOUNDER" || user.role === "HR" || isProfileOwner;
+
   // Parse notes JSON properties
   const customProfile = internProfile ? parseInternNotes(internProfile.notes) : {};
 
@@ -93,6 +96,54 @@ export default function ProfileSettingsClient({
   const [directBranchName, setDirectBranchName] = useState(internProfile?.branchName || "");
   const [directUpiId, setDirectUpiId] = useState(internProfile?.upiId || "");
   const [directPaymentPref, setDirectPaymentPref] = useState(customProfile.paymentPreference || "BANK_TRANSFER");
+
+  // System controls administrative states
+  const [sysAllowBank, setSysAllowBank] = useState(allowBankUpdates);
+  const [sysEnableAnnouncements, setSysEnableAnnouncements] = useState(true);
+
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections" | "idcard" | "syscontrols">("overview");
+
+  // Fetch settings when activeTab changes to syscontrols
+  React.useEffect(() => {
+    if (activeTab === "syscontrols" && (user.role === "FOUNDER" || user.role === "HR")) {
+      fetch("/api/settings")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const bankSetting = data.find((s) => s.key === "allow_intern_bank_updates");
+            const welcomeSetting = data.find((s) => s.key === "enable_welcome_announcements");
+            if (bankSetting) {
+              setSysAllowBank(JSON.parse(bankSetting.value));
+            }
+            if (welcomeSetting) {
+              setSysEnableAnnouncements(JSON.parse(welcomeSetting.value));
+            }
+          }
+        })
+        .catch((err) => console.error("Error loading settings:", err));
+    }
+  }, [activeTab, user.role]);
+
+  const handleToggleSetting = async (key: string, currentValue: boolean, setter: (val: boolean) => void) => {
+    const newValue = !currentValue;
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value: newValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update setting.");
+      setter(newValue);
+      setSuccess(`System setting [${key}] successfully updated to ${newValue ? "ENABLED" : "DISABLED"}`);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Failed to update setting.");
+    }
+  };
 
   const handleDirectProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,10 +162,46 @@ export default function ProfileSettingsClient({
       return;
     }
 
-    if (directPinCode && !/^\d{6}$/.test(directPinCode)) {
-      setError("PIN code must be a valid 6-digit number.");
-      setLoading(false);
-      return;
+    if (directPinCode) {
+      const clean = directPinCode.trim();
+      const userCountry = internProfile?.country || "India";
+      if (userCountry.toLowerCase() === "india") {
+        if (!/^\d{6}$/.test(clean)) {
+          setError("Indian PIN code must be exactly 6 digits.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(clean)) {
+          setError("International postal code must be alphanumeric (3-10 characters).");
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
+    if (directAccountNumber) {
+      if (!/^\d{9,18}$/.test(directAccountNumber.trim())) {
+        setError("Bank account numbers must contain only digits and be between 9 and 18 digits long.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (directIfscCode) {
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(directIfscCode.trim())) {
+        setError("Indian IFSC codes must be exactly 11 characters (first 4 uppercase letters, 5th character '0', last 6 alphanumeric).");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (directUpiId) {
+      if (!/^[\w.-]+@[\w.-]+$/.test(directUpiId.trim())) {
+        setError("UPI ID must be in a valid format (e.g. handle@bank).");
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -147,9 +234,6 @@ export default function ProfileSettingsClient({
       setLoading(false);
     }
   };
-
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections" | "idcard">("overview");
 
   // Requests List State
   const [requests, setRequests] = useState<RequestItem[]>(initialRequests);
@@ -488,6 +572,20 @@ export default function ProfileSettingsClient({
             <span>Digital ID Card</span>
           </button>
         )}
+        {isManager && (
+          <button
+            onClick={() => setActiveTab("syscontrols")}
+            className={cn(
+              "px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 border border-transparent",
+              activeTab === "syscontrols"
+                ? "bg-primary/10 text-primary border-primary/20 shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+            )}
+          >
+            <Globe className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />
+            <span>System Controls</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs Content */}
@@ -712,7 +810,7 @@ export default function ProfileSettingsClient({
           </div>
 
           {/* Corporate Bank Account Details Card */}
-          {internProfile && (
+          {internProfile && canViewBankDetails && (
             <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground mt-6">
               <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
                 <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
@@ -1212,6 +1310,76 @@ export default function ProfileSettingsClient({
                   dbInternId={internProfile.id}
                   employmentType={internProfile.employmentType}
                 />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB: SYSTEM CONTROLS (FOUNDER/HR ONLY) */}
+        {activeTab === "syscontrols" && (user.role === "FOUNDER" || user.role === "HR") && (
+          <div className="space-y-6 animate-fadeIn">
+            <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+              <CardHeader className="p-0 pb-4 border-b border-border/40 mb-6">
+                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                  <Globe className="h-4.5 w-4.5 text-primary animate-spin-slow" />
+                  <span>Administrative System Toggles</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-muted-foreground">
+                  Configure global workspace settings, permissions overrides, and onboarding rules.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 space-y-6">
+                
+                {/* Toggle 1: allow_intern_bank_updates */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-border bg-secondary/15 hover:bg-secondary/20 transition-all gap-4">
+                  <div className="space-y-1">
+                    <span className="font-extrabold text-sm text-foreground block">Allow Intern Bank Updates</span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed max-w-xl">
+                      When enabled, interns are allowed to directly self-modify their registered payment bank details and UPI IDs in their profile settings. When locked, details can only be changed via formal correction request approval.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSetting("allow_intern_bank_updates", sysAllowBank, setSysAllowBank)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      sysAllowBank ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-muted"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        sysAllowBank ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Toggle 2: enable_welcome_announcements */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4.5 rounded-2xl border border-border bg-secondary/15 hover:bg-secondary/20 transition-all gap-4">
+                  <div className="space-y-1">
+                    <span className="font-extrabold text-sm text-foreground block">Broadcast New Hire Announcements</span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed max-w-xl">
+                      When enabled, the system automatically posts welcoming announcements to the Notice Board when a pending self-registration is approved.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSetting("enable_welcome_announcements", sysEnableAnnouncements, setSysEnableAnnouncements)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      sysEnableAnnouncements ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-muted"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        sysEnableAnnouncements ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
               </CardContent>
             </Card>
           </div>
