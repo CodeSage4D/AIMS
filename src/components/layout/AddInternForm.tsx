@@ -43,6 +43,8 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     state: "",
     country: "India",
     pinCode: "",
+    citizenship: "",
+    region: "",
     university: "",
     degree: "",
     department: "Engineering",
@@ -86,14 +88,41 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
         return;
       }
       const nameRegex = /^[a-zA-Z\s]+$/;
-      const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
       if (!nameRegex.test(formData.fullName.trim())) {
         setError("Full Name must contain alphabetical letters and spaces only.");
         return;
       }
-      if (!phoneRegex.test(formData.phoneNumber.trim())) {
-        setError("Primary Phone Number must be a valid number containing between 7 and 15 digits.");
-        return;
+
+      // Phone check
+      const cleanedPhone = formData.phoneNumber.replace(/[\s\-\(\)]/g, "");
+      if (formData.country.toLowerCase() === "india") {
+        const isIndian = /^(?:\+91|91)?[6-9]\d{9}$/.test(cleanedPhone);
+        if (!isIndian) {
+          setError("Indian phone numbers must be exactly 10 digits, starting with a valid mobile prefix (6-9).");
+          return;
+        }
+      } else {
+        const isIntl = /^\+\d{7,15}$/.test(cleanedPhone);
+        if (!isIntl) {
+          setError("International phone numbers must start with a '+' country code followed by 7 to 15 digits.");
+          return;
+        }
+      }
+
+      // PIN code check (if provided)
+      if (formData.pinCode) {
+        const cleanPin = formData.pinCode.trim();
+        if (formData.country.toLowerCase() === "india") {
+          if (!/^\d{6}$/.test(cleanPin)) {
+            setError("Indian PIN codes must be exactly 6 digits.");
+            return;
+          }
+        } else {
+          if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(cleanPin)) {
+            setError("International postal codes must be alphanumeric, between 3 and 10 characters.");
+            return;
+          }
+        }
       }
     } else if (activeTab === 2) {
       const isIntern = formData.employmentType === "INTERN";
@@ -134,16 +163,52 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
     }
 
     const nameRegex = /^[a-zA-Z\s]+$/;
-    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
     if (!nameRegex.test(formData.emergencyContactName.trim())) {
       setError("Emergency Contact Name must contain alphabetical letters and spaces only.");
       setLoading(false);
       return;
     }
-    if (!phoneRegex.test(formData.emergencyContactNumber.trim())) {
-      setError("Emergency Contact Number must be a valid number containing between 7 and 15 digits.");
-      setLoading(false);
-      return;
+    
+    // Emergency Phone check
+    const cleanedEmerPhone = formData.emergencyContactNumber.replace(/[\s\-\(\)]/g, "");
+    if (formData.country.toLowerCase() === "india") {
+      const isIndian = /^(?:\+91|91)?[6-9]\d{9}$/.test(cleanedEmerPhone);
+      if (!isIndian) {
+        setError("Emergency Contact Number must be a valid 10-digit Indian mobile number.");
+        setLoading(false);
+        return;
+      }
+    } else {
+      const isIntl = /^\+\d{7,15}$/.test(cleanedEmerPhone);
+      if (!isIntl) {
+        setError("Emergency Contact Number must start with a '+' country code followed by 7 to 15 digits.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (formData.accountNumber) {
+      if (!/^\d{9,18}$/.test(formData.accountNumber.trim())) {
+        setError("Bank account numbers must contain only digits and be between 9 and 18 digits long.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (formData.ifscCode) {
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(formData.ifscCode.trim())) {
+        setError("Indian IFSC codes must be exactly 11 characters (first 4 uppercase letters, 5th character '0', last 6 alphanumeric).");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (formData.upiId) {
+      if (!/^[\w.-]+@[\w.-]+$/.test(formData.upiId.trim())) {
+        setError("UPI ID must be in a valid format (e.g. handle@bank).");
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -367,7 +432,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   value={formData.address}
                   onChange={handleChange}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
                     label="City"
                     name="city"
@@ -390,10 +455,24 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                     onChange={handleChange}
                   />
                   <Input
-                    label="PIN Code"
+                    label="PIN / Postal Code"
                     name="pinCode"
-                    placeholder="6-digit PIN"
+                    placeholder={formData.country.toLowerCase() === "india" ? "6-digit PIN" : "Postal Code"}
                     value={formData.pinCode}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Citizenship"
+                    name="citizenship"
+                    placeholder="e.g. Indian"
+                    value={formData.citizenship}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Region / State"
+                    name="region"
+                    placeholder="e.g. Delhi"
+                    value={formData.region}
                     onChange={handleChange}
                   />
                 </div>
