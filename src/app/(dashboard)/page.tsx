@@ -73,7 +73,7 @@ export default async function DashboardPage() {
       take: 5
     });
 
-    announcements = events.map(e => ({
+    const dbAnnouncements = events.map(e => ({
       id: e.id,
       title: e.title,
       description: e.description,
@@ -83,13 +83,14 @@ export default async function DashboardPage() {
 
     const interns = await db.intern.findMany({
       where: {
-        status: { in: ["ACTIVE", "COMPLETED"] }
+        status: { in: ["ACTIVE", "COMPLETED", "ONBOARDING"] }
       },
       select: {
         id: true,
         fullName: true,
         roleDomain: true,
-        startDate: true
+        startDate: true,
+        dateOfBirth: true,
       }
     });
 
@@ -97,10 +98,63 @@ export default async function DashboardPage() {
     const currentMonth = today.getMonth();
     const currentDateVal = today.getDate();
 
-    anniversaries = interns
+    // 1. Dynamic Same-Day Birthday Query & Highlights
+    const sameDayBirthdays = interns.filter(intern => {
+      if (!intern.dateOfBirth) return false;
+      const dob = new Date(intern.dateOfBirth);
+      return dob.getMonth() === currentMonth && dob.getDate() === currentDateVal;
+    });
+
+    const birthdayAlerts = sameDayBirthdays.map(intern => {
+      const dob = new Date(intern.dateOfBirth!);
+      const age = today.getFullYear() - dob.getFullYear();
+      return {
+        id: `birthday-${intern.id}`,
+        title: `🎂 Happy Birthday, ${intern.fullName}! 🎈`,
+        description: `Please join us in celebrating ${intern.fullName} on their special ${age}th birthday milestone today! Warmest greetings from the AURXON team! 🎉🍰`,
+        date: today.toISOString(),
+        type: "BIRTHDAY_ALERT"
+      };
+    });
+
+    const birthdayMilestones = sameDayBirthdays.map(intern => {
+      const dob = new Date(intern.dateOfBirth!);
+      const age = today.getFullYear() - dob.getFullYear();
+      return {
+        internId: intern.id,
+        fullName: intern.fullName,
+        roleDomain: intern.roleDomain,
+        years: age,
+        milestoneType: "BIRTHDAY"
+      };
+    });
+
+    // 2. Dynamic New Enrollees Joined in Last 7 Days Query & Welcome Alerts
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const newEnrollees = interns.filter(intern => {
+      const start = new Date(intern.startDate);
+      return start >= sevenDaysAgo && start <= today;
+    });
+
+    const welcomeAlerts = newEnrollees.map(intern => ({
+      id: `welcome-${intern.id}`,
+      title: `🎉 Welcome to AURXON!`,
+      description: `Please give a warm workforce welcome to ${intern.fullName}, who recently joined our team as a ${intern.roleDomain.toUpperCase()}! Excited to collaborate! 🚀`,
+      date: intern.startDate.toISOString(),
+      type: "WELCOME"
+    }));
+
+    // Merge dynamic compliance alerts directly into Notice stream (birthdays first, then welcomes, then calendar events)
+    announcements = [...birthdayAlerts, ...welcomeAlerts, ...dbAnnouncements];
+
+    // Query standard work anniversaries
+    const workAnniversaries = interns
       .filter(intern => {
         const start = new Date(intern.startDate);
-        return start.getMonth() === currentMonth && start.getDate() === currentDateVal;
+        // Anniversary only for people who have been here >= 1 year
+        const years = today.getFullYear() - start.getFullYear();
+        return start.getMonth() === currentMonth && start.getDate() === currentDateVal && years > 0;
       })
       .map(intern => {
         const start = new Date(intern.startDate);
@@ -109,9 +163,12 @@ export default async function DashboardPage() {
           internId: intern.id,
           fullName: intern.fullName,
           roleDomain: intern.roleDomain,
-          years: years
+          years: years,
+          milestoneType: "ANNIVERSARY"
         };
       });
+
+    anniversaries = [...workAnniversaries, ...birthdayMilestones];
   } catch (err) {
     console.error("Failed to query notices and milestones:", err);
   }
@@ -425,7 +482,7 @@ export default async function DashboardPage() {
       )}
 
       {/* 3.5 Notice Board announcements & milestones */}
-      <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
+      <NoticeBoard announcements={announcements} anniversaries={anniversaries} userRole={userRole} />
 
       {/* 4. Operational Split Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
