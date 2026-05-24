@@ -183,7 +183,58 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: true, document: updatedDoc });
     }
 
-    return NextResponse.json({ error: "Invalid action. Supported: EDIT, REJECT, APPROVE" }, { status: 400 });
+    // ACTION 4: DEACTIVATE Document/ID Card
+    if (action === "DEACTIVATE") {
+      const updatedDoc = await db.generatedDocument.update({
+        where: { id: documentId },
+        data: {
+          status: "DEACTIVATED",
+          signature: null,
+          notes: notes || "Document/ID Card deactivated by compliance",
+        },
+      });
+
+      await db.activityLog.create({
+        data: {
+          userId: safeUserId,
+          action: "DEACTIVATE_DOCUMENT",
+          description: `Deactivated document/ID Card ${doc.type} for ${doc.intern.fullName}`,
+        },
+      });
+
+      return NextResponse.json({ success: true, document: updatedDoc });
+    }
+
+    // ACTION 5: ACTIVATE (Re-activate) Document/ID Card
+    if (action === "ACTIVATE") {
+      const approvedAt = new Date();
+      const sigInput = `${doc.intern.id}-${userId}-${approvedAt.toISOString()}`;
+      const sigHash = crypto.createHash("sha256").update(sigInput).digest("hex").substring(0, 16).toUpperCase();
+      const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
+
+      const updatedDoc = await db.generatedDocument.update({
+        where: { id: documentId },
+        data: {
+          status: "APPROVED",
+          approvedById: userId,
+          approvedAt,
+          signature: signatureStamp,
+          notes: notes || "Document/ID Card reactivated by compliance.",
+        },
+      });
+
+      await db.activityLog.create({
+        data: {
+          userId: safeUserId,
+          action: "ACTIVATE_DOCUMENT",
+          description: `Reactivated & digitally signed document/ID Card ${doc.type} for ${doc.intern.fullName}`,
+        },
+      });
+
+      return NextResponse.json({ success: true, document: updatedDoc });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Supported: EDIT, REJECT, APPROVE, DEACTIVATE, ACTIVATE" }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
   }
