@@ -24,7 +24,9 @@ import {
   Clock,
   AlertCircle,
   FileSpreadsheet,
-  Contact
+  Contact,
+  FolderOpen,
+  ArrowRight
 } from "lucide-react";
 import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { formatDate } from "@/lib/utils";
@@ -77,6 +79,9 @@ export default async function InternWorkspacePage({ params }: PageProps) {
       documents: {
         orderBy: { createdAt: "desc" },
       },
+      projectRecords: {
+        orderBy: { createdAt: "desc" },
+      },
       user: {
         select: {
           username: true,
@@ -84,6 +89,8 @@ export default async function InternWorkspacePage({ params }: PageProps) {
       },
     },
   });
+
+  const isOwner = (session?.user as any)?.id === intern?.userId;
 
   if (!intern) {
     notFound();
@@ -392,10 +399,10 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                 </div>
               </div>
 
-              {isAdmin && (
+              {(isFounder || userRole === "HR" || isOwner) && (
                 <div className="space-y-2 border-t border-border/40 pt-4">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
-                    Corporate Bank Details (Admin Only)
+                    Corporate Bank Details (Secured View)
                   </span>
                   <div className="p-3 bg-secondary/15 rounded-md border border-border/40 text-xs font-semibold text-foreground space-y-2">
                     <div className="flex justify-between">
@@ -612,6 +619,81 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card: Professional Work Portfolio */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                <FolderOpen className="h-4.5 w-4.5 text-indigo-400" />
+                <span>Professional Work Portfolio</span>
+              </CardTitle>
+              <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                Work project logs registered by the enrolee showcasing contribution metrics.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {!intern.projectRecords || intern.projectRecords.length === 0 ? (
+                <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
+                  <FolderOpen className="h-8 w-8 text-muted-foreground/35" />
+                  <span>No portfolio project records have been logged yet.</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {intern.projectRecords.map((proj) => (
+                    <div 
+                      key={proj.id}
+                      className="p-4 bg-secondary/10 hover:bg-secondary/20 border border-border/40 hover:border-border/80 transition-all rounded-md flex flex-col justify-between space-y-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border ${
+                            proj.status === "COMPLETED" 
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : proj.status === "IN_PROGRESS"
+                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                          }`}>
+                            {proj.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-heading font-extrabold text-foreground truncate mt-1">
+                          {proj.title}
+                        </h4>
+                        <p className="text-[10px] text-cyan-400 font-semibold">Role Scope: {proj.roleInProject}</p>
+                        <p className="text-xs font-medium text-muted-foreground leading-relaxed line-clamp-3 mt-1.5">
+                          {proj.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/20 space-y-2">
+                        {proj.technologies && proj.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {proj.technologies.map((tech: string, tIdx: number) => (
+                              <span key={tIdx} className="text-[8px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/15 px-1.5 py-0.2 rounded">
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {proj.deliverableUrl && (
+                          <a
+                            href={proj.deliverableUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center space-x-1 text-[9px] font-bold text-cyan-400 hover:underline"
+                          >
+                            <span>Open Project Deliverable</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
