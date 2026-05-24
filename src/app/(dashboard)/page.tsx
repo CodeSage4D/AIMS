@@ -23,6 +23,7 @@ import InternDashboard from "@/components/layout/InternDashboard";
 import AnalyticsDashboard from "@/components/layout/AnalyticsDashboard";
 import NoticeBoard from "@/components/layout/NoticeBoard";
 import ExecutiveClockStation from "@/components/layout/ExecutiveClockStation";
+import RealTimePresenceMonitor from "@/components/layout/RealTimePresenceMonitor";
 
 export default async function DashboardPage() {
   // Dynamic background sweep to mark absent active interns on daily shifts
@@ -145,8 +146,24 @@ export default async function DashboardPage() {
       type: "WELCOME"
     }));
 
+    // Check if welcome announcements are disabled in settings
+    let enableWelcomeAnnouncements = true;
+    try {
+      const welcomeSetting = await db.systemSetting.findUnique({
+        where: { key: "enable_welcome_announcements" }
+      });
+      if (welcomeSetting) {
+        const parsed = JSON.parse(welcomeSetting.value);
+        enableWelcomeAnnouncements = typeof parsed === "object" ? parsed.allowed : !!parsed;
+      }
+    } catch (err) {
+      console.warn("Failed to read enable_welcome_announcements setting, defaulting to true:", err);
+    }
+
     // Merge dynamic compliance alerts directly into Notice stream (birthdays first, then welcomes, then calendar events)
-    announcements = [...birthdayAlerts, ...welcomeAlerts, ...dbAnnouncements];
+    announcements = enableWelcomeAnnouncements
+      ? [...birthdayAlerts, ...welcomeAlerts, ...dbAnnouncements]
+      : [...birthdayAlerts, ...dbAnnouncements];
 
     // Query standard work anniversaries
     const workAnniversaries = interns
@@ -435,6 +452,11 @@ export default async function DashboardPage() {
 
       {/* 1.5 Real-Time Clock & Attendance Session Station */}
       <ExecutiveClockStation />
+
+      {/* 1.7 Real-Time Active Workforce Presence Radar */}
+      {(userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR" || userRole === "TEAM_LEAD") && (
+        <RealTimePresenceMonitor />
+      )}
 
       {/* 2. Analytical Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
