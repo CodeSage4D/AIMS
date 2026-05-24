@@ -2150,9 +2150,8 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     
                     {/* Header brand section */}
                     <g transform="translate(20, 20)">
-                      <path d="M12 2L2 7L12 12L22 7L12 2Z" fill={`url(#primaryGradFront-${doc.id})`} />
-                      <path d="M2 17L12 22L22 17" stroke={cardTheme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <text x="32" y="15" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="12" letterSpacing="3" textAnchor="start">AURXON</text>
+                      <image href="/Logo-AIMS/Dark-Mode-Logo.png" x="0" y="0" width="16" height="16" />
+                      <text x="24" y="13.5" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="11" letterSpacing="2.5" textAnchor="start">AURXON</text>
                       
                       <rect x="220" y="0" width="60" height="16" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />
                       <text x="250" y="10.5" fill={cardTheme.textColor} fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="1" textAnchor="middle" dominantBaseline="middle">OFFICIAL</text>
