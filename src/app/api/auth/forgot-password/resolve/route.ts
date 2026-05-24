@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         where: { id: requestId },
         data: {
           status: "RESOLVED",
-          tempPassword,
+          tempPassword: null,
           resolvedAt: new Date(),
         },
       }),

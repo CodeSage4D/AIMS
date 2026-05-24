@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark } from "lucide-react";
+import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark, Copy } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,9 +27,13 @@ export default function SignupPage() {
   const [ifscCode, setIfscCode] = useState("");
   const [branchName, setBranchName] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [notes, setNotes] = useState(""); // Plain text candidate remarks
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successCode, setSuccessCode] = useState<string | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [copiedPw, setCopiedPw] = useState(false);
 
   // Username validation states
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -211,6 +215,7 @@ export default function SignupPage() {
           ifscCode,
           branchName,
           upiId,
+          notes, // Submit plain text candidate notes
         }),
       });
 
@@ -219,6 +224,7 @@ export default function SignupPage() {
         setError(data.error || "Failed to process enrollment.");
       } else {
         setSuccessCode(data.referenceId);
+        setTempPassword(data.tempPassword); // Securely store plain-text tempPassword in memory
         // Clear fields
         setFullName("");
         setEmail("");
@@ -234,6 +240,7 @@ export default function SignupPage() {
         setIfscCode("");
         setBranchName("");
         setUpiId("");
+        setNotes("");
       }
     } catch (err) {
       setError("Failed to communicate with enrollment services.");
@@ -319,27 +326,78 @@ export default function SignupPage() {
                   <div className={`p-4.5 rounded-full border ${
                     currentTheme === "dark" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-emerald-600"
                   }`}>
-                    <CheckCircle className="h-10 w-10 animate-bounce" />
+                    <CheckCircle className="h-10 w-10 animate-bounce text-emerald-500 dark:text-emerald-400" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <h3 className={`text-base font-bold transition-colors ${currentTheme === "dark" ? "text-white" : "text-slate-900"}`}>
                     Registration Successful!
                   </h3>
-                  <p className={`text-xs leading-relaxed transition-colors ${currentTheme === "dark" ? "text-gray-400" : "text-slate-600"}`}>
-                    Your onboarding profile has been registered in the administration queue. Please record your temporary reference token below:
+                  
+                  {/* Onboarding Review Status Badge */}
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-heading font-extrabold uppercase tracking-widest bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 mb-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse mr-2" />
+                    Onboarding Status: Under Review
+                  </div>
+
+                  <p className={`text-xs leading-relaxed transition-colors ${currentTheme === "dark" ? "text-gray-400" : "text-slate-650"}`}>
+                    Your onboarding profile has been registered in the administration queue. Please record your temporary reference credentials below:
                   </p>
                 </div>
-                <div className={`p-4 rounded-xl border flex flex-col items-center justify-center space-y-1.5 ${
-                  currentTheme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
-                }`}>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-500">Reference Token</span>
-                  <span className={`text-lg font-mono font-extrabold tracking-wider ${currentTheme === "dark" ? "text-cyan-400" : "text-blue-600"}`}>
-                    {successCode}
-                  </span>
+                <div className="space-y-3">
+                  {/* Reference Token Box */}
+                  <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                    currentTheme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                  }`}>
+                    <div className="text-left space-y-0.5">
+                      <span className="text-[8px] uppercase font-bold tracking-widest text-indigo-500 dark:text-indigo-400 block">Reference ID</span>
+                      <code className={`text-sm font-mono font-extrabold tracking-wider ${currentTheme === "dark" ? "text-cyan-400" : "text-blue-600"}`}>
+                        {successCode}
+                      </code>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(successCode);
+                        setCopiedRef(true);
+                        setTimeout(() => setCopiedRef(false), 2000);
+                      }}
+                      className="p-2 hover:bg-white/10 rounded-lg text-indigo-500 hover:text-indigo-400 transition-colors"
+                      title="Copy Reference ID"
+                    >
+                      {copiedRef ? <span className="text-[9px] text-emerald-500 font-bold">Copied!</span> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Temporary Password Box */}
+                  {tempPassword && (
+                    <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                      currentTheme === "dark" ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
+                    }`}>
+                      <div className="text-left space-y-0.5">
+                        <span className="text-[8px] uppercase font-bold tracking-widest text-indigo-500 dark:text-indigo-400 block">Temporary Password</span>
+                        <code className={`text-sm font-mono font-extrabold tracking-wider ${currentTheme === "dark" ? "text-emerald-400" : "text-emerald-600"}`}>
+                          {tempPassword}
+                        </code>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(tempPassword);
+                          setCopiedPw(true);
+                          setTimeout(() => setCopiedPw(false), 2000);
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-lg text-indigo-500 hover:text-indigo-400 transition-colors"
+                        title="Copy Temporary Password"
+                      >
+                        {copiedPw ? <span className="text-[9px] text-emerald-500 font-bold">Copied!</span> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  )}
                 </div>
+                
                 <p className="text-[10px] leading-relaxed text-gray-500 max-w-xs mx-auto">
-                  Administrators will review your credentials, assign your role domain, and trigger a secure activation email containing your temporary passcode instructions.
+                  Administrators will review your credentials, assign your role domain, and trigger a secure activation email. Use these credentials to log in for the first time once approved.
                 </p>
                 <Button
                   onClick={() => router.push("/login")}
@@ -799,6 +857,27 @@ export default function SignupPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Candidate Onboarding Remarks/Notes Input Area */}
+                <div className="relative flex flex-col pt-2 border-t border-white/5">
+                  <label className={`text-xs font-semibold mb-1.5 transition-colors ${
+                    currentTheme === "dark" ? "text-gray-300" : "text-slate-700"
+                  }`}>
+                    Additional Onboarding Remarks
+                  </label>
+                  <textarea
+                    placeholder="Provide any comments or messages for the administration review board (e.g., specific skills, joining details)..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    className={`px-4 py-3 text-xs rounded-xl border transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      currentTheme === "dark"
+                        ? "bg-[#0f172a] border-white/10 text-white hover:border-white/20 placeholder-gray-500 focus:bg-[#0d1424]"
+                        : "bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-350 placeholder-slate-400 focus:bg-white"
+                    }`}
+                    disabled={loading}
+                  />
                 </div>
 
                 {/* Submit & Navigation Row */}

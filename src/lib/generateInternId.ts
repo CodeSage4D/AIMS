@@ -110,13 +110,11 @@ export async function generateInternId(
   // Get initials
   const initials = getInitials(fullName);
   
-  const prefix = `AXN-${roleCode}-${yymm}-${initials}`;
-  
-  // Fetch matching enrollees to calculate sequential counter safely
+  // Fetch matching enrollees to calculate sequential counter safely across the entire role group prefix
   const existing = await tx.intern.findMany({
     where: {
       internId: {
-        startsWith: prefix,
+        startsWith: `AXN-${roleCode}-`,
       },
     },
     select: {
@@ -139,6 +137,6 @@ export async function generateInternId(
   const nextNum = maxVal + 1;
   const suffix = String(nextNum).padStart(2, "0");
   
-  return `${prefix}${suffix}`;
+  return `AXN-${roleCode}-${yymm}-${initials}${suffix}`;
 }
 

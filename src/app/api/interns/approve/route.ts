@@ -32,8 +32,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Validation failed. Missing parameter: id or action." }, { status: 400 });
     }
 
-    if (action !== "APPROVE" && action !== "REJECT") {
-      return NextResponse.json({ error: "Validation failed. Action must be APPROVE or REJECT." }, { status: 400 });
+    if (action !== "APPROVE" && action !== "REJECT" && action !== "PREVIEW") {
+      return NextResponse.json({ error: "Validation failed. Action must be APPROVE, REJECT, or PREVIEW." }, { status: 400 });
     }
 
     // 1. Fetch pending intern and linked user profile
@@ -88,6 +88,12 @@ export async function POST(req: Request) {
     const finalDept = department?.trim() || pendingIntern.department;
     const finalDateStr = startDate ? new Date(startDate).toISOString() : pendingIntern.startDate.toISOString();
 
+    // Scenario 3: ID Preview Forecasting (Transactional Preview)
+    if (action === "PREVIEW") {
+      const computedId = await generateInternId(db, finalName, finalDept, finalRole, finalDateStr);
+      return NextResponse.json({ success: true, previewId: computedId }, { status: 200 });
+    }
+
     // Verify Founder-only role appointment restriction
     const { isFounderOnlyRole } = await import("@/lib/roles");
     if (isFounderOnlyRole(finalRole) && actorUserRole !== "FOUNDER") {
@@ -134,7 +140,21 @@ export async function POST(req: Request) {
           roleDomain: finalRole,
           department: finalDept,
           startDate: new Date(finalDateStr),
-          status: "ACTIVE" // Activates immediately into directory roster
+          status: "ACTIVE", // Activates immediately into directory roster
+          phoneNumber: body.phoneNumber !== undefined ? body.phoneNumber : pendingIntern.phoneNumber,
+          address: body.address !== undefined ? body.address : pendingIntern.address,
+          city: body.city !== undefined ? body.city : pendingIntern.city,
+          state: body.state !== undefined ? body.state : pendingIntern.state,
+          country: body.country !== undefined ? body.country : pendingIntern.country,
+          pinCode: body.pinCode !== undefined ? body.pinCode : pendingIntern.pinCode,
+          citizenship: body.citizenship !== undefined ? body.citizenship : pendingIntern.citizenship,
+          region: body.region !== undefined ? body.region : pendingIntern.region,
+          bankName: body.bankName !== undefined ? body.bankName : pendingIntern.bankName,
+          accountNumber: body.accountNumber !== undefined ? body.accountNumber : pendingIntern.accountNumber,
+          ifscCode: body.ifscCode !== undefined ? body.ifscCode : pendingIntern.ifscCode,
+          branchName: body.branchName !== undefined ? body.branchName : pendingIntern.branchName,
+          upiId: body.upiId !== undefined ? body.upiId : pendingIntern.upiId,
+          notes: body.notes !== undefined ? body.notes : pendingIntern.notes,
         }
       });
 

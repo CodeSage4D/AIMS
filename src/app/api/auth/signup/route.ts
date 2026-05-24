@@ -24,7 +24,8 @@ export async function POST(req: Request) {
       accountNumber,
       ifscCode,
       branchName,
-      upiId
+      upiId,
+      notes
     } = body;
 
     // 1. Basic required fields checking
@@ -209,6 +210,7 @@ export async function POST(req: Request) {
           startDate: new Date(),
           status: "PENDING_VERIFICATION",
           userId: newUser.id,
+          notes: notes?.trim() || null,
         },
       });
     });
@@ -216,6 +218,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       message: "Registration successful! Account is under administrative review.",
       referenceId,
+      tempPassword: rawTempPassword,
     });
   } catch (error: any) {
     console.error("Signup Endpoint Error:", error);
