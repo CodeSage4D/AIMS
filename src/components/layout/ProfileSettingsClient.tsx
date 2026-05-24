@@ -21,7 +21,9 @@ import {
   UserCheck,
   Contact,
   Globe,
-  Plus
+  Plus,
+  Cpu,
+  Check
 } from "lucide-react";
 import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { cn, formatDate } from "@/lib/utils";
@@ -100,6 +102,66 @@ export default function ProfileSettingsClient({
   // System controls administrative states
   const [sysAllowBank, setSysAllowBank] = useState(allowBankUpdates);
   const [sysEnableAnnouncements, setSysEnableAnnouncements] = useState(true);
+  const [roleCodes, setRoleCodes] = useState<Record<string, string>>({});
+  const [customizerSearch, setCustomizerSearch] = useState("");
+
+  const DEFAULT_ROLES_TO_CUSTOMIZE = [
+    "Founder",
+    "Co-Founder",
+    "Director",
+    "Managing Director",
+    "Chief Executive Officer (CEO)",
+    "Chief Operating Officer (COO)",
+    "Chief Technology Officer (CTO)",
+    "Chief Product Officer (CPO)",
+    "Chief Strategy Officer (CSO)",
+    "Chief Financial Officer (CFO)",
+    "Chief Marketing Officer (CMO)",
+    "Chief Human Resources Officer (CHRO)",
+    "Head of Operations",
+    "Head of Talent Acquisition",
+    "Head of Engineering",
+    "Head of Product Design",
+    "Engineering Manager",
+    "Product Manager",
+    "Operations Manager",
+    "HR Manager",
+    "Technical Lead",
+    "Team Lead",
+    "Project Coordinator",
+    "Department Manager",
+    "Compliance Manager",
+    "Software Engineer",
+    "Full Stack Engineer",
+    "Frontend Engineer",
+    "Backend Engineer",
+    "DevOps Engineer",
+    "Cloud Engineer",
+    "AI Engineer",
+    "Cybersecurity Engineer",
+    "UI/UX Designer",
+    "Product Designer",
+    "QA Engineer"
+  ];
+
+  // Load dynamic role codes overrides on mount
+  React.useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const roleCodesSetting = data.find((s) => s.key === "role_codes");
+          if (roleCodesSetting) {
+            const parsedCodes = JSON.parse(roleCodesSetting.value);
+            setRoleCodes(parsedCodes);
+            import("@/lib/roles").then(({ registerRoleCodeOverrides }) => {
+              registerRoleCodeOverrides(parsedCodes);
+            });
+          }
+        }
+      })
+      .catch((err) => console.error("Error loading initial settings:", err));
+  }, []);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "corrections" | "idcard" | "syscontrols">("overview");
@@ -113,17 +175,53 @@ export default function ProfileSettingsClient({
           if (Array.isArray(data)) {
             const bankSetting = data.find((s) => s.key === "allow_intern_bank_updates");
             const welcomeSetting = data.find((s) => s.key === "enable_welcome_announcements");
+            const roleCodesSetting = data.find((s) => s.key === "role_codes");
             if (bankSetting) {
               setSysAllowBank(JSON.parse(bankSetting.value));
             }
             if (welcomeSetting) {
               setSysEnableAnnouncements(JSON.parse(welcomeSetting.value));
             }
+            if (roleCodesSetting) {
+              const parsedCodes = JSON.parse(roleCodesSetting.value);
+              setRoleCodes(parsedCodes);
+              import("@/lib/roles").then(({ registerRoleCodeOverrides }) => {
+                registerRoleCodeOverrides(parsedCodes);
+              });
+            }
           }
         })
         .catch((err) => console.error("Error loading settings:", err));
     }
   }, [activeTab, user.role]);
+
+  const handleSaveRoleCodes = async (updatedCodes: Record<string, string>) => {
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "role_codes", value: updatedCodes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to customize role codes.");
+      
+      setRoleCodes(updatedCodes);
+      
+      const { registerRoleCodeOverrides } = await import("@/lib/roles");
+      registerRoleCodeOverrides(updatedCodes);
+
+      setSuccess("Startup role code overrides successfully customized and synchronized!");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Failed to customize role codes.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggleSetting = async (key: string, currentValue: boolean, setter: (val: boolean) => void) => {
     const newValue = !currentValue;
@@ -1382,6 +1480,108 @@ export default function ProfileSettingsClient({
 
               </CardContent>
             </Card>
+
+            {user.role === "FOUNDER" && (
+              <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+                <CardHeader className="p-0 pb-4 border-b border-border/40 mb-6 flex flex-row items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                      <Cpu className="h-4.5 w-4.5 text-primary animate-pulse" />
+                      <span>Startup Role Code Customizer</span>
+                    </CardTitle>
+                    <CardDescription className="text-[10px] text-muted-foreground">
+                      Define, customize, and override visual short codes for corporate and engineering designations.
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Search roles..."
+                      value={customizerSearch}
+                      onChange={(e) => setCustomizerSearch(e.target.value)}
+                      className="bg-[#0b0f19]/80 border border-border px-3 py-1.5 rounded-xl text-xs text-foreground placeholder:text-muted-foreground w-40 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                    {DEFAULT_ROLES_TO_CUSTOMIZE
+                      .filter((r) => r.toLowerCase().includes(customizerSearch.toLowerCase()))
+                      .map((roleName) => {
+                        const { ROLE_CODES } = require("@/lib/roles");
+                        const currentCode = roleCodes[roleName] || ROLE_CODES[roleName] || "";
+                        
+                        const duplicateExists = Object.entries(roleCodes).some(
+                          ([k, v]) => k !== roleName && String(v).toUpperCase() === currentCode.toUpperCase() && currentCode !== ""
+                        ) || Object.entries(ROLE_CODES).some(
+                          ([k, v]) => !roleCodes[k] && k !== roleName && String(v).toUpperCase() === currentCode.toUpperCase() && currentCode !== ""
+                        );
+
+                        return (
+                          <div
+                            key={roleName}
+                            className={cn(
+                              "p-3 rounded-xl border bg-secondary/10 flex flex-col justify-between gap-2.5 transition-all duration-300",
+                              duplicateExists ? "border-amber-500/30 bg-amber-500/5" : "border-border/40 hover:border-primary/20"
+                            )}
+                          >
+                            <div className="space-y-1">
+                              <span className="text-xs font-bold text-foreground block truncate" title={roleName}>
+                                {roleName}
+                              </span>
+                              {duplicateExists && (
+                                <span className="text-[9px] text-amber-500 font-bold block">
+                                  Duplicate code warning!
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 justify-between">
+                              <input
+                                type="text"
+                                maxLength={8}
+                                placeholder={ROLE_CODES[roleName] || "CODE"}
+                                value={roleCodes[roleName] || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+                                  setRoleCodes((prev) => ({ ...prev, [roleName]: val }));
+                                }}
+                                className="bg-[#0b0f19] border border-border/60 rounded-lg px-2.5 py-1 text-xs text-white font-mono w-24 text-center focus:outline-none focus:border-primary"
+                              />
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                (Default: {ROLE_CODES[roleName]})
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border/40">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to reset all role code overrides to corporate defaults?")) {
+                          handleSaveRoleCodes({});
+                        }
+                      }}
+                      className="bg-white/5 hover:bg-red-500/10 text-muted-foreground hover:text-red-400 border border-border/60 text-xs font-semibold h-9.5 rounded-xl px-4"
+                    >
+                      Reset All to Default
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => handleSaveRoleCodes(roleCodes)}
+                      className="bg-primary hover:bg-primary/95 text-white text-xs font-semibold h-9.5 rounded-xl px-5 shadow flex items-center space-x-1.5"
+                    >
+                      <Check className="h-4 w-4" />
+                      <span>Save Customized Codes</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

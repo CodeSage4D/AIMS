@@ -64,13 +64,20 @@ export async function POST(req: Request) {
 
     const parsedEmploymentType = employmentType || "INTERN";
 
+    let isGated = false;
     if (roleDomain) {
-      const { isFounderOnlyRole } = await import("@/lib/roles");
-      if (isFounderOnlyRole(roleDomain) && userRole !== "FOUNDER") {
+      const { isFounderOnlyRole, isExecutiveRole } = await import("@/lib/roles");
+      const lowerRole = roleDomain.trim().toLowerCase();
+      
+      if (lowerRole.includes("founder") && !lowerRole.includes("co-founder") && userRole !== "FOUNDER") {
         return NextResponse.json(
-          { error: `Access Denied. Only the Founder has final permission to appoint or assign the special role: '${roleDomain}'.` },
+          { error: "Access Denied. Only the Founder has final permission to appoint or assign the Founder role." },
           { status: 403 }
         );
+      }
+      
+      if (isExecutiveRole(roleDomain) && userRole !== "FOUNDER") {
+        isGated = true;
       }
     }
 
@@ -242,6 +249,7 @@ export async function POST(req: Request) {
               fullName,
               role: "INTERN",
               changePasswordRequired: true,
+              status: isGated ? "PENDING" : "APPROVED",
             },
           });
 
@@ -291,7 +299,7 @@ export async function POST(req: Request) {
               branchName: body.branchName || null,
               panCard: body.panCard || null,
               supervisorId: supervisorId || null,
-              status: "ACTIVE", // Onboards directly into active list
+              status: isGated ? "PENDING_VERIFICATION" : "ACTIVE", // Gated roles go to pending state
               userId: createdUser.id,
             },
           });
@@ -363,19 +371,34 @@ export async function POST(req: Request) {
     await db.activityLog.create({
       data: {
         userId: safeUserId,
-        action: "CREATE_INTERN",
-        description: `Successfully onboarded new employee/intern ${fullName} with active branded ID ${finalAssignedId}`,
+        action: isGated ? "SUBMIT_EXECUTIVE_ONBOARDING" : "CREATE_INTERN",
+        description: isGated
+          ? `Submitted executive onboarding request for ${fullName} (${roleDomain}) requiring Founder approval.`
+          : `Successfully onboarded new employee/intern ${fullName} with active branded ID ${finalAssignedId}`,
       },
     });
 
-    // Trigger onboarding welcome email asynchronously
-    const loginUrl = `${req.headers.get("origin") || "http://localhost:3000"}/login`;
-    const { sendOnboardingWelcomeEmail } = await import("@/lib/emailService");
-    sendOnboardingWelcomeEmail(
-      { fullName: intern.fullName, email: intern.email, internId: intern.internId },
-      "aims-official-intern-2026",
-      loginUrl
-    ).catch((err) => console.error("Asynchronous welcome email dispatch failed:", err));
+    if (!isGated) {
+      // Trigger onboarding welcome email asynchronously
+      const loginUrl = `${req.headers.get("origin") || "http://localhost:3000"}/login`;
+      const { sendOnboardingWelcomeEmail } = await import("@/lib/emailService");
+      sendOnboardingWelcomeEmail(
+        { fullName: intern.fullName, email: intern.email, internId: intern.internId },
+        "aims-official-intern-2026",
+        loginUrl
+      ).catch((err) => console.error("Asynchronous welcome email dispatch failed:", err));
+    }
+
+    if (isGated) {
+      return NextResponse.json(
+        { 
+          success: true, 
+          intern, 
+          message: "The requested executive role requires Founder approval before activation. The request has been submitted to the Founder's queue." 
+        }, 
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json({ success: true, intern }, { status: 201 });
   } catch (error: any) {
@@ -653,14 +676,32 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Founder designation restriction check
+    let isRoleDomainGated = false;
     if (updateData.roleDomain !== undefined && updateData.roleDomain !== existing.roleDomain) {
-      const { isFounderOnlyRole } = await import("@/lib/roles");
-      if (isFounderOnlyRole(updateData.roleDomain) && userRole !== "FOUNDER") {
+      const { isExecutiveRole } = await import("@/lib/roles");
+      const lowerRole = updateData.roleDomain.trim().toLowerCase();
+
+      if (lowerRole.includes("founder") && !lowerRole.includes("co-founder") && userRole !== "FOUNDER") {
         return NextResponse.json(
-          { error: `Access Denied. Only the Founder has final permission to appoint or assign the special role: '${updateData.roleDomain}'.` },
+          { error: "Access Denied. Only the Founder has final permission to appoint or assign the Founder role." },
           { status: 403 }
         );
+      }
+
+      if (isExecutiveRole(updateData.roleDomain) && userRole !== "FOUNDER") {
+        isRoleDomainGated = true;
+        
+        await db.profileUpdateRequest.create({
+          data: {
+            internId: existing.id,
+            fieldToUpdate: "roleDomain",
+            proposedValue: updateData.roleDomain.trim(),
+            notes: `Requested role upgrade to ${updateData.roleDomain} by HR/Admin`,
+            status: "PENDING",
+          },
+        });
+        
+        delete updateData.roleDomain;
       }
     }
 
@@ -896,6 +937,14 @@ export async function PUT(req: Request) {
         description: `Successfully updated profile for ${updated.fullName} (ID: ${updated.internId})`,
       },
     });
+
+    if (isRoleDomainGated) {
+      return NextResponse.json({
+        success: true,
+        intern: updated,
+        message: "The requested executive role update requires Founder approval. A correction request has been enqueued in the Founder's queue."
+      });
+    }
 
     return NextResponse.json({ success: true, intern: updated });
   } catch (error: any) {

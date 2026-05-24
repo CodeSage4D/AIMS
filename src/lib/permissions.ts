@@ -40,7 +40,25 @@ export async function hasPermission(
     console.warn(`[hasPermission] Database check failed for user ${userId}, falling back to defaults:`, err);
   }
 
-  // 3. Fallback to structural defaults based on user role
+  // 3. Try to query the specific startup roleDomain to resolve automated permissions mapping
+  try {
+    const intern = await db.intern.findUnique({
+      where: { userId },
+      select: { roleDomain: true },
+    });
+
+    if (intern?.roleDomain) {
+      const { getDefaultPermissionsForRoleDomain } = await import("@/lib/roles");
+      const defaultPerms = getDefaultPermissionsForRoleDomain(intern.roleDomain);
+      if (defaultPerms[permission] !== undefined) {
+        return defaultPerms[permission];
+      }
+    }
+  } catch (err) {
+    console.warn(`[hasPermission] roleDomain default mapping check failed for user ${userId}:`, err);
+  }
+
+  // 4. Fallback to structural defaults based on high-level user role
   switch (role) {
     case Role.SUPER_ADMIN:
       // Super admin gets everything by default

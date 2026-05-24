@@ -1,21 +1,63 @@
 export const ROLE_CODES: Record<string, string> = {
-  // Special/Combined Business Roles
+  // ==========================================
+  // Executive / Founder Level
+  // ==========================================
   "Founder": "FND",
+  "Co-Founder": "CFD",
   "Director": "DIR",
-  "Managing Director": "MDR",
   "Managing Director (MD)": "MDR",
+  "Managing Director": "MDR",
+  "Chief Executive Officer (CEO)": "CEO",
+  "Chief Operating Officer (COO)": "COO",
+  "Chief Technology Officer (CTO)": "CTO",
+  "Chief Product Officer (CPO)": "CPO",
+  "Chief Strategy Officer (CSO)": "CSO",
+  "Chief Financial Officer (CFO)": "CFO",
+  "Chief Marketing Officer (CMO)": "CMO",
+  "Chief Human Resources Officer (CHRO)": "CHRO",
+
+  // ==========================================
+  // Department / Managerial Level
+  // ==========================================
+  "Head of Operations": "OPS-HD",
+  "Head of Talent Acquisition": "TAL-HD",
+  "Head of Engineering": "ENG-HD",
+  "Head of Product Design": "DSN-HD",
+  "Engineering Manager": "ENG-MGR",
+  "Product Manager": "PDM",
+  "Operations Manager": "OPM",
+  "HR Manager": "HRM",
+  "Technical Lead": "EDL",
+  "Team Lead": "TML",
+  "Project Coordinator": "PJC",
+  "Department Manager": "DPM",
+  "Compliance Manager": "CSM",
+
+  // ==========================================
+  // Technical / Engineering Roles
+  // ==========================================
+  "Software Engineer": "SWE",
+  "Full Stack Engineer": "FSE",
+  "Frontend Engineer": "FEE",
+  "Backend Engineer": "BEE",
+  "DevOps Engineer": "DOP",
+  "Cloud Engineer": "CLD",
+  "AI Engineer": "AIM",
+  "Cybersecurity Engineer": "CSE",
+  "UI/UX Designer": "UXD",
+  "Product Designer": "PRD",
+  "QA Engineer": "QAE",
+
+  // ==========================================
+  // Backwards Compatibility & Special/Combined Business Roles
+  // ==========================================
   "Head Talent": "HDT",
   "Head Operations": "HOS",
-  "Operations Manager": "OPM",
   "Talent Acquisition Manager": "TAM",
-  "Department Manager": "DPM",
-  "Team Lead": "TML",
   "Coordinator": "COR",
   "Engineer": "ENG",
   "Employee": "EMP",
   "Intern": "INT",
-
-  "HR Manager": "HRM",
   "Operations": "OPR",
   "Talent Acquisition": "TAL",
   "Product/Design Manager": "PDM",
@@ -27,9 +69,6 @@ export const ROLE_CODES: Record<string, string> = {
   "Operations & HR Coordinator": "OPR-HRS",
   "Founder’s Executive Assistant": "FND-AST",
   "HR Coordinator": "HR-COORD",
-
-  // Core Engineering & Technical Roles
-  "Software Engineer": "SWE",
   "Frontend Developer": "FED",
   "Backend Developer": "BED",
   "Full Stack Developer": "FSD",
@@ -46,19 +85,16 @@ export const ROLE_CODES: Record<string, string> = {
   "AI/ML Engineer": "AIM",
   "Data Scientist": "DST",
   "Data Analyst": "DAN",
-  "DevOps Engineer": "DOP",
-  "Cloud Engineer": "CLD",
+  "DevOps Developer": "DOP",
+  "Cloud Architect": "CLD",
   "Cyber Security": "CSE",
   "Ethical Hacker": "ETH",
   "Blockchain Developer": "BCD",
   "Game Developer": "GMD",
-  "UI/UX Designer": "UXD",
-  "Product Designer": "PRD",
   "Graphic Designer": "GRD",
   "Motion Designer": "MOD",
   "Video Editor": "VED",
   "3D Artist": "ART",
-  "QA Engineer": "QAE",
   "Test Automation Engineer": "TAE",
   "Database Engineer": "DBE",
   "System Engineer": "SYE",
@@ -69,8 +105,6 @@ export const ROLE_CODES: Record<string, string> = {
   "AR/VR Developer": "ARV",
   "Technical Research Intern": "TRI",
   "Product Engineering & Design": "PED",
-
-  // Support & Operations Roles
   "Human Resources": "HRS",
   "Operations Executive": "OPS",
   "Marketing Intern": "MKT",
@@ -79,7 +113,6 @@ export const ROLE_CODES: Record<string, string> = {
   "Content Writer": "CWT",
   "Social Media Manager": "SMM",
   "Talent Acquisition Specialist": "TAC",
-  "Project Coordinator": "PJC",
   "Customer Support": "CSP"
 };
 
@@ -88,6 +121,38 @@ export interface RoleMeta {
   shortCode: string;
   accessLevel: string;
   appointmentSource: "Founder-appointed" | "HR-appointed" | "system-assigned";
+}
+
+export function registerRoleCodeOverrides(overrides: Record<string, string>) {
+  for (const [key, value] of Object.entries(overrides)) {
+    if (key && value) {
+      ROLE_CODES[key] = value.toUpperCase();
+    }
+  }
+}
+
+export function isExecutiveRole(roleDomain: string): boolean {
+  const name = (roleDomain || "").trim().toLowerCase();
+  return (
+    name === "founder" ||
+    name === "co-founder" ||
+    name === "director" ||
+    name === "managing director" ||
+    name === "managing director (md)" ||
+    name === "chief executive officer (ceo)" ||
+    name === "chief operating officer (coo)" ||
+    name === "chief technology officer (cto)" ||
+    name === "chief product officer (cpo)" ||
+    name === "chief strategy officer (cso)" ||
+    name === "chief financial officer (cfo)" ||
+    name === "chief marketing officer (cmo)" ||
+    name === "chief human resources officer (chro)" ||
+    name === "ceo" ||
+    name === "cto" ||
+    name === "coo" ||
+    name === "cfo" ||
+    name === "cpo"
+  );
 }
 
 export function getRoleMeta(roleDomain: string): RoleMeta {
@@ -182,7 +247,13 @@ function isRestrictedRoleName(name: string): boolean {
     lower.includes("manager") ||
     lower.includes("lead") ||
     lower.includes("assistant") ||
-    lower.includes("director")
+    lower.includes("director") ||
+    lower.includes("chief") ||
+    lower === "ceo" ||
+    lower === "cto" ||
+    lower === "coo" ||
+    lower === "cfo" ||
+    lower === "cpo"
   );
 }
 
@@ -198,6 +269,7 @@ function getSourceByRole(
   }
 
   if (
+    isExecutiveRole(name) ||
     lowerName.includes("founder") ||
     lowerName.includes("head") ||
     lowerName.includes("manager") ||
@@ -247,6 +319,7 @@ function getAccessByRole(name: string, code: string): string {
     return "Owner Control";
   }
   if (
+    isExecutiveRole(name) ||
     lowerName.includes("founder") ||
     lowerName.includes("head") ||
     lowerName.includes("assistant") ||
@@ -268,8 +341,67 @@ function getAccessByRole(name: string, code: string): string {
 }
 
 export function isFounderOnlyRole(roleDomain: string): boolean {
-  const meta = getRoleMeta(roleDomain);
-  return meta.appointmentSource === "Founder-appointed";
+  return isExecutiveRole(roleDomain) || getRoleMeta(roleDomain).appointmentSource === "Founder-appointed";
+}
+
+export function getDefaultPermissionsForRoleDomain(roleDomain: string): Record<string, boolean> {
+  const name = (roleDomain || "").trim();
+  const isExec = isExecutiveRole(name);
+  const lower = name.toLowerCase();
+  const isHR = lower.includes("hr") || lower.includes("talent") || lower.includes("human resources");
+  const isManager = lower.includes("manager") || lower.includes("head") || lower.includes("lead");
+
+  if (isExec) {
+    const isTopExec = lower.includes("founder") || lower.includes("ceo") || lower === "ceo";
+    return {
+      dashboardAccess: true,
+      attendanceAccess: true,
+      taskAccess: true,
+      documentAccess: true,
+      approvalAccess: true,
+      settingsAccess: isTopExec,
+      analyticsAccess: true,
+      onboardingAccess: true,
+    };
+  }
+
+  if (isHR) {
+    return {
+      dashboardAccess: true,
+      attendanceAccess: true,
+      taskAccess: true,
+      documentAccess: true,
+      approvalAccess: true,
+      settingsAccess: false,
+      analyticsAccess: true,
+      onboardingAccess: true,
+    };
+  }
+
+  if (isManager) {
+    return {
+      dashboardAccess: true,
+      attendanceAccess: true,
+      taskAccess: true,
+      documentAccess: true,
+      approvalAccess: true,
+      settingsAccess: false,
+      analyticsAccess: true,
+      onboardingAccess: false,
+    };
+  }
+
+  // Standard technical / engineering roles (Engineers, Designers, QAs, etc.)
+  return {
+    dashboardAccess: true,
+    attendanceAccess: true,
+    taskAccess: true,
+    documentAccess: true,
+    approvalAccess: false,
+    settingsAccess: false,
+    analyticsAccess: false,
+    onboardingAccess: false,
+  };
 }
 
 export interface CustomProfileFields {
@@ -297,3 +429,4 @@ export function parseInternNotes(notesStr: string | null | undefined): CustomPro
 export function serializeInternNotes(data: CustomProfileFields): string {
   return JSON.stringify(data);
 }
+

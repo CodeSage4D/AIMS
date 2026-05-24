@@ -47,9 +47,13 @@ export async function PATCH(req: Request) {
     }
 
     // Restrict key names to secure fields only
-    const permittedKeys = ["allow_intern_bank_updates", "enable_welcome_announcements"];
+    const permittedKeys = ["allow_intern_bank_updates", "enable_welcome_announcements", "role_codes"];
     if (!permittedKeys.includes(key)) {
       return NextResponse.json({ error: `Rejected: Key '${key}' is not an authorized system setting.` }, { status: 400 });
+    }
+
+    if (key === "role_codes" && userRole !== "FOUNDER") {
+      return NextResponse.json({ error: "Access Denied. Only the Founder can customize role codes." }, { status: 403 });
     }
 
     const safeUserId = await getSafeUserId(userId);

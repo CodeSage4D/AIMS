@@ -166,6 +166,13 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: "Validation failed. This request has already been resolved." }, { status: 400 });
       }
 
+      if (request.fieldToUpdate === "roleDomain") {
+        const { isExecutiveRole } = await import("@/lib/roles");
+        if (isExecutiveRole(request.proposedValue) && user.role !== "FOUNDER") {
+          return NextResponse.json({ error: "Access Denied. Only the Founder can authorize or approve executive role changes." }, { status: 403 });
+        }
+      }
+
       const resolved = await db.$transaction(async (tx) => {
         const safeUserId = await getSafeUserId(user.id, tx);
         const nextStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
