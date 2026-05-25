@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -55,10 +56,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Password reset request rejected." }, { status: 200 });
     }
 
-    // Generate a beautiful, secure temporary password (e.g. AXN-TEMP-9382)
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const tempPassword = `AXN-TEMP-${randomNum}`;
-    const passwordHash = bcrypt.hashSync(tempPassword, 10);
+    // Generate a cryptographically secure temporary password (e.g. AXN-TMP-3F8C4A12)
+    const tempPassword = `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(tempPassword, salt);
 
     // Transactionally update the user's password and change requirement, and update reset request
     await db.$transaction([
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
         where: { id: requestId },
         data: {
           status: "RESOLVED",
-          tempPassword: null,
+          tempPassword, // Persist so admin can retrieve it if they navigate away
           resolvedAt: new Date(),
         },
       }),
