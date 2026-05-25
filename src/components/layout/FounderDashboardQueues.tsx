@@ -138,16 +138,15 @@ export default function FounderDashboardQueues() {
     setLoadingPendings(true);
     setLoadingDeleteds(true);
     setError(null);
-    setTempPasswordToShow(null);
     setShowVerificationModal(false);
     setSelectedRegistrant(null);
 
     try {
-      // 1. Fetch password resets
+      // 1. Fetch password resets (PENDING + recently RESOLVED with a tempPassword)
       const resetsRes = await fetch("/api/auth/forgot-password");
       if (resetsRes.ok) {
         const resetsData = await resetsRes.json();
-        setResets(resetsData.filter((r: ResetRequest) => r.status === "PENDING"));
+        setResets(resetsData.filter((r: ResetRequest) => r.status === "PENDING" || (r.status === "RESOLVED" && r.tempPassword)));
       }
 
       // 2. Fetch leave applications
@@ -234,6 +233,7 @@ export default function FounderDashboardQueues() {
   // Onboarding approval handlers
   const openVerificationModal = (item: PendingOnboarding) => {
     setSelectedRegistrant(item);
+    setTempPasswordToShow(null);
     setAdjFullName(item.fullName || "");
     setAdjEmail(item.email || "");
     setAdjPhoneNumber(item.phoneNumber || "");
@@ -674,6 +674,25 @@ export default function FounderDashboardQueues() {
                         )}
                       </div>
                     </div>
+
+                    {/* Show persisted temp password for RESOLVED requests so admin can copy it even after page reload */}
+                    {req.status === "RESOLVED" && req.tempPassword && (
+                      <div className="mt-3 pt-3 border-t border-border/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400">Temp Password — Share with Intern</span>
+                          <p className="text-[11px] text-muted-foreground/60">Intern must log in and set a new password immediately.</p>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-lg border border-amber-500/20 shrink-0">
+                          <code className="text-sm font-mono font-bold text-amber-400 select-all">{req.tempPassword}</code>
+                          <button
+                            onClick={() => handleCopy(req.tempPassword!, `reset-pw-${req.id}`)}
+                            className="p-1 hover:bg-white/10 rounded transition-colors text-amber-400 cursor-pointer"
+                          >
+                            {copiedId === `reset-pw-${req.id}` ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
