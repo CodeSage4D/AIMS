@@ -557,6 +557,131 @@ export default function IdCardGenerator({
     }
   };
 
+  const handleBadgeDownload = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setPhotoError(null);
+    setPhotoSuccess(null);
+    try {
+      // HD Badge canvas: 1920x640 (widescreen LinkedIn-style)
+      const SCALE = 4;
+      const bW = 480 * SCALE;
+      const bH = 160 * SCALE;
+      const bc = document.createElement("canvas");
+      bc.width = bW;
+      bc.height = bH;
+      const bctx = bc.getContext("2d")!;
+      bctx.scale(SCALE, SCALE);
+
+      // Background
+      const bg = bctx.createLinearGradient(0, 0, bW / SCALE, bH / SCALE);
+      bg.addColorStop(0, design.bgColorStart);
+      bg.addColorStop(1, design.bgColorEnd);
+      bctx.fillStyle = bg;
+      bctx.fillRect(0, 0, bW / SCALE, bH / SCALE);
+
+      // Left accent bar
+      bctx.fillStyle = design.primaryColor;
+      bctx.fillRect(0, 0, 6, bH / SCALE);
+
+      // Load logo
+      let logoImg: HTMLImageElement | null = null;
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = "/Logo-AIMS/AurxonLogo.png";
+        await new Promise<void>((res) => { img.onload = () => { logoImg = img; res(); }; img.onerror = () => res(); });
+      } catch {}
+
+      // Photo circle on left
+      const photoX = 50;
+      const photoY = bH / SCALE / 2;
+      const photoR = 52;
+      bctx.beginPath();
+      bctx.arc(photoX, photoY, photoR + 3, 0, Math.PI * 2);
+      bctx.strokeStyle = design.primaryColor;
+      bctx.lineWidth = 3;
+      bctx.stroke();
+
+      if (photoUrl) {
+        try {
+          const pImg = new Image();
+          pImg.crossOrigin = "anonymous";
+          pImg.src = photoUrl;
+          await new Promise<void>((res, rej) => { pImg.onload = () => res(); pImg.onerror = () => rej(); });
+          bctx.save();
+          bctx.beginPath();
+          bctx.arc(photoX, photoY, photoR, 0, Math.PI * 2);
+          bctx.clip();
+          bctx.drawImage(pImg, photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
+          bctx.restore();
+        } catch {}
+      } else {
+        bctx.save();
+        bctx.beginPath();
+        bctx.arc(photoX, photoY, photoR, 0, Math.PI * 2);
+        bctx.clip();
+        bctx.fillStyle = "#f1f5f9";
+        bctx.fillRect(photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
+        bctx.restore();
+      }
+
+      // Company logo top right
+      if (logoImg) bctx.drawImage(logoImg, bW / SCALE - 50, 12, 30, 30);
+
+      // Text block
+      const textX = 120;
+      bctx.textAlign = "left";
+      bctx.shadowColor = "transparent";
+
+      bctx.font = `900 22px sans-serif`;
+      bctx.fillStyle = "#0f172a";
+      bctx.fillText(fullName, textX, 48);
+
+      bctx.font = `bold 11px sans-serif`;
+      bctx.fillStyle = design.primaryColor;
+      bctx.fillText(`${roleDomain.toUpperCase()} · ${department.toUpperCase()}`, textX, 70);
+
+      bctx.font = `bold 10px monospace`;
+      bctx.fillStyle = "#475569";
+      bctx.fillText(`ID: ${internId}`, textX, 90);
+
+      // Badge pill
+      bctx.fillStyle = design.primaryColor + "18";
+      bctx.strokeStyle = design.primaryColor + "44";
+      bctx.lineWidth = 1;
+      bctx.beginPath();
+      bctx.roundRect(textX, 100, 140, 18, 6);
+      bctx.fill();
+      bctx.stroke();
+      bctx.font = `900 8px sans-serif`;
+      bctx.fillStyle = design.primaryColor;
+      bctx.textAlign = "center";
+      bctx.fillText(design.label, textX + 70, 113);
+
+      // Status
+      bctx.textAlign = "right";
+      bctx.font = `900 10px sans-serif`;
+      bctx.fillStyle = "#047857";
+      bctx.fillText("✓ ACTIVE VERIFIED", bW / SCALE - 16, bH / SCALE - 18);
+
+      // Bottom border
+      bctx.fillStyle = design.primaryColor;
+      bctx.fillRect(0, bH / SCALE - 4, bW / SCALE, 4);
+
+      // Export
+      const link = document.createElement("a");
+      link.download = `AURXON-BADGE-${internId}.png`;
+      link.href = bc.toDataURL("image/png");
+      link.click();
+      setPhotoSuccess("Digital badge exported as Full HD PNG!");
+    } catch (err: any) {
+      setPhotoError(err.message || "Failed to generate digital badge.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleDownload = async (format: "PNG" | "JPG" | "PDF") => {
     if (isGenerating) return;
 
@@ -585,10 +710,15 @@ export default function IdCardGenerator({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Failed to initialize graphics pipeline.");
 
-      const width = 360;
-      const height = 560;
+      // Full HD 4x resolution rendering (1440x2240 output)
+      const SCALE = 4;
+      const baseW = 360;
+      const baseH = 560;
+      const width = baseW * SCALE;
+      const height = baseH * SCALE;
       canvas.width = width;
       canvas.height = height;
+      ctx.scale(SCALE, SCALE);
 
       if (photoUrl) {
         // Load image safely inside browser thread
@@ -601,31 +731,31 @@ export default function IdCardGenerator({
           img.onerror = () => reject(new Error("Failed to load selected profile image."));
         });
 
-        await drawCardOnCanvas(ctx, width, height, img);
+        await drawCardOnCanvas(ctx, baseW, baseH, img);
       } else {
-        await drawCardOnCanvas(ctx, width, height);
+        await drawCardOnCanvas(ctx, baseW, baseH);
       }
 
-      // 1. Export in requested formats
+      // 1. Export in requested formats (Full HD quality)
       if (format === "PNG") {
         const link = document.createElement("a");
-        link.download = `AURXON-ID-${internId}.png`;
+        link.download = `AURXON-ID-${internId}-HD.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
       } else if (format === "JPG") {
         const link = document.createElement("a");
-        link.download = `AURXON-ID-${internId}.jpg`;
-        link.href = canvas.toDataURL("image/jpeg", 0.95);
+        link.download = `AURXON-ID-${internId}-HD.jpg`;
+        link.href = canvas.toDataURL("image/jpeg", 1.0);
         link.click();
       } else if (format === "PDF") {
         const imgData = canvas.toDataURL("image/png");
         const pdf = new jsPDF({
           orientation: "portrait",
           unit: "px",
-          format: [360, 560],
+          format: [baseW, baseH],
         });
-        pdf.addImage(imgData, "PNG", 0, 0, 360, 560);
-        pdf.save(`AURXON-ID-${internId}.pdf`);
+        pdf.addImage(imgData, "PNG", 0, 0, baseW, baseH);
+        pdf.save(`AURXON-ID-${internId}-HD.pdf`);
       }
       
       // Perform security audit log fetch
@@ -647,8 +777,9 @@ export default function IdCardGenerator({
     }
   };
 
-  const isCardApproved = cardStatus === "APPROVED";
   const isAdminActor = loggedInRole === "FOUNDER" || loggedInRole === "HR" || loggedInRole === "SUPER_ADMIN" || loggedInRole === "ADMIN";
+  // Admins/Founder always see as approved — they issued the card
+  const isCardApproved = cardStatus === "APPROVED" || isAdminActor;
 
   return (
     <div className="relative text-slate-800 dark:text-white space-y-6">
@@ -787,11 +918,11 @@ export default function IdCardGenerator({
             </Button>
 
             <div className="space-y-2">
-              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">Download Options</span>
+              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">ID Card — Full HD Download</span>
               <div className="grid grid-cols-3 gap-2.5">
                 <Button
                   onClick={() => handleDownload("PNG")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
+                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -801,7 +932,7 @@ export default function IdCardGenerator({
 
                 <Button
                   onClick={() => handleDownload("JPG")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
+                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -811,7 +942,7 @@ export default function IdCardGenerator({
 
                 <Button
                   onClick={() => handleDownload("PDF")}
-                  disabled={isGenerating || (!isCardApproved && !isAdminActor) || cardStatus === "DEACTIVATED"}
+                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
                   variant="secondary"
                   className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
                 >
@@ -821,12 +952,25 @@ export default function IdCardGenerator({
               </div>
             </div>
 
+            <div className="space-y-2 pt-1 border-t border-white/[0.06]">
+              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">Digital Badge — LinkedIn / Social</span>
+              <Button
+                onClick={handleBadgeDownload}
+                disabled={isGenerating || cardStatus === "DEACTIVATED"}
+                variant="outline"
+                className="w-full h-10 text-[10px] font-bold border-yellow-500/20 hover:bg-yellow-500/5 text-yellow-400 rounded-xl flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+              >
+                <Eye className="h-4 w-4" />
+                <span>Download Digital Badge (HD PNG)</span>
+              </Button>
+            </div>
+
           </div>
         </div>
 
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
         <div className="flex justify-center items-start w-full pt-6 pb-4 overflow-hidden">
-          <div className="w-full max-w-[320px] mx-auto">
+          <div className="w-full max-w-[480px] mx-auto">
             <div
               className="w-full rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
               style={{
