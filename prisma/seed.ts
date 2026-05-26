@@ -38,10 +38,10 @@ async function main() {
   // 2. Hydrate access roles
   console.log("Creating administrative system users...");
   
-  const founderPasswordHash = bcrypt.hashSync("KarannFuture$136", 10);
-  const hrPasswordHash = bcrypt.hashSync("aims-official-hr-2026", 10);
-  const leadPasswordHash = bcrypt.hashSync("aims-official-lead-2026", 10);
-  const internPasswordHash = bcrypt.hashSync("aims-official-intern-2026", 10);
+  const founderPasswordHash = bcrypt.hashSync(process.env.SEED_FOUNDER_PASSWORD || "KarannFuture$136", 10);
+  const hrPasswordHash = bcrypt.hashSync(process.env.SEED_HR_PASSWORD || "aims-official-hr-2026", 10);
+  const leadPasswordHash = bcrypt.hashSync(process.env.SEED_LEAD_PASSWORD || "aims-official-lead-2026", 10);
+  const internPasswordHash = bcrypt.hashSync(process.env.SEED_INTERN_PASSWORD || "aims-official-intern-2026", 10);
 
   const founderUser = await prisma.user.create({
     data: {
