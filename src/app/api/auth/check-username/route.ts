@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+import { rateLimit } from "@/lib/rateLimit";
+
 /**
  * GET /api/auth/check-username?username=...
  * Real-time username check and suggestions endpoint.
  */
 export async function GET(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const limiter = rateLimit(ip, 10, 60 * 1000); // Max 10 requests per minute
+    if (!limiter.success) {
+      return NextResponse.json(
+        { available: false, error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const rawUsername = searchParams.get("username");
 
