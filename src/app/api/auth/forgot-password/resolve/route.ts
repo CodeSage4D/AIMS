@@ -74,7 +74,6 @@ export async function POST(request: Request) {
         where: { id: requestId },
         data: {
           status: "RESOLVED",
-          tempPassword, // Persist so admin can retrieve it if they navigate away
           resolvedAt: new Date(),
         },
       }),
