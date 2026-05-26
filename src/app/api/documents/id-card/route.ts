@@ -155,6 +155,19 @@ export async function POST(req: Request) {
       });
     }
 
+    // Sync the pictureUrl to the intern's profile notes
+    if (avatarUrl) {
+      const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
+      const currentNotes = parseInternNotes(intern.notes);
+      currentNotes.pictureUrl = avatarUrl;
+      await db.intern.update({
+        where: { id: internId },
+        data: {
+          notes: serializeInternNotes(currentNotes),
+        },
+      });
+    }
+
     // Log this action for compliance audit
     const safeUserId = await getSafeUserId(userId);
     await db.activityLog.create({
