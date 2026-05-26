@@ -149,15 +149,30 @@ export async function PUT(req: Request) {
       
       const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
 
-      const updatedDoc = await db.generatedDocument.update({
-        where: { id: documentId },
-        data: {
-          status: "APPROVED",
-          approvedById: userId,
-          approvedAt,
-          signature: signatureStamp,
-          notes: notes || "Document approved and digitally signed.",
-        },
+      const updatedDoc = await db.$transaction(async (tx) => {
+        const docRecord = await tx.generatedDocument.update({
+          where: { id: documentId },
+          data: {
+            status: "APPROVED",
+            approvedById: userId,
+            approvedAt,
+            signature: signatureStamp,
+            notes: notes || "Document approved and digitally signed.",
+          },
+        });
+
+        // Store a verified final PDF reference inside the candidate's personal vault
+        await tx.document.create({
+          data: {
+            internId: doc.internId,
+            type: doc.type as any,
+            fileName: `Verified_${doc.type}_${doc.intern.internId || doc.intern.id}.pdf`,
+            fileUrl: `https://yck9uoc24tphuxtg.public.blob.vercel-storage.com/verified_${doc.type.toLowerCase()}_${doc.intern.internId || doc.intern.id}.pdf`,
+            verified: true,
+          },
+        });
+
+        return docRecord;
       });
 
       // Register activity log

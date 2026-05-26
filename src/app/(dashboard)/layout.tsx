@@ -1,6 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ForcePasswordChange from "@/components/layout/ForcePasswordChange";
 
@@ -31,6 +32,65 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
     email: session.user.email || "",
     role: (session.user as any).role || "INTERN",
   };
+
+  // 5. Onboarding flow interceptor gate
+  const intern = await db.intern.findUnique({
+    where: { userId: safeUser.id },
+    include: {
+      generatedDocuments: true,
+      documents: true,
+    },
+  });
+
+  if (intern && intern.status === "ONBOARDING") {
+    const OnboardingFlow = (await import("@/components/layout/OnboardingFlow")).default;
+    const serializedIntern = {
+      id: intern.id,
+      internId: intern.internId,
+      fullName: intern.fullName,
+      email: intern.email,
+      phoneNumber: intern.phoneNumber,
+      address: intern.address,
+      city: intern.city,
+      state: intern.state,
+      country: intern.country,
+      pinCode: intern.pinCode,
+      citizenship: intern.citizenship,
+      region: intern.region,
+      university: intern.university,
+      degree: intern.degree,
+      department: intern.department,
+      roleDomain: intern.roleDomain,
+      batchSemester: intern.batchSemester,
+      startDate: intern.startDate.toISOString(),
+      endDate: intern.endDate ? intern.endDate.toISOString() : null,
+      emergencyContactName: intern.emergencyContactName,
+      emergencyContactNumber: intern.emergencyContactNumber,
+      skills: intern.skills,
+      bankName: intern.bankName,
+      accountNumber: intern.accountNumber,
+      ifscCode: intern.ifscCode,
+      upiId: intern.upiId,
+      branchName: intern.branchName,
+      panCard: intern.panCard,
+      notes: intern.notes,
+      documents: intern.documents.map(d => ({
+        id: d.id,
+        type: d.type,
+        fileName: d.fileName,
+        fileUrl: d.fileUrl,
+        verified: d.verified,
+      })),
+      generatedDocuments: intern.generatedDocuments.map(gd => ({
+        id: gd.id,
+        type: gd.type,
+        status: gd.status,
+        content: gd.content,
+        signature: gd.signature,
+      })),
+    };
+    return <OnboardingFlow user={safeUser} intern={serializedIntern} />;
+  }
 
   return (
     <DashboardLayout user={safeUser}>

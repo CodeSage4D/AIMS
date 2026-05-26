@@ -97,12 +97,54 @@ export async function POST(req: Request) {
 
         // Update Intern profile
         if (targetUser.internProfile) {
-          await tx.intern.update({
+          const updatedIntern = await tx.intern.update({
             where: { id: targetUser.internProfile.id },
             data: {
               internId: internId.trim().toUpperCase(),
-              status: "ACTIVE" as InternStatus,
+              status: "ONBOARDING" as InternStatus,
             },
+          });
+
+          // Re-generate dynamic onboarding document drafts matching permanent sequential ID
+          const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } = await import("@/lib/documentTemplates");
+          const offerLetterContent = generateOfferLetterDraft(updatedIntern);
+          const ndaContent = generateNDADraft(updatedIntern);
+          const agreementContent = generateAgreementDraft(updatedIntern);
+          const idCardContent = generateIDCardDraft(updatedIntern);
+
+          // Remove previous drafts if any
+          await tx.generatedDocument.deleteMany({
+            where: { internId: updatedIntern.id }
+          });
+
+          // Insert fresh, corrected drafts
+          await tx.generatedDocument.createMany({
+            data: [
+              {
+                internId: updatedIntern.id,
+                type: "OFFER_LETTER",
+                content: offerLetterContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: updatedIntern.id,
+                type: "NDA",
+                content: ndaContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: updatedIntern.id,
+                type: "AGREEMENT",
+                content: agreementContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: updatedIntern.id,
+                type: "ID_CARD",
+                content: idCardContent as any,
+                status: "PENDING",
+              },
+            ]
           });
         }
 

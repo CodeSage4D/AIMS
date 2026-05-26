@@ -84,8 +84,8 @@ const REQUIRED_DOCS = [
 
 export default function DocumentVaultClient({ initialInterns, role }: DocumentVaultClientProps) {
   const router = useRouter();
-  const isSuperUser = role === "FOUNDER" || role === "HR";
-  const isFounder = role === "FOUNDER";
+  const isSuperUser = role === "FOUNDER" || role === "HR" || role === "SUPER_ADMIN" || role === "ADMIN";
+  const isFounder = role === "FOUNDER" || role === "SUPER_ADMIN";
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"compliance" | "approvals">("compliance");
@@ -2150,7 +2150,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     
                     {/* Header brand section */}
                     <g transform="translate(20, 20)">
-                      <image href="/Logo-AIMS/Dark-Mode-Logo.png" x="0" y="0" width="16" height="16" />
+                      <image href="/Logo-AIMS/AurxonLogo.png" x="0" y="0" width="16" height="16" />
                       <text x="24" y="13.5" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="11" letterSpacing="2.5" textAnchor="start">AURXON</text>
                       
                       <rect x="220" y="0" width="60" height="16" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />
@@ -2391,7 +2391,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     </svg>
                   )}
                 </div>
-              ) : doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate" ? (
+              ) : doc.type === "CERTIFICATE" || (doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate") ? (
                 /* Phase 10: Elite Landscape Completion Certificate SVG Generator */
                 <svg width="842" height="595" viewBox="0 0 842 595" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto max-w-full aspect-[1.414] select-none shadow-2xl rounded-xl transition-all duration-300 print:shadow-none print:rounded-none print:border-none">
                   <defs>
@@ -2438,18 +2438,21 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <rect x="20" y="20" width="802" height="555" rx="8" fill="none" stroke={certTheme.frameColor} strokeWidth="2.5" />
                   <rect x="28" y="28" width="786" height="539" rx="6" fill="none" stroke={certTheme.goldLine} strokeDasharray="8 4" strokeWidth="1" opacity="0.75" />
 
+                  {/* Top-Center Logo */}
+                  <image href="/Logo-AIMS/AurxonLogo.png" x="396" y="32" width="50" height="35" preserveAspectRatio="xMidYMid slice" />
+
                   {/* Header Typography */}
-                  <text x="421" y="80" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="23" letterSpacing="4" textAnchor="middle">CERTIFICATE OF WORK EXPERIENCE</text>
-                  <text x="421" y="112" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="16" letterSpacing="8" textAnchor="middle">& COMPLETION</text>
+                  <text x="421" y="95" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="23" letterSpacing="4" textAnchor="middle">CERTIFICATE OF WORK EXPERIENCE</text>
+                  <text x="421" y="125" fill={certTheme.accentColor} className="cert-title-cinzel" fontSize="16" letterSpacing="8" textAnchor="middle">& COMPLETION</text>
                   
-                  <line x1="320" y1="130" x2="522" y2="130" stroke={certTheme.goldLine} strokeWidth="1" opacity="0.5" />
+                  <line x1="320" y1="140" x2="522" y2="140" stroke={certTheme.goldLine} strokeWidth="1" opacity="0.5" />
                   
-                  <text x="421" y="165" fill={certTheme.bodyColor} opacity="0.7" className="cert-font-inter" fontWeight="600" fontSize="9.5" letterSpacing="3.5" textAnchor="middle">THIS IS PROUDLY PRESENTED TO</text>
+                  <text x="421" y="175" fill={certTheme.bodyColor} opacity="0.7" className="cert-font-inter" fontWeight="600" fontSize="9.5" letterSpacing="3.5" textAnchor="middle">THIS IS PROUDLY PRESENTED TO</text>
                   
                   {/* Recipient Cursive/Serif styling */}
-                  <text x="421" y="222" fill="#ffffff" className="cert-font-playfair" fontWeight="700" fontSize="36" textAnchor="middle">{fullName}</text>
+                  <text x="421" y="228" fill="#ffffff" className="cert-font-playfair" fontWeight="700" fontSize="36" textAnchor="middle">{fullName}</text>
                   
-                  <path d="M 370 240 L 400 240 L 410 245 L 421 240 L 432 245 L 442 240 L 472 240" stroke={certTheme.goldLine} strokeWidth="1.5" opacity="0.6" fill="none" />
+                  <path d="M 370 246 L 400 246 L 410 251 L 421 246 L 432 251 L 442 246 L 472 246" stroke={certTheme.goldLine} strokeWidth="1.5" opacity="0.6" fill="none" />
 
                   {/* Certificate Narrative Paragraph */}
                   <g className="cert-font-inter" fontSize="12" fill={certTheme.bodyColor} textAnchor="middle">
@@ -2522,13 +2525,20 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <div className="space-y-6 z-10 relative text-left">
                     {/* Company Letterhead */}
                     <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4 mb-6">
-                      <div>
-                        <h2 className="text-base font-extrabold text-slate-900 tracking-tight font-heading">
-                          {content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
-                        </h2>
-                        <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
-                          Enterprise Databases • API Orchestrations • Automated Operations
-                        </p>
+                      <div className="flex items-center space-x-3">
+                        <img 
+                          src="/Logo-AIMS/AurxonLogo.png" 
+                          alt="Aurxon Logo" 
+                          className="h-9 w-auto object-contain shrink-0 animate-fadeIn" 
+                        />
+                        <div>
+                          <h2 className="text-base font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
+                            {content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
+                          </h2>
+                          <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider leading-none mt-1">
+                            Enterprise Databases • API Orchestrations • Automated Operations
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right text-[8px] text-slate-400 font-bold uppercase">
                         <span>Ref: AXN-DOC-{doc.intern?.internId || "DRAFT"}</span>
@@ -2606,6 +2616,27 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       </div>
                     )}
 
+                    {doc.type === "AGREEMENT" && (
+                      <div className="space-y-4 text-xs text-slate-700">
+                        <p className="leading-relaxed">
+                          This Internship Agreement (the "Agreement") is entered into on <span className="font-bold text-slate-900">{content.effectiveDate}</span>, by and between <span className="font-bold text-slate-900">{content.partyA}</span> ("Company") and <span className="font-bold text-slate-900">{content.partyB}</span> ("Intern").
+                        </p>
+
+                        {content.terms && content.terms.length > 0 && (
+                          <div className="space-y-2 pt-2 text-left">
+                            <span className="font-bold text-slate-900 block">Terms & Engagement Policies:</span>
+                            <ul className="list-decimal pl-5 space-y-1.5">
+                              {content.terms.map((t: string, i: number) => (
+                                <li key={i} className="leading-relaxed">{t}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <p className="pt-2">{content.closing}</p>
+                      </div>
+                    )}
+
                     {doc.type === "EXPERIENCE_LETTER" && (
                       <div className="space-y-4 text-xs text-slate-700">
                         <p className="font-heading font-extrabold text-slate-900 py-1">{content.salutation}</p>
@@ -2633,29 +2664,69 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   </div>
 
                   {/* Signature Box */}
-                  <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 z-10 relative">
-                    <div className="text-[10px] text-slate-500 text-left">
+                  <div className="mt-8 border-t border-slate-200 pt-6 flex flex-col space-y-4 sm:space-y-0 sm:flex-row justify-between items-start sm:items-end gap-4 z-10 relative">
+                    <div className="text-[10px] text-slate-500 text-left max-w-xs">
                       <span className="font-bold block uppercase tracking-wider text-slate-700">Audit Compliance Guard</span>
-                      <span>AURXON AIMS document generation node.</span>
+                      <span>AURXON AIMS double-signature authorization framework.</span>
                     </div>
                     
-                    {isApproved ? (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 w-full sm:max-w-xs space-y-1 text-left select-text">
-                        <div className="flex items-center space-x-1 text-emerald-700 font-heading font-extrabold text-[8px] uppercase tracking-wider">
-                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                          <span>AURXON SECURE SEAL VERIFIED</span>
-                        </div>
-                        <p className="text-[9px] text-slate-600 leading-tight">
-                          Signed & authorized under SUPER-ADMIN credentials
-                        </p>
-                        <span className="block text-[7.5px] font-mono text-cyan-700 dark:text-cyan-600 break-all select-all leading-none mt-1.5">
-                          {doc.signature}
-                        </span>
+                    {/* Render signatures */}
+                    {["OFFER_LETTER", "NDA", "AGREEMENT"].includes(doc.type) ? (
+                      <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        {/* Candidate Signature */}
+                        {content.candidateSignature ? (
+                          <div className="flex flex-col items-start border border-emerald-200 rounded-lg p-3 bg-emerald-50/20 min-w-[200px] text-left">
+                            <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Candidate Signature</span>
+                            <span className="text-sm font-serif italic font-semibold text-slate-900 leading-none">{content.candidateSignature}</span>
+                            <span className="text-[8px] text-slate-500 font-medium mt-1 leading-none">Signed: {content.candidateSignedAt}</span>
+                            <span className="text-[6.5px] text-slate-400 font-mono mt-1 block max-w-[190px] truncate leading-none" title={content.candidateSignatureStamp}>
+                              {content.candidateSignatureStamp}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start border border-dashed border-amber-300 rounded-lg p-3 bg-amber-50/30 min-w-[200px] text-left">
+                            <span className="text-[8px] font-bold text-amber-600 uppercase tracking-widest leading-none mb-1.5">Candidate Signature</span>
+                            <span className="text-xs text-amber-600 font-semibold italic animate-pulse leading-none">Awaiting Signature</span>
+                          </div>
+                        )}
+
+                        {/* Founder Signature */}
+                        {isApproved ? (
+                          <div className="flex flex-col items-start border border-emerald-200 rounded-lg p-3 bg-emerald-50/20 min-w-[200px] text-left">
+                            <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Authorized Signer</span>
+                            <span className="text-sm font-serif italic font-semibold text-slate-900 leading-none">{doc.approvedBy?.fullName || "Founder & CEO"}</span>
+                            <span className="text-[8px] text-slate-500 font-medium mt-1 leading-none">Signed: {new Date(doc.approvedAt!).toLocaleDateString()}</span>
+                            <span className="text-[6.5px] text-slate-400 font-mono mt-1 block max-w-[190px] truncate leading-none" title={doc.signature}>
+                              {doc.signature}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start border border-dashed border-slate-300 rounded-lg p-3 bg-slate-50 min-w-[200px] text-left">
+                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1.5">Authorized Signer</span>
+                            <span className="text-xs text-slate-400 font-medium italic leading-none">Awaiting Approval</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-amber-500 font-bold uppercase tracking-widest text-[9px] border border-dashed border-amber-300 rounded px-2.5 py-1.5 animate-pulse bg-amber-50/50">
-                        Unsigned Draft Copy
-                      </div>
+                      /* Single Signature for EXPERIENCE_LETTER / CERTIFICATE */
+                      isApproved ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 w-full sm:max-w-xs space-y-1 text-left select-text">
+                          <div className="flex items-center space-x-1 text-emerald-700 font-heading font-extrabold text-[8px] uppercase tracking-wider">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            <span>AURXON SECURE SEAL VERIFIED</span>
+                          </div>
+                          <p className="text-[9px] text-slate-600 leading-tight">
+                            Signed & authorized under administrative credentials
+                          </p>
+                          <span className="block text-[7.5px] font-mono text-cyan-700 dark:text-cyan-600 break-all select-all leading-none mt-1.5">
+                            {doc.signature}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-amber-500 font-bold uppercase tracking-widest text-[9px] border border-dashed border-amber-300 rounded px-2.5 py-1.5 bg-amber-50/50">
+                          Unsigned Draft Copy
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

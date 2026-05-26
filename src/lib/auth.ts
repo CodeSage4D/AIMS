@@ -95,17 +95,20 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.changePasswordRequired = (user as any).changePasswordRequired;
       } else if (token.id) {
-        try {
-          const freshUser = await db.user.findUnique({
-            where: { id: token.id as string },
-            select: { role: true, changePasswordRequired: true },
-          });
-          if (freshUser) {
-            token.role = freshUser.role;
-            token.changePasswordRequired = freshUser.changePasswordRequired;
+        // Skip DB lookups in the Edge runtime (middleware) to prevent Prisma errors
+        if (process.env.NEXT_RUNTIME !== "edge") {
+          try {
+            const freshUser = await db.user.findUnique({
+              where: { id: token.id as string },
+              select: { role: true, changePasswordRequired: true },
+            });
+            if (freshUser) {
+              token.role = freshUser.role;
+              token.changePasswordRequired = freshUser.changePasswordRequired;
+            }
+          } catch (err) {
+            console.warn("[AUTH JWT] Database lookup failed:", err);
           }
-        } catch (err) {
-          console.warn("[AUTH JWT] Database lookup failed:", err);
         }
       }
       return token;

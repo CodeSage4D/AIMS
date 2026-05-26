@@ -140,7 +140,7 @@ export async function POST(req: Request) {
           roleDomain: finalRole,
           department: finalDept,
           startDate: new Date(finalDateStr),
-          status: "ACTIVE", // Activates immediately into directory roster
+          status: "ONBOARDING", // Activates onboarding flow for first login
           phoneNumber: body.phoneNumber !== undefined ? body.phoneNumber : pendingIntern.phoneNumber,
           address: body.address !== undefined ? body.address : pendingIntern.address,
           city: body.city !== undefined ? body.city : pendingIntern.city,
@@ -159,9 +159,10 @@ export async function POST(req: Request) {
       });
 
       // 3. Re-generate dynamic onboarding document drafts in the vault matching permanent sequential ID
-      const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft } = await import("@/lib/documentTemplates");
+      const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } = await import("@/lib/documentTemplates");
       const offerLetterContent = generateOfferLetterDraft(updatedIntern);
       const ndaContent = generateNDADraft(updatedIntern);
+      const agreementContent = generateAgreementDraft(updatedIntern);
       const idCardContent = generateIDCardDraft(updatedIntern);
 
       // Remove previous drafts if any
@@ -182,6 +183,12 @@ export async function POST(req: Request) {
             internId: updatedIntern.id,
             type: "NDA",
             content: ndaContent as any,
+            status: "PENDING",
+          },
+          {
+            internId: updatedIntern.id,
+            type: "AGREEMENT",
+            content: agreementContent as any,
             status: "PENDING",
           },
           {
