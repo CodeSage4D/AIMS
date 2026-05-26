@@ -2,6 +2,7 @@ import React from "react";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { parseInternNotes } from "@/lib/roles";
 import ProfileSettingsClient from "@/components/layout/ProfileSettingsClient";
 
 export default async function ProfilePage() {
@@ -45,7 +46,7 @@ export default async function ProfilePage() {
   });
 
   if (!user) {
-    redirect("/login");
+    return notFound();
   }
 
   const isIntern = userRole === "INTERN";
@@ -173,12 +174,26 @@ export default async function ProfilePage() {
     console.warn("Error fetching bank setting:", e);
   }
 
+  // Resolve profile picture URL — from intern profile notes OR from user-level notes (for Founders)
+  let resolvedPictureUrl: string | null = null;
+  if (internProfile) {
+    const customFields = parseInternNotes(internProfile.notes);
+    resolvedPictureUrl = customFields.pictureUrl || null;
+  } else if (user.notes) {
+    try {
+      const userNotes = parseInternNotes(user.notes);
+      resolvedPictureUrl = (userNotes as any).pictureUrl || null;
+    } catch {}
+  }
+
   const serializedUser = {
     id: user.id,
     fullName: user.fullName,
     email: user.email,
     username: user.username,
     role: user.role,
+    pictureUrl: resolvedPictureUrl,
+    employeeId: (user as any).employeeId || null,
   };
 
   // Safe serialization of intern profile
