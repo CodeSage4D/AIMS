@@ -87,7 +87,6 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           username: true,
           role: true,
           status: true,
-          tempPassword: true,
         },
       },
     },
@@ -889,7 +888,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                         </span>
                         
                         <a
-                          href={doc.fileUrl}
+                          href={`/api/documents/view?id=${doc.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-md bg-secondary border border-border/60 hover:border-primary/40 hover:text-primary transition-all"
