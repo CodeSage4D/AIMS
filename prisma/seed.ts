@@ -46,6 +46,7 @@ async function main() {
   const founderUser = await prisma.user.create({
     data: {
       email: "karannmishra136@gmail.com",
+      username: "AXN-FND-2401-KM01",
       passwordHash: founderPasswordHash,
       fullName: "Karan Mishra",
       role: Role.FOUNDER,
