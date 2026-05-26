@@ -32,6 +32,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           // Check by email, or username, or internId (all case-insensitive)
           const user = await db.user.findFirst({
             where: {
+              deletedAt: null,
               OR: [
                 { email: { equals: input, mode: "insensitive" } },
                 { username: { equals: input, mode: "insensitive" } },
@@ -51,20 +52,46 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             if (user.status === "REJECTED") {
               throw new Error("Your account registration has been rejected.");
             }
+            if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+              throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
+            }
+
             const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
             if (isPasswordValid) {
+              await db.user.update({
+                where: { id: user.id },
+                data: { failedLoginAttempts: 0, lockedUntil: null }
+              });
               return {
                 id: user.id,
                 email: user.email,
                 name: user.fullName,
                 role: user.role,
                 changePasswordRequired: user.changePasswordRequired,
+                tokenVersion: user.tokenVersion,
               };
+            } else {
+              const attempts = user.failedLoginAttempts + 1;
+              const lockedUntil = attempts >= 10 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+              await db.user.update({
+                where: { id: user.id },
+                data: {
+                  failedLoginAttempts: attempts,
+                  lockedUntil: lockedUntil
+                }
+              });
+              if (attempts >= 10) {
+                throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
+              }
             }
           }
         } catch (dbError: any) {
-          // Re-throw account status errors so NextAuth can surface them
-          if (dbError?.message?.includes("pending") || dbError?.message?.includes("rejected")) {
+          // Re-throw account status or lockout errors so NextAuth can surface them
+          if (
+            dbError?.message?.includes("pending") ||
+            dbError?.message?.includes("rejected") ||
+            dbError?.message?.includes("locked")
+          ) {
             throw dbError;
           }
           console.warn(
@@ -83,17 +110,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.role = (user as any).role;
         token.id = user.id;
         token.changePasswordRequired = (user as any).changePasswordRequired;
+        token.tokenVersion = (user as any).tokenVersion;
       } else if (token.id) {
         // Skip DB lookups in the Edge runtime (middleware) to prevent Prisma errors
         if (process.env.NEXT_RUNTIME !== "edge") {
           try {
             const freshUser = await db.user.findUnique({
               where: { id: token.id as string },
-              select: { role: true, changePasswordRequired: true },
+              select: { role: true, changePasswordRequired: true, tokenVersion: true },
             });
             if (freshUser) {
+              if (token.tokenVersion !== freshUser.tokenVersion) {
+                return {} as any;
+              }
               token.role = freshUser.role;
               token.changePasswordRequired = freshUser.changePasswordRequired;
+              token.tokenVersion = freshUser.tokenVersion;
+            } else {
+              return {} as any;
             }
           } catch (err) {
             console.warn("[AUTH JWT] Database lookup failed:", err);
@@ -103,10 +137,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
+      if (!token || !token.id) {
+        return null as any;
+      }
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
         (session.user as any).changePasswordRequired = token.changePasswordRequired;
+        (session.user as any).tokenVersion = token.tokenVersion;
       }
       return session;
     },
