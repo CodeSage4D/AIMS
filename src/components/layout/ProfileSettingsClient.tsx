@@ -90,6 +90,51 @@ export default function ProfileSettingsClient({
   const [directGitHub, setDirectGitHub] = useState(customProfile.gitHub || "");
   const [directBloodGroup, setDirectBloodGroup] = useState(customProfile.bloodGroup || "");
   const [directPinCode, setDirectPinCode] = useState(internProfile?.pinCode || "");
+  const [directPictureUrl, setDirectPictureUrl] = useState(customProfile.pictureUrl || "");
+  const [photoPreview, setPhotoPreview] = useState<string | null>(customProfile.pictureUrl || null);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoUploadError(null);
+    setError(null);
+    setSuccess(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024) {
+      setPhotoUploadError("Image size must be strictly under 20KB. Please compress the file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      if (event.target?.result) {
+        const base64 = event.target.result as string;
+        setDirectPictureUrl(base64);
+        setPhotoPreview(base64);
+        
+        setLoading(true);
+        try {
+          const res = await fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pictureUrl: base64
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to update profile image.");
+          setSuccess("Profile picture successfully updated!");
+          router.refresh();
+        } catch (err: any) {
+          setError(err.message || "Failed to save profile picture.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [directAccountHolder, setDirectAccountHolder] = useState(customProfile.accountHolderName || "");
   const [directBankName, setDirectBankName] = useState(internProfile?.bankName || "");
@@ -559,10 +604,14 @@ export default function ProfileSettingsClient({
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-5 text-center md:text-left">
             {/* User Avatar Circle */}
-            <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-500 to-indigo-500 p-0.5 shadow-2xl shrink-0">
-              <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-4xl font-heading font-extrabold text-foreground">
-                {user.fullName[0].toUpperCase()}
-              </div>
+            <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-500 to-indigo-500 p-0.5 shadow-2xl shrink-0 overflow-hidden">
+              {photoPreview ? (
+                <img src={photoPreview} alt="Avatar" className="h-full w-full rounded-full object-cover bg-card" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-4xl font-heading font-extrabold text-foreground">
+                  {user.fullName[0].toUpperCase()}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -969,6 +1018,53 @@ export default function ProfileSettingsClient({
         {/* TAB 2: ACCOUNT SETTINGS */}
         {activeTab === "settings" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Profile Picture Upload Card */}
+            {internProfile && (
+              <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+                <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
+                  <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                    <User className="h-4.5 w-4.5 text-primary" />
+                    <span>Profile Display Photo</span>
+                  </CardTitle>
+                  <CardDescription className="text-[10px] text-muted-foreground">Upload your workspace avatar photo (max 20KB).</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-16 w-16 rounded-full bg-secondary border border-border/80 flex items-center justify-center overflow-hidden shrink-0">
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary select-none">
+                          {user.fullName[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-xs font-bold text-foreground">Upload Portrait Photo</p>
+                      <p className="text-[9px] text-muted-foreground leading-normal">
+                        Select a square portrait image. STRICT limit: **20KB**. Formats: JPG/PNG.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="relative border border-dashed border-border rounded-xl p-3 bg-secondary/15 hover:bg-secondary/25 transition-all flex flex-col items-center justify-center text-center cursor-pointer space-y-1">
+                      <span className="text-[11px] font-bold text-primary">Click to select photo file</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                    {photoUploadError && (
+                      <p className="text-[10px] font-semibold text-destructive">{photoUploadError}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Change Username Card */}
             <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
               <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
@@ -1407,6 +1503,7 @@ export default function ProfileSettingsClient({
                   status={user.role === "INTERN" ? "INTERN" : "ACTIVE"}
                   dbInternId={internProfile.id}
                   employmentType={internProfile.employmentType}
+                  defaultPhotoUrl={customProfile.pictureUrl}
                 />
               </CardContent>
             </Card>
