@@ -253,7 +253,6 @@ export async function POST(req: Request) {
               role: "INTERN",
               changePasswordRequired: true,
               status: isGated ? "PENDING" : "APPROVED",
-              tempPassword: rawTempPassword,
             },
           });
 
@@ -883,8 +882,9 @@ export async function PUT(req: Request) {
       dataToUpdate.internId = updateData.internId; // Only Founder can manually override
     }
 
-    // 6. Execute update in database (transactional update for both User and Intern)
     const updated = await db.$transaction(async (tx) => {
+      let freshTempPasswordVar: string | null = null;
+
       // If the intern has a linked user, update their account details in sync
       if (existing.userId) {
         const userUpdateData: any = {};
@@ -900,11 +900,13 @@ export async function PUT(req: Request) {
         if (updateData.regeneratePassword && userRole === "FOUNDER") {
           const crypto = require("crypto");
           const freshTempPassword = `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
-          userUpdateData.tempPassword = freshTempPassword;
           userUpdateData.passwordHash = bcrypt.hashSync(freshTempPassword, 10);
+          userUpdateData.changePasswordRequired = true;
+          freshTempPasswordVar = freshTempPassword;
         } else if (updateData.customPassword && userRole === "FOUNDER") {
-          userUpdateData.tempPassword = updateData.customPassword;
           userUpdateData.passwordHash = bcrypt.hashSync(updateData.customPassword, 10);
+          userUpdateData.changePasswordRequired = true;
+          freshTempPasswordVar = updateData.customPassword;
         }
 
         if (Object.keys(userUpdateData).length > 0) {
@@ -957,10 +959,14 @@ export async function PUT(req: Request) {
         }
       }
 
-      return await tx.intern.update({
+      const updatedRecord = await tx.intern.update({
         where: { id },
         data: dataToUpdate,
       });
+      return {
+        ...updatedRecord,
+        _freshTempPassword: freshTempPasswordVar,
+      };
     });
 
     // 7. Register administrative audit log
@@ -973,23 +979,21 @@ export async function PUT(req: Request) {
       },
     });
 
-    const freshUser = existing.userId
-      ? await db.user.findUnique({ where: { id: existing.userId }, select: { tempPassword: true } })
-      : null;
+    const { _freshTempPassword, ...internWithoutPassword } = updated as any;
 
     if (isRoleDomainGated) {
       return NextResponse.json({
         success: true,
-        intern: updated,
-        tempPassword: freshUser?.tempPassword || null,
+        intern: internWithoutPassword,
+        tempPassword: _freshTempPassword || null,
         message: "The requested executive role update requires Founder approval. A correction request has been enqueued in the Founder's queue."
       });
     }
 
     return NextResponse.json({
       success: true,
-      intern: updated,
-      tempPassword: freshUser?.tempPassword || null
+      intern: internWithoutPassword,
+      tempPassword: _freshTempPassword || null
     });
   } catch (error: any) {
     return NextResponse.json(
