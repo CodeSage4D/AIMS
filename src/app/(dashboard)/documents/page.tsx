@@ -183,7 +183,7 @@ export default async function DocumentsPage() {
       id: doc.id,
       type: doc.type,
       fileName: doc.fileName,
-      fileUrl: doc.fileUrl,
+      fileUrl: `/api/documents/view?id=${doc.id}`,
       verified: doc.verified,
       createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
     })),
