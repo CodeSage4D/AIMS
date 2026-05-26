@@ -56,7 +56,11 @@ interface InternData {
   supervisorId: string | null;
   status: string;
   employmentType?: string;
-  user?: { username: string | null } | null;
+  user?: {
+    username: string | null;
+    role?: string;
+    status?: string;
+  } | null;
 }
 
 interface WorkspaceHeaderActionsProps {
@@ -105,6 +109,8 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
     supervisorId: intern.supervisorId || "",
     status: intern.status,
     username: intern.user?.username || "",
+    role: intern.user?.role || "INTERN",
+    userStatus: intern.user?.status || "APPROVED",
   });
 
   const [activeTab, setActiveTab] = useState(1);
@@ -645,6 +651,64 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                               {m.fullName} ({m.role})
                             </option>
                           ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border/40 pt-4">
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                          Intern Status
+                        </label>
+                        <select
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                        >
+                          <option value="ONBOARDING">ONBOARDING</option>
+                          <option value="ACTIVE">ACTIVE</option>
+                          <option value="COMPLETED">COMPLETED</option>
+                          <option value="TERMINATED">TERMINATED</option>
+                          <option value="ARCHIVED">ARCHIVED</option>
+                          <option value="PENDING_VERIFICATION">PENDING_VERIFICATION</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                          User Access Role
+                        </label>
+                        <select
+                          name="role"
+                          value={formData.role}
+                          onChange={handleChange}
+                          disabled={!isAdmin}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                        >
+                          <option value="INTERN">INTERN</option>
+                          <option value="TEAM_LEAD">TEAM_LEAD</option>
+                          <option value="HR">HR</option>
+                          <option value="ADMIN">ADMIN</option>
+                          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                          <option value="FOUNDER">FOUNDER</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                          Account Login Status (Active/Inactive)
+                        </label>
+                        <select
+                          name="userStatus"
+                          value={formData.userStatus}
+                          onChange={handleChange}
+                          disabled={!isAdmin}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                        >
+                          <option value="APPROVED">APPROVED (Active)</option>
+                          <option value="PENDING">PENDING (Inactive/Review)</option>
+                          <option value="REJECTED">REJECTED (Disabled)</option>
                         </select>
                       </div>
                     </div>

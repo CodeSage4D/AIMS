@@ -881,6 +881,12 @@ export async function PUT(req: Request) {
         if (updateData.fullName !== undefined) userUpdateData.fullName = updateData.fullName;
         if (updateData.email !== undefined) userUpdateData.email = String(updateData.email).toLowerCase().trim();
         if (updateData.username !== undefined) userUpdateData.username = String(updateData.username).trim() || null;
+        if (updateData.role !== undefined && userRole === "FOUNDER") {
+          userUpdateData.role = updateData.role;
+        }
+        if (updateData.userStatus !== undefined && userRole === "FOUNDER") {
+          userUpdateData.status = updateData.userStatus;
+        }
 
         if (Object.keys(userUpdateData).length > 0) {
           await tx.user.update({

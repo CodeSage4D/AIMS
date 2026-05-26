@@ -85,6 +85,8 @@ export default async function InternWorkspacePage({ params }: PageProps) {
       user: {
         select: {
           username: true,
+          role: true,
+          status: true,
         },
       },
     },
