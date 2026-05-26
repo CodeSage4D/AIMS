@@ -86,7 +86,7 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
         id: d.id,
         type: d.type,
         fileName: d.fileName,
-        fileUrl: d.fileUrl,
+        fileUrl: `/api/documents/view?id=${d.id}`,
         verified: d.verified,
       })),
       generatedDocuments: intern.generatedDocuments.map(gd => ({
