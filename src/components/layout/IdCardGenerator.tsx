@@ -657,7 +657,7 @@ export default function IdCardGenerator({
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Main card customizer UI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start overflow-hidden">
         
         {/* Left: Customizer Controls */}
         <div className="p-5 sm:p-6 border border-slate-200 dark:border-white/[0.08] bg-white/60 dark:bg-[#0b0f19]/70 backdrop-blur-md rounded-2xl shadow-xl space-y-5">
@@ -825,11 +825,12 @@ export default function IdCardGenerator({
         </div>
 
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
-        <div className="flex justify-center items-center w-full py-8 min-h-[550px] lg:min-h-[640px] overflow-visible">
-          <div className="scale-[1.05] sm:scale-[1.15] md:scale-[1.25] lg:scale-[1.35] xl:scale-[1.4] origin-center transition-all duration-300">
+        <div className="flex justify-center items-start w-full pt-6 pb-4 overflow-hidden">
+          <div className="w-full max-w-[320px] mx-auto">
             <div
-              className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
+              className="w-full rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
               style={{
+                minHeight: "460px",
                 borderColor: design.primaryColor,
                 boxShadow: `0 10px 40px ${design.primaryColor}1a`,
                 background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
@@ -974,12 +975,11 @@ export default function IdCardGenerator({
                 </span>
               </div>
             </div>
-            
-            </div>
           </div>
         </div>
 
-      </div>
+    </div>
+  </div>
 
     </div>
   );
