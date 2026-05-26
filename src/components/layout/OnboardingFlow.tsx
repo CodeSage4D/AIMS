@@ -570,6 +570,76 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                   })}
               </div>
 
+              {/* One-Click Digital Signature Panel */}
+              {intern.generatedDocuments
+                .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
+                .some((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature) && (
+                <div className="border border-indigo-500/30 bg-indigo-500/5 p-5 rounded-2xl space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-indigo-400" />
+                      <span>One-Click Digital Signature</span>
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Type your full name once to instantly sign all pending agreements.
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 items-end">
+                    <div className="flex-1 space-y-1.5 w-full">
+                      <label className="text-[9px] font-heading font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Type Full Name to Sign All
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={formData.accountHolderName}
+                        id="signAllName"
+                        className="flex h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                      />
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        const inputEl = document.getElementById("signAllName") as HTMLInputElement;
+                        const nameToSign = inputEl?.value?.trim();
+                        if (!nameToSign) {
+                          setError("Please type your name to sign all documents.");
+                          return;
+                        }
+                        setError(null);
+                        setLoading(true);
+                        try {
+                          const unsignedDocs = intern.generatedDocuments
+                            .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
+                            .filter((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature);
+
+                          for (const doc of unsignedDocs) {
+                            const res = await fetch("/api/documents/sign", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ documentId: doc.id, signatureName: nameToSign }),
+                            });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.error || `Failed to sign ${doc.type}.`);
+                            setSignedDocs((prev) => ({ ...prev, [doc.type]: nameToSign }));
+                          }
+                          setSuccess("All documents signed successfully!");
+                          setTimeout(() => setSuccess(null), 3000);
+                        } catch (err: any) {
+                          setError(err.message || "Failed to sign all documents.");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      variant="primary"
+                      className="h-10 text-xs font-bold shrink-0 w-full sm:w-auto"
+                      disabled={loading}
+                    >
+                      Sign All Documents
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Document Sign modal drawer */}
               {activeSignDoc && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs select-none">
