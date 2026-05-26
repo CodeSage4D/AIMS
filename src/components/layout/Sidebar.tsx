@@ -16,7 +16,8 @@ import {
   X,
   Layers,
   ClipboardList,
-  Fingerprint
+  Fingerprint,
+  ShieldCheck
 } from "lucide-react";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     { label: "Teams & Members", href: "/teams", icon: Layers },
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
+    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Administration", href: "/administration", icon: ShieldCheck }] : []),
   ];
 
 
