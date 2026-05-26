@@ -825,8 +825,8 @@ export default function IdCardGenerator({
         </div>
 
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
-        <div className="flex justify-center items-center w-full py-8 overflow-visible">
-          <div className="scale-100 sm:scale-105 md:scale-115 lg:scale-120 xl:scale-125 origin-center transition-all duration-300">
+        <div className="flex justify-center items-center w-full py-8 min-h-[550px] lg:min-h-[640px] overflow-visible">
+          <div className="scale-[1.05] sm:scale-[1.15] md:scale-[1.25] lg:scale-[1.35] xl:scale-[1.4] origin-center transition-all duration-300">
             <div
               className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
               style={{
