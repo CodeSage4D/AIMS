@@ -24,6 +24,7 @@ import AnalyticsDashboard from "@/components/layout/AnalyticsDashboard";
 import NoticeBoard from "@/components/layout/NoticeBoard";
 import ExecutiveClockStation from "@/components/layout/ExecutiveClockStation";
 import RealTimePresenceMonitor from "@/components/layout/RealTimePresenceMonitor";
+import TodoWidget from "@/components/layout/TodoWidget";
 
 export default async function DashboardPage() {
   // Dynamic background sweep to mark absent active interns on daily shifts
@@ -547,46 +548,49 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Right: Quick Launch Card (1/3 width) */}
-        <Card className="border-border/60 bg-card/60 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>AIMS Access Launcher</CardTitle>
-            <CardDescription>Instant launch controllers to operational units.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Link
-              href="/interns"
-              className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
-            >
-              <div className="flex items-center space-x-3">
-                <Users className="h-4.5 w-4.5 text-primary group-hover:scale-105 transition-transform" />
-                <span className="text-xs font-semibold text-white">Query Directory</span>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-primary transition-all" />
-            </Link>
+        <div className="space-y-6">
+          <Card className="border-border/60 bg-card/60 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle>AIMS Access Launcher</CardTitle>
+              <CardDescription>Instant launch controllers to operational units.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Link
+                href="/interns"
+                className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Users className="h-4.5 w-4.5 text-primary group-hover:scale-105 transition-transform" />
+                  <span className="text-xs font-semibold text-white">Query Directory</span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-primary transition-all" />
+              </Link>
 
-            <Link
-              href="/tasks"
-              className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
-            >
-              <div className="flex items-center space-x-3">
-                <CheckSquare className="h-4.5 w-4.5 text-cyan-400 group-hover:scale-105 transition-transform" />
-                <span className="text-xs font-semibold text-white">Task Assignments</span>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-cyan-400 transition-all" />
-            </Link>
+              <Link
+                href="/tasks"
+                className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
+              >
+                <div className="flex items-center space-x-3">
+                  <CheckSquare className="h-4.5 w-4.5 text-cyan-400 group-hover:scale-105 transition-transform" />
+                  <span className="text-xs font-semibold text-white">Task Assignments</span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-cyan-400 transition-all" />
+              </Link>
 
-            <Link
-              href="/documents"
-              className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
-            >
-              <div className="flex items-center space-x-3">
-                <FileCheck className="h-4.5 w-4.5 text-emerald-400 group-hover:scale-105 transition-transform" />
-                <span className="text-xs font-semibold text-white">Document Vault</span>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-emerald-400 transition-all" />
-            </Link>
-          </CardContent>
-        </Card>
+              <Link
+                href="/documents"
+                className="flex items-center justify-between p-4 bg-secondary/20 rounded-md border border-border/40 hover:bg-secondary/35 hover:border-primary/40 transition-all duration-300 group"
+              >
+                <div className="flex items-center space-x-3">
+                  <FileCheck className="h-4.5 w-4.5 text-emerald-400 group-hover:scale-105 transition-transform" />
+                  <span className="text-xs font-semibold text-white">Document Vault</span>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:translate-x-1 group-hover:text-emerald-400 transition-all" />
+              </Link>
+            </CardContent>
+          </Card>
+          <TodoWidget />
+        </div>
       </div>
     </div>
   );

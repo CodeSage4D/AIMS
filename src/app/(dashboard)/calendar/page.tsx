@@ -94,65 +94,80 @@ export default function CalendarPage() {
   }
 
   const [personalTodos, setPersonalTodos] = useState<PersonalTodo[]>([]);
+  const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
   const [todoTitle, setTodoTitle] = useState("");
   const [todoDesc, setTodoDesc] = useState("");
   const [todoDate, setTodoDate] = useState("");
   const [todoType, setTodoType] = useState<"TODO" | "REMINDER">("TODO");
 
-  useEffect(() => {
-    const saved = localStorage.getItem("aims_personal_todos");
-    if (saved) {
-      try {
-        setPersonalTodos(JSON.parse(saved));
-      } catch (err) {
-        console.error("Failed to parse personal todos:", err);
-      }
-    }
-  }, []);
-
-  const savePersonalTodos = (updated: PersonalTodo[]) => {
-    setPersonalTodos(updated);
-    localStorage.setItem("aims_personal_todos", JSON.stringify(updated));
-  };
-
-  const handleCreateTodo = (e: React.FormEvent) => {
+  const handleCreateTodo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoTitle || !todoDate) return;
 
-    const newTodo: PersonalTodo = {
-      id: "todo-" + Math.random().toString(36).substring(2, 9),
-      title: todoTitle.trim(),
-      description: todoDesc.trim(),
-      date: todoDate,
-      type: todoType,
-      completed: false,
-    };
+    try {
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: todoTitle.trim(),
+          description: todoDesc.trim(),
+          date: todoDate,
+          type: todoType,
+        }),
+      });
 
-    const updated = [...personalTodos, newTodo];
-    savePersonalTodos(updated);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create todo.");
 
-    // Reset form
-    setTodoTitle("");
-    setTodoDesc("");
-    setTodoDate("");
-    setTodoType("TODO");
-    setIsTodoModalOpen(false);
-    setSuccess("Personal plan successfully saved to calendar!");
-    setTimeout(() => setSuccess(null), 3000);
+      await fetchCalendarData();
+
+      // Reset form
+      setTodoTitle("");
+      setTodoDesc("");
+      setTodoDate("");
+      setTodoType("TODO");
+      setIsTodoModalOpen(false);
+      setSuccess("Personal plan successfully saved to calendar!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save todo.");
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
-  const handleToggleTodo = (id: string) => {
-    const updated = personalTodos.map((t) =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    );
-    savePersonalTodos(updated);
+  const handleToggleTodo = async (id: string) => {
+    const todo = personalTodos.find((t) => t.id === id);
+    if (!todo) return;
+    try {
+      const res = await fetch("/api/todos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          completed: !todo.completed,
+        }),
+      });
+      if (res.ok) {
+        await fetchCalendarData();
+      }
+    } catch (err) {
+      console.error("Toggle todo failed:", err);
+    }
   };
 
-  const handleDeleteTodo = (id: string) => {
+  const handleDeleteTodo = async (id: string) => {
     if (!confirm("Remove this item from your calendar?")) return;
-    const updated = personalTodos.filter((t) => t.id !== id);
-    savePersonalTodos(updated);
+    try {
+      const res = await fetch(`/api/todos?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await fetchCalendarData();
+      }
+    } catch (err) {
+      console.error("Delete todo failed:", err);
+    }
   };
 
   const getPersonalTodosForDay = (day: number) => {
@@ -194,10 +209,12 @@ export default function CalendarPage() {
   const fetchCalendarData = async () => {
     setLoading(true);
     try {
-      const [eventsRes, holidaysRes, leavesRes] = await Promise.all([
+      const [eventsRes, holidaysRes, leavesRes, todosRes, tasksRes] = await Promise.all([
         fetch("/api/events"),
         fetch("/api/holidays"),
         fetch("/api/leave"),
+        fetch("/api/todos"),
+        fetch("/api/tasks"),
       ]);
 
       if (eventsRes.ok) setEvents(await eventsRes.json());
@@ -206,6 +223,18 @@ export default function CalendarPage() {
         const leavesData = await leavesRes.json();
         // Only display approved leaves on the calendar
         setLeaves(leavesData.filter((l: LeaveItem) => l.status === "APPROVED"));
+      }
+      if (todosRes.ok) {
+        const data = await todosRes.json();
+        if (data.success) {
+          setPersonalTodos(data.todos);
+        }
+      }
+      if (tasksRes.ok) {
+        const data = await tasksRes.json();
+        if (data.success) {
+          setDbTasks(data.tasks);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch calendar data stream:", err);
@@ -260,6 +289,13 @@ export default function CalendarPage() {
       const endUTC = new Date(Date.UTC(endIST.getUTCFullYear(), endIST.getUTCMonth(), endIST.getUTCDate(), 23, 59, 59, 999));
       
       return targetDate >= startUTC && targetDate <= endUTC;
+    });
+  };
+
+  const getTasksForDay = (day: number) => {
+    return dbTasks.filter((t) => {
+      const tDateIST = new Date(new Date(t.deadline).getTime() + 5.5 * 60 * 60 * 1000);
+      return tDateIST.getUTCFullYear() === year && tDateIST.getUTCMonth() === month && tDateIST.getUTCDate() === day;
     });
   };
 
@@ -578,6 +614,18 @@ export default function CalendarPage() {
                           title={`Personal ${t.type} (Click to toggle complete): ${t.title}`}
                         >
                           {t.type === "TODO" ? (t.completed ? "✅" : "📌") : "🔔"} {t.title}
+                        </div>
+                      ))}
+
+                      {/* 5. Assigned Tasks Deadlines Block */}
+                      {getTasksForDay(day).map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-rose-500/15 border border-rose-500/20 text-rose-500 text-[6.5px] sm:text-[7.5px] px-1 py-0.5 rounded truncate font-heading font-extrabold uppercase animate-pulse"
+                          title={`Task Deadline: ${t.title} (${t.status})`}
+                        >
+                          🎯 {t.title}
                         </div>
                       ))}
                     </div>

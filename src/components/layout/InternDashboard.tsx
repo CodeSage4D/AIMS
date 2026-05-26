@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import NoticeBoard from "@/components/layout/NoticeBoard";
+import TodoWidget from "@/components/layout/TodoWidget";
 
 interface AttendanceRecord {
   id: string;
@@ -1102,8 +1103,15 @@ export default function InternDashboard({
 
           </div>
 
-          {/* Announcements & Cheers */}
-          <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
+          {/* Announcements & Cheers + Personal Planner */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <NoticeBoard announcements={announcements} anniversaries={anniversaries} />
+            </div>
+            <div className="lg:col-span-1">
+              <TodoWidget />
+            </div>
+          </div>
 
           {/* 3. Leave Calendar & Tasks split screen */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

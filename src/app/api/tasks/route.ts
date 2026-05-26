@@ -16,6 +16,73 @@ async function getAuthenticatedUser() {
 }
 
 /**
+ * GET /api/tasks
+ * Retrieves assigned tasks/work goals.
+ */
+export async function GET(req: Request) {
+  try {
+    const authResult = await getAuthenticatedUser();
+    if (!authResult.authenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    const { user } = authResult;
+
+    const { searchParams } = new URL(req.url);
+    const internId = searchParams.get("internId");
+
+    // Check taskAccess permission
+    const hasTaskAccess = await hasPermission(user.id, user.role, "taskAccess");
+    if (!hasTaskAccess) {
+      return NextResponse.json({ error: "Forbidden. Insufficient permissions to read tasks." }, { status: 403 });
+    }
+
+    if (user.role === "INTERN") {
+      // Find intern record for this user
+      const intern = await db.intern.findFirst({
+        where: { userId: user.id },
+      });
+      if (!intern) {
+        return NextResponse.json({ success: true, tasks: [] });
+      }
+      const tasks = await db.task.findMany({
+        where: { internId: intern.id },
+        orderBy: { deadline: "asc" },
+      });
+      return NextResponse.json({ success: true, tasks });
+    } else {
+      const filter: any = {};
+      if (internId) {
+        filter.internId = internId;
+      }
+      
+      if (user.role === "TEAM_LEAD" || user.role === "ADMIN") {
+        filter.intern = {
+          supervisorId: user.id
+        };
+      }
+
+      const tasks = await db.task.findMany({
+        where: filter,
+        include: {
+          intern: {
+            select: {
+              fullName: true,
+              internId: true,
+              roleDomain: true,
+            }
+          }
+        },
+        orderBy: { deadline: "asc" },
+      });
+      return NextResponse.json({ success: true, tasks });
+    }
+  } catch (err: any) {
+    console.error("Error retrieving tasks:", err);
+    return NextResponse.json({ error: "Internal database read error." }, { status: 500 });
+  }
+}
+
+/**
  * POST /api/tasks
  * Assigns a new work goal/task to an active intern
  */
