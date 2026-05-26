@@ -11,6 +11,15 @@ import { cn } from "@/lib/utils";
 
 const sortedRoles = Object.keys(ROLE_CODES).sort();
 
+const AVAILABLE_BADGES = [
+  "Intern",
+  "Permanent",
+  "Engineering",
+  "Operations",
+  "Design",
+  "Product Team",
+];
+
 interface MentorOption {
   id: string;
   fullName: string;
@@ -41,6 +50,7 @@ interface InternData {
   emergencyContactName: string;
   emergencyContactNumber: string;
   skills: string[];
+  badges: string[];
   notes: string;
   ssidn: string | null;
   supervisorId: string | null;
@@ -89,6 +99,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
     emergencyContactName: intern.emergencyContactName,
     emergencyContactNumber: intern.emergencyContactNumber,
     skillsInput: intern.skills.join(", "),
+    badges: intern.badges || [],
     notes: intern.notes || "",
     ssidn: intern.ssidn || "",
     supervisorId: intern.supervisorId || "",
@@ -675,6 +686,41 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                         value={formData.skillsInput}
                         onChange={handleChange}
                       />
+                    </div>
+
+                    <div className="border-t border-border/40 pt-4 space-y-3">
+                      <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                        Assigned Identity Badges
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {AVAILABLE_BADGES.map((badge) => {
+                          const isChecked = formData.badges.includes(badge);
+                          return (
+                            <label 
+                              key={badge} 
+                              className={cn(
+                                "flex items-center space-x-2.5 p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold",
+                                isChecked 
+                                  ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 font-extrabold" 
+                                  : "bg-secondary/5 border-border/40 text-muted-foreground hover:bg-secondary/10"
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const updatedBadges = e.target.checked
+                                    ? [...formData.badges, badge]
+                                    : formData.badges.filter((b) => b !== badge);
+                                  setFormData((prev) => ({ ...prev, badges: updatedBadges }));
+                                }}
+                                className="rounded border-border bg-input text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                              />
+                              <span>{badge}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="border-t border-border/40 pt-4 space-y-4">

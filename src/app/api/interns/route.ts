@@ -305,9 +305,10 @@ export async function POST(req: Request) {
           });
 
           // Generate dynamic onboarding document drafts
-          const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft } = await import("@/lib/documentTemplates");
+          const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } = await import("@/lib/documentTemplates");
           const offerLetterContent = generateOfferLetterDraft(createdIntern);
           const ndaContent = generateNDADraft(createdIntern);
+          const agreementContent = generateAgreementDraft(createdIntern);
           const idCardContent = generateIDCardDraft(createdIntern);
 
           await tx.generatedDocument.createMany({
@@ -322,6 +323,12 @@ export async function POST(req: Request) {
                 internId: createdIntern.id,
                 type: "NDA",
                 content: ndaContent as any,
+                status: "PENDING",
+              },
+              {
+                internId: createdIntern.id,
+                type: "AGREEMENT",
+                content: agreementContent as any,
                 status: "PENDING",
               },
               {
@@ -825,6 +832,9 @@ export async function PUT(req: Request) {
     if (updateData.upiId !== undefined) dataToUpdate.upiId = updateData.upiId;
     if (updateData.branchName !== undefined) dataToUpdate.branchName = updateData.branchName;
     if (updateData.panCard !== undefined) dataToUpdate.panCard = updateData.panCard;
+    if (updateData.badges !== undefined) {
+      dataToUpdate.badges = Array.isArray(updateData.badges) ? updateData.badges : [];
+    }
 
     // Handle Notes & Serialized Custom properties
     const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");

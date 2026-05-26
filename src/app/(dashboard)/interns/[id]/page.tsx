@@ -188,13 +188,21 @@ export default async function InternWorkspacePage({ params }: PageProps) {
             </Button>
           </Link>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-heading font-extrabold text-foreground tracking-tight">
                 {intern.fullName}
               </h2>
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-heading font-semibold border ${getStatusBadge(intern.status)}`}>
                 {intern.status}
               </span>
+              {intern.badges && intern.badges.length > 0 && intern.badges.map((badge: string, i: number) => (
+                <span 
+                  key={i} 
+                  className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                >
+                  {badge}
+                </span>
+              ))}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Workspace Profile Dashboard &bull; ID: <span className="font-mono text-cyan-400 font-bold">{intern.internId}</span>
