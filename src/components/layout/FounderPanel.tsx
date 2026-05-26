@@ -1200,6 +1200,8 @@ export default function FounderPanel({
               status="ACTIVE"
               dbInternId="founder-master-id" 
               employmentType="FOUNDER"
+              linkedIn="https://linkedin.com/in/karan-mishra-aurxon"
+              gitHub="https://github.com/karanmishra"
             />
           </div>
         </div>
