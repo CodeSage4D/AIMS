@@ -14,6 +14,7 @@ interface HeaderProps {
     name?: string | null;
     email?: string | null;
     role?: string;
+    pictureUrl?: string | null;
   };
   onMenuToggle: () => void;
 }
@@ -337,9 +338,13 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
             className="h-9 w-9 rounded-full bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all cursor-pointer overflow-hidden"
             title="Account Menu"
           >
-            <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary hover:bg-primary/20 transition-all select-none">
-              {user.name ? user.name[0].toUpperCase() : "A"}
-            </div>
+            {(user as any).pictureUrl ? (
+              <img src={(user as any).pictureUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary hover:bg-primary/20 transition-all select-none">
+                {user.name ? user.name[0].toUpperCase() : "A"}
+              </div>
+            )}
           </button>
 
           {isDropdownOpen && (
