@@ -1508,6 +1508,8 @@ export default function ProfileSettingsClient({
                   dbInternId={internProfile.id}
                   employmentType={internProfile.employmentType}
                   defaultPhotoUrl={customProfile.pictureUrl}
+                  linkedIn={customProfile.linkedIn}
+                  gitHub={customProfile.gitHub}
                 />
               </CardContent>
             </Card>
