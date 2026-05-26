@@ -27,9 +27,12 @@ import {
   History,
   Terminal,
   Lock,
-  CheckCircle2
+  CheckCircle2,
+  Zap,
+  Power
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import IdCardGenerator from "@/components/layout/IdCardGenerator";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn, formatDate } from "@/lib/utils";
@@ -101,7 +104,7 @@ export default function FounderPanel({
     latency: "24ms"
   }
 }: FounderPanelProps) {
-  const [activeTab, setActiveTab] = useState<"planner" | "diary" | "projects" | "syscontrols">("planner");
+  const [activeTab, setActiveTab] = useState<"planner" | "diary" | "projects" | "syscontrols" | "founderprofile">("planner");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,6 +144,10 @@ export default function FounderPanel({
   const [verificationResult, setVerificationResult] = useState<{ success: boolean; message: string } | null>(null);
   const [verifyingBackup, setVerifyingBackup] = useState<string | null>(null);
 
+  // God Mode state
+  const [systemLocked, setSystemLocked] = useState(false);
+  const [burnoutRisk, setBurnoutRisk] = useState<string>("LOW");
+
   // Load Initial Data
   useEffect(() => {
     fetchPlanner();
@@ -150,10 +157,20 @@ export default function FounderPanel({
     
     // Animate telemetry metrics simulation dynamically
     const interval = setInterval(() => {
-      setSimCpu((prev) => Math.max(5, Math.min(95, prev + Math.floor(Math.random() * 7) - 3)));
+      const newCpu = Math.max(5, Math.min(95, simCpu + Math.floor(Math.random() * 7) - 3));
+      setSimCpu(newCpu);
       setSimMem((prev) => Math.max(40, Math.min(85, prev + (Math.random() > 0.7 ? 1 : 0) - (Math.random() > 0.85 ? 1 : 0))));
       setSimLatency((prev) => Math.max(12, Math.min(90, prev + Math.floor(Math.random() * 5) - 2)));
       setSimRequests((prev) => prev + Math.floor(Math.random() * 2));
+      
+      // Calculate Predictive Burnout Risk
+      if (newCpu > 80 || systemStats.pendingTasks > 20) {
+        setBurnoutRisk("HIGH (Intervention Recommended)");
+      } else if (newCpu > 60 || systemStats.pendingTasks > 10) {
+        setBurnoutRisk("MEDIUM");
+      } else {
+        setBurnoutRisk("LOW (Optimal)");
+      }
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -479,6 +496,7 @@ export default function FounderPanel({
           { id: "diary", label: "Diary Database", icon: BookOpen },
           { id: "projects", label: "Projects Directory", icon: Briefcase },
           { id: "syscontrols", label: "Telemetry & Backups", icon: Cpu },
+          { id: "founderprofile", label: "Elite Profile", icon: UserCheck },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1079,6 +1097,110 @@ export default function FounderPanel({
               </CardContent>
             </Card>
 
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {/* Predictive Health Telemetry */}
+            <Card className="border-emerald-500/20 bg-[#0b0f19]/90 p-5 shadow-lg shadow-emerald-500/5">
+              <CardHeader className="p-0 pb-3 border-b border-white/[0.08] mb-4">
+                <CardTitle className="text-xs font-heading font-extrabold text-emerald-400 flex items-center space-x-2">
+                  <Activity className="h-4.5 w-4.5" />
+                  <span>Predictive Health Telemetry</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-gray-500 mt-1">Real-time health forecasting algorithm</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 space-y-4 text-xs font-mono">
+                <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                  <span className="text-gray-400">System Stability:</span>
+                  <span className="text-emerald-400 font-bold tracking-widest">{(100 - simCpu / 10).toFixed(1)}% OPTIMAL</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                  <span className="text-gray-400">Projected Burnout Risk:</span>
+                  <span className={cn(
+                    "font-bold uppercase",
+                    burnoutRisk.includes("HIGH") ? "text-rose-500 animate-pulse" : burnoutRisk.includes("MEDIUM") ? "text-yellow-400" : "text-emerald-400"
+                  )}>{burnoutRisk}</span>
+                </div>
+                <div className="flex justify-between items-center pb-2">
+                  <span className="text-gray-400">Bottleneck Prediction:</span>
+                  <span className="text-indigo-400 font-bold">{(systemStats.pendingTasks > 10 ? "TASK QUEUE OVERFLOW DETECTED" : "CLEAR")}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* God Mode Override Controls */}
+            <Card className="border-rose-500/20 bg-[#0b0f19]/90 p-5 shadow-lg shadow-rose-500/5">
+              <CardHeader className="p-0 pb-3 border-b border-white/[0.08] mb-4">
+                <CardTitle className="text-xs font-heading font-extrabold text-rose-500 flex items-center space-x-2">
+                  <ShieldAlert className="h-4.5 w-4.5 animate-pulse" />
+                  <span>"God Mode" Administrative Overrides</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-gray-500 mt-1">Absolute power controls (Cryptographic verification required)</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 space-y-3">
+                <div className="flex justify-between items-center bg-rose-500/5 border border-rose-500/10 p-3 rounded-lg">
+                  <div className="space-y-0.5">
+                    <h5 className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Power className="h-3 w-3 text-rose-500" /> System Global Lock
+                    </h5>
+                    <p className="text-[9px] text-gray-500">Prevent all non-founder logins instantaneously.</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className={cn("text-[9px] font-bold border-rose-500/30", systemLocked ? "bg-rose-500 text-white hover:bg-rose-600" : "text-rose-500 hover:bg-rose-500/10")}
+                    onClick={() => setSystemLocked(!systemLocked)}
+                  >
+                    {systemLocked ? "UNLOCK SYSTEM" : "ENGAGE LOCK"}
+                  </Button>
+                </div>
+                
+                <div className="flex justify-between items-center bg-indigo-500/5 border border-indigo-500/10 p-3 rounded-lg">
+                  <div className="space-y-0.5">
+                    <h5 className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="h-3 w-3 text-indigo-400" /> Force Instant Backup
+                    </h5>
+                    <p className="text-[9px] text-gray-500">Generate a quantum-encrypted snapshot offline.</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-[9px] font-bold border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                    onClick={() => alert("Initiated secure background quantum backup protocol.")}
+                  >
+                    EXECUTE
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* RENDER TAB 5: FOUNDER ELITE PROFILE */}
+      {activeTab === "founderprofile" && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-base font-heading font-extrabold text-white tracking-tight">
+                Elite Founder Credentials
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Manage your master profile, royal purple ID card, and biometric data.
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-1">
+            <IdCardGenerator 
+              fullName="Karan Mishra"
+              internId="AXN-FND-2401-KM01"
+              department="Executive Board"
+              roleDomain="Founder"
+              status="ACTIVE"
+              dbInternId="founder-master-id" 
+              employmentType="FOUNDER"
+            />
           </div>
         </div>
       )}
