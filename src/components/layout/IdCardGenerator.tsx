@@ -15,6 +15,7 @@ interface IdCardGeneratorProps {
   status: string;
   dbInternId: string; // The database primary key of the intern/employee record
   employmentType?: string; // The employment status type
+  defaultPhotoUrl?: string | null; // Profile picture default fallback
 }
 
 export default function IdCardGenerator({
@@ -25,12 +26,13 @@ export default function IdCardGenerator({
   status,
   dbInternId,
   employmentType,
+  defaultPhotoUrl,
 }: IdCardGeneratorProps) {
   const { data: session } = useSession();
   const loggedInRole = (session?.user as any)?.role || "INTERN";
   const loggedInUserId = (session?.user as any)?.id;
 
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(defaultPhotoUrl || null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoSuccess, setPhotoSuccess] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -179,9 +181,9 @@ export default function IdCardGenerator({
 
     if (!file) return;
 
-    // Secure 50 KB client-side validation
-    if (file.size > 50 * 1024) {
-      setPhotoError("Rejected: Profile photo exceeds the secure 50 KB maximum limit. Please compress your picture.");
+    // Secure 20 KB client-side validation
+    if (file.size > 20 * 1024) {
+      setPhotoError("Rejected: Profile photo exceeds the secure 20 KB maximum limit. Please compress your picture.");
       setPhotoUrl(null);
       return;
     }
@@ -693,7 +695,7 @@ export default function IdCardGenerator({
               <UploadCloud className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
               <div className="text-xs">
                 <span className="font-bold text-indigo-550 dark:text-indigo-400">Click to attach photo</span>
-                <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-indigo-550 dark:text-indigo-400">Strictly ≤ 50 KB</span></p>
+                <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-indigo-550 dark:text-indigo-400">Strictly ≤ 20 KB</span></p>
               </div>
               <input
                 type="file"
