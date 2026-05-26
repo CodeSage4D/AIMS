@@ -128,9 +128,28 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
     };
   });
 
-
-
   const [activeTab, setActiveTab] = useState(1);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024) {
+      setPhotoUploadError("Rejected: Profile picture exceeds 20KB limit. Please compress.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const target = event.target;
+      if (target && target.result) {
+        setFormData((prev) => ({ ...prev, pictureUrl: target.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -891,15 +910,36 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
 
                     <div className="border-t border-border/40 pt-4 space-y-4">
                       <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
-                        Picture Attachment
+                        Picture / Photo Portrait
                       </span>
-                      <Input
-                        label="Picture / Photo URL"
-                        name="pictureUrl"
-                        placeholder="https://example.com/photo.jpg"
-                        value={formData.pictureUrl}
-                        onChange={handleChange}
-                      />
+                      <div className="flex items-center space-x-4">
+                        <div className="h-14 w-14 rounded-full bg-secondary border border-border/80 flex items-center justify-center overflow-hidden shrink-0">
+                          {formData.pictureUrl ? (
+                            <img src={formData.pictureUrl} alt="Avatar" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-heading font-extrabold text-primary select-none">
+                              {formData.fullName ? formData.fullName[0].toUpperCase() : "A"}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-heading font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg cursor-pointer inline-block hover:bg-primary/20 transition-all">
+                            Choose Photo File
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePhotoUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="text-[9px] text-muted-foreground leading-normal">
+                            Strict limit: **20KB** (PNG/JPG). Displays on profile, badges, and ID cards.
+                          </p>
+                        </div>
+                      </div>
+                      {photoUploadError && (
+                        <p className="text-[10px] font-semibold text-destructive mt-1">{photoUploadError}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-col space-y-1.5 w-full border-t border-border/40 pt-4">
