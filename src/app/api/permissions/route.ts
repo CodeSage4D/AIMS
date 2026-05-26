@@ -12,9 +12,18 @@ async function getAdminUser() {
     return { authenticated: false, status: 401, error: "Unauthorized access. Please log in." };
   }
   const user = session.user as any;
+  
+  // Founders and Super Admins always have full access
+  if (user.role === "FOUNDER" || user.role === "SUPER_ADMIN") {
+    return { authenticated: true, user };
+  }
+
+  // HR and Admin have onboarding/approval access to the permissions page
   const { hasPermission } = await import("@/lib/permissions");
-  const hasAccess = await hasPermission(user.id, user.role, "settingsAccess");
-  if (!hasAccess) {
+  const hasSettings = await hasPermission(user.id, user.role, "settingsAccess");
+  const hasOnboarding = await hasPermission(user.id, user.role, "onboardingAccess");
+  
+  if (!hasSettings && !hasOnboarding) {
     return { authenticated: false, status: 403, error: "Forbidden. Administrative settings privileges required." };
   }
   return { authenticated: true, user };
@@ -201,6 +210,15 @@ export async function PUT(req: Request) {
     if ((role === Role.SUPER_ADMIN || targetUser.role === Role.SUPER_ADMIN) && currentUser.role !== Role.FOUNDER) {
       return NextResponse.json({ error: "Forbidden. Only the Founder can manage Super Admin roles and permissions." }, { status: 403 });
     }
+
+    // HR can only modify INTERN and TEAM_LEAD permissions — not other admins
+    const hrRestrictedRoles: string[] = [Role.ADMIN, Role.HR, Role.SUPER_ADMIN, Role.FOUNDER];
+    if (currentUser.role === Role.HR && hrRestrictedRoles.includes(targetUser.role)) {
+      return NextResponse.json({
+        error: "Forbidden. HR can only manage permissions for Interns and Team Leads.",
+      }, { status: 403 });
+    }
+
 
     const updatedUser = await db.$transaction(async (tx) => {
       const changes: string[] = [];

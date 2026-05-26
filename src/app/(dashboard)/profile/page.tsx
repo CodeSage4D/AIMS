@@ -1,12 +1,20 @@
 import React from "react";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { parseInternNotes } from "@/lib/roles";
 import ProfileSettingsClient from "@/components/layout/ProfileSettingsClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
-  const session = await auth();
+  let session: any = null;
+  try {
+    session = await auth();
+  } catch (authErr) {
+    console.error("[Profile] Auth error:", authErr);
+    redirect("/login");
+  }
+
   if (!session?.user) {
     redirect("/login");
   }
@@ -14,189 +22,144 @@ export default async function ProfilePage() {
   const userId = (session.user as any).id;
   const userRole = (session.user as any).role || "INTERN";
 
-  // Dynamic background attendance mark check
+  // Background attendance check — never crash the page
   try {
     const { autoMarkAbsent } = await import("@/lib/attendanceScheduler");
     await autoMarkAbsent();
   } catch (schedErr) {
-    console.warn("[Profile Loader] dynamic scheduler bypass:", schedErr);
+    // Silently bypass — non-critical
   }
 
-  // 1. Fetch user data and deep relationships
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: {
-      internProfile: {
-        include: {
-          supervisor: {
-            select: {
-              fullName: true,
-              email: true,
+  // ── Fetch User + Intern Profile ──────────────────────────────────────────
+  let user: any = null;
+  try {
+    user = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        internProfile: {
+          include: {
+            supervisor: {
+              select: { fullName: true, email: true },
             },
-          },
-          attendance: {
-            orderBy: { date: "desc" },
-          },
-          tasks: {
-            orderBy: { createdAt: "desc" },
+            attendance: { orderBy: { date: "desc" }, take: 200 },
+            tasks: { orderBy: { createdAt: "desc" } },
           },
         },
       },
-    },
-  });
-
-  if (!user) {
-    return notFound();
+    });
+  } catch (dbErr) {
+    console.error("[Profile] DB fetch error:", dbErr);
+    // Return minimal profile with session data so the page always renders
+    user = null;
   }
 
-  const isIntern = userRole === "INTERN";
-  const internProfile = user.internProfile;
+  // If user not found in DB (stale session after DB recovery), show minimal profile
+  const isStaleSession = !user;
 
-  // 2. Resolve additional administrative metrics for Stats
+  const isIntern = userRole === "INTERN";
+  const internProfile = user?.internProfile || null;
+
+  // ── Stats ────────────────────────────────────────────────────────────────
   let supervisedCount = 0;
   let tasksAssignedCount = 0;
   let initialRequests: any[] = [];
 
-  try {
-    if (userRole === "TEAM_LEAD" || userRole === "ADMIN") {
-      supervisedCount = await db.intern.count({
-        where: { supervisorId: userId },
-      });
-      tasksAssignedCount = await db.task.count({
-        where: { assignedById: userId },
-      });
-    } else if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
-      supervisedCount = await db.intern.count({
-        where: { status: "ACTIVE" },
-      });
-      tasksAssignedCount = await db.task.count();
+  if (!isStaleSession) {
+    try {
+      if (userRole === "TEAM_LEAD" || userRole === "ADMIN") {
+        supervisedCount = await db.intern.count({ where: { supervisorId: userId } });
+        tasksAssignedCount = await db.task.count({ where: { assignedById: userId } });
+      } else if (userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR") {
+        supervisedCount = await db.intern.count({ where: { status: "ACTIVE" } });
+        tasksAssignedCount = await db.task.count();
+        initialRequests = await db.profileUpdateRequest.findMany({
+          include: { intern: { select: { id: true, internId: true, fullName: true } } },
+          orderBy: { createdAt: "desc" },
+        });
+      }
 
-      // Fetch all correction requests
-      initialRequests = await db.profileUpdateRequest.findMany({
-        include: {
-          intern: {
-            select: { id: true, internId: true, fullName: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      if (isIntern && internProfile) {
+        initialRequests = await db.profileUpdateRequest.findMany({
+          where: { internId: internProfile.id },
+          include: { intern: { select: { id: true, internId: true, fullName: true } } },
+          orderBy: { createdAt: "desc" },
+        });
+      }
+    } catch (statsErr) {
+      console.warn("[Profile] Stats fetch error:", statsErr);
+      initialRequests = [];
     }
-
-    if (isIntern && internProfile) {
-      // Fetch own correction requests
-      initialRequests = await db.profileUpdateRequest.findMany({
-        where: { internId: internProfile.id },
-        include: {
-          intern: {
-            select: { id: true, internId: true, fullName: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-  } catch (err) {
-    console.error("Database connection failed inside Profile server wrapper:", err);
-    // Secure Fallback mocks for robust local testing
-    initialRequests = [
-      {
-        id: "req-1",
-        fieldToUpdate: "fullName",
-        proposedValue: "Karan Verma",
-        status: "PENDING",
-        notes: "Spell correction",
-        createdAt: new Date().toISOString(),
-        intern: { fullName: "Karan Verma", internId: "AXN-SWE-FE-2605-KV01" },
-      },
-    ];
   }
 
-  // 3. Resolve Intern Performance / Work Statistics
-  let presentCount = 0;
-  let absentCount = 0;
-  let lateCount = 0;
-  let leaveCount = 0;
-  let attendanceRate = 100;
-  let totalTasks = 0;
-  let completedTasks = 0;
-  let pendingTasks = 0;
-  let taskCompletionRate = 100;
+  // ── Attendance & Task Stats ──────────────────────────────────────────────
+  let presentCount = 0, absentCount = 0, lateCount = 0, leaveCount = 0;
+  let attendanceRate = 100, totalTasks = 0, completedTasks = 0;
+  let pendingTasks = 0, taskCompletionRate = 100;
 
   if (isIntern && internProfile) {
-    const attendance = internProfile.attendance;
-    const tasks = internProfile.tasks;
-
+    const attendance = internProfile.attendance || [];
+    const tasks = internProfile.tasks || [];
     totalTasks = tasks.length;
-    completedTasks = tasks.filter((t) => t.status === "COMPLETED").length;
+    completedTasks = tasks.filter((t: any) => t.status === "COMPLETED").length;
     pendingTasks = totalTasks - completedTasks;
     taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
-
-    presentCount = attendance.filter((a) => a.status === "PRESENT").length;
-    absentCount = attendance.filter((a) => a.status === "ABSENT").length;
-    lateCount = attendance.filter((a) => a.status === "LATE").length;
-    leaveCount = attendance.filter((a) => a.status === "LEAVE").length;
-    const totalAttendanceDays = attendance.length;
-    const activeDays = presentCount + lateCount;
-    attendanceRate = totalAttendanceDays > 0 ? Math.round((activeDays / totalAttendanceDays) * 100) : 100;
+    presentCount = attendance.filter((a: any) => a.status === "PRESENT").length;
+    absentCount = attendance.filter((a: any) => a.status === "ABSENT").length;
+    lateCount = attendance.filter((a: any) => a.status === "LATE").length;
+    leaveCount = attendance.filter((a: any) => a.status === "LEAVE").length;
+    const totalDays = attendance.length;
+    attendanceRate = totalDays > 0 ? Math.round(((presentCount + lateCount) / totalDays) * 100) : 100;
   }
 
   const stats = {
-    attendanceRate,
-    presentCount,
-    lateCount,
-    absentCount,
-    leaveCount,
-    taskCompletionRate,
-    totalTasks,
-    completedTasks,
-    pendingTasks,
-    supervisedCount,
-    tasksAssignedCount,
+    attendanceRate, presentCount, lateCount, absentCount, leaveCount,
+    taskCompletionRate, totalTasks, completedTasks, pendingTasks,
+    supervisedCount, tasksAssignedCount,
   };
 
-  // Format Date and relation fields to Clean ISO String for smooth client component serialization
-  const serializedRequests = initialRequests.map((req) => ({
+  // ── Serialize requests ───────────────────────────────────────────────────
+  const serializedRequests = initialRequests.map((req: any) => ({
     ...req,
     createdAt: req.createdAt instanceof Date ? req.createdAt.toISOString() : req.createdAt,
     updatedAt: req.updatedAt instanceof Date ? req.updatedAt.toISOString() : req.updatedAt,
   }));
 
-  // Fetch bank details editing allowance
+  // ── Bank update setting ──────────────────────────────────────────────────
   let allowBankUpdates = false;
   try {
-    const bankSetting = await db.systemSetting.findUnique({
-      where: { key: "allow_intern_bank_updates" },
-    });
+    const bankSetting = await db.systemSetting.findUnique({ where: { key: "allow_intern_bank_updates" } });
     if (bankSetting) {
       const parsed = JSON.parse(bankSetting.value);
       allowBankUpdates = typeof parsed === "object" && parsed !== null ? (parsed.allowed || false) : !!parsed;
     }
-  } catch (e) {
-    console.warn("Error fetching bank setting:", e);
-  }
+  } catch {}
 
-  // Resolve profile picture URL — from intern profile notes OR from user-level notes (for Founders)
+  // ── Picture URL resolution ───────────────────────────────────────────────
   let resolvedPictureUrl: string | null = null;
-  if (internProfile) {
-    const customFields = parseInternNotes(internProfile.notes);
-    resolvedPictureUrl = customFields.pictureUrl || null;
-  } else if (user.notes) {
-    try {
+  try {
+    const { parseInternNotes } = await import("@/lib/roles");
+    if (internProfile?.notes) {
+      const customFields = parseInternNotes(internProfile.notes);
+      resolvedPictureUrl = (customFields as any).pictureUrl || null;
+    } else if (user?.notes) {
       const userNotes = parseInternNotes(user.notes);
       resolvedPictureUrl = (userNotes as any).pictureUrl || null;
-    } catch {}
-  }
+    }
+  } catch {}
 
+  // ── Build serialized user ────────────────────────────────────────────────
+  // Always render — even if DB failed, use session data as fallback
   const serializedUser = {
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    username: user.username,
-    role: user.role,
+    id: userId,
+    fullName: user?.fullName || (session.user as any).name || "AIMS User",
+    email: user?.email || session.user.email || "",
+    username: user?.username || null,
+    role: userRole,
     pictureUrl: resolvedPictureUrl,
-    employeeId: (user as any).employeeId || null,
+    employeeId: null,
   };
 
-  // Safe serialization of intern profile
+  // ── Serialize intern profile ─────────────────────────────────────────────
   const serializedIntern = internProfile
     ? {
         id: internProfile.id,
@@ -204,7 +167,10 @@ export default async function ProfilePage() {
         fullName: internProfile.fullName,
         department: internProfile.department,
         roleDomain: internProfile.roleDomain,
-        startDate: internProfile.startDate instanceof Date ? internProfile.startDate.toISOString() : internProfile.startDate,
+        startDate:
+          internProfile.startDate instanceof Date
+            ? internProfile.startDate.toISOString()
+            : internProfile.startDate,
         pinCode: internProfile.pinCode,
         citizenship: internProfile.citizenship,
         region: internProfile.region,
@@ -216,10 +182,7 @@ export default async function ProfilePage() {
         panCard: internProfile.panCard,
         notes: internProfile.notes,
         supervisor: internProfile.supervisor
-          ? {
-              fullName: internProfile.supervisor.fullName,
-              email: internProfile.supervisor.email,
-            }
+          ? { fullName: internProfile.supervisor.fullName, email: internProfile.supervisor.email }
           : null,
       }
     : null;
