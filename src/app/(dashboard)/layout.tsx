@@ -25,22 +25,30 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
     return <ForcePasswordChange />;
   }
 
-  // 4. Fallback default metadata object to prevent TypeScript signatures errors
-  const safeUser = {
-    id: (session.user as any).id || "",
-    name: session.user.name || "AURXON User",
-    email: session.user.email || "",
-    role: (session.user as any).role || "INTERN",
-  };
-
-  // 5. Onboarding flow interceptor gate
+  // 4. Fetch intern details & profile picture URL if they are an intern
   const intern = await db.intern.findUnique({
-    where: { userId: safeUser.id },
+    where: { userId: (session.user as any).id || "" },
     include: {
       generatedDocuments: true,
       documents: true,
     },
   });
+
+  let pictureUrl = null;
+  if (intern) {
+    const { parseInternNotes } = await import("@/lib/roles");
+    const customFields = parseInternNotes(intern.notes);
+    pictureUrl = customFields.pictureUrl || null;
+  }
+
+  // 5. Fallback default metadata object to prevent TypeScript signatures errors
+  const safeUser = {
+    id: (session.user as any).id || "",
+    name: session.user.name || "AURXON User",
+    email: session.user.email || "",
+    role: (session.user as any).role || "INTERN",
+    pictureUrl,
+  };
 
   if (intern && intern.status === "ONBOARDING") {
     const OnboardingFlow = (await import("@/components/layout/OnboardingFlow")).default;
