@@ -94,6 +94,8 @@ model User {
   groupMemberships          GroupMember[]
   permissionChangesMade     PermissionChangeLog[]  @relation("PermissionChangesMade")
   permissionChangesReceived PermissionChangeLog[]  @relation("PermissionChangesReceived")
+  todos                     Todo[]
+  assignedProjects          ProjectRecord[]        @relation("AssignedProjects")
 
   @@map("users")
 }
@@ -128,6 +130,7 @@ model Intern {
   emergencyContactName   String           @map("emergency_contact_name")
   emergencyContactNumber String           @map("emergency_contact_number")
   skills                 String[]         @default([])
+  badges                 String[]         @default([])
   performanceScore       Int?             @map("performance_score") // 1-5 Scale
   performanceNotes       String?          @map("performance_notes")
   notes                  String?          @map("notes")
@@ -475,8 +478,26 @@ model ProjectRecord {
   documentName    String?  @map("document_name")
   deliverableUrl  String?  @map("deliverable_url")
   status          String   @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, ARCHIVED
+  assignedById    String?  @map("assigned_by_id")
+  assignedBy      User?    @relation("AssignedProjects", fields: [assignedById], references: [id], onDelete: SetNull)
+  reviewNotes     String?  @map("review_notes")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("project_records")
+}
+
+model Todo {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  date        String
+  type        String   @default("TODO") // TODO or REMINDER
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("todos")
 }

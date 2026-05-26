@@ -1,5 +1,6 @@
 import { PrismaClient, Role, EmploymentType, InternStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } from "../src/lib/documentTemplates";
 
 const prisma = new PrismaClient({
   ...(process.env.DATABASE_URL?.startsWith("prisma+postgres://")
@@ -20,12 +21,15 @@ async function main() {
 
   // 1. Wipe existing databases to prevent collision
   console.log("Wiping existing records...");
+  await prisma.todo.deleteMany({});
+  await prisma.projectRecord.deleteMany({});
   await prisma.activityLog.deleteMany({});
   await prisma.passwordResetRequest.deleteMany({});
   await prisma.leaveApplication.deleteMany({});
   await prisma.document.deleteMany({});
   await prisma.task.deleteMany({});
   await prisma.attendance.deleteMany({});
+  await prisma.generatedDocument.deleteMany({});
   await prisma.intern.deleteMany({});
   await prisma.user.deleteMany({});
 
@@ -98,7 +102,7 @@ async function main() {
       startDate: new Date("2026-05-01"),
       endDate: new Date("2026-11-01"),
       employmentType: EmploymentType.INTERN,
-      status: InternStatus.ACTIVE,
+      status: InternStatus.ONBOARDING,
       stipendAmount: 15000.00,
       paymentStatus: "UNPAID",
       emergencyContactName: "Raj Sharma",
@@ -107,6 +111,41 @@ async function main() {
       userId: aaravInternUser.id,
       supervisorId: leadUser.id, // Mapped to our Team Lead
     },
+  });
+
+  // Generate dynamic onboarding document drafts in the vault
+  const offerLetterContent = generateOfferLetterDraft(aaravInternProfile);
+  const ndaContent = generateNDADraft(aaravInternProfile);
+  const agreementContent = generateAgreementDraft(aaravInternProfile);
+  const idCardContent = generateIDCardDraft(aaravInternProfile);
+
+  await prisma.generatedDocument.createMany({
+    data: [
+      {
+        internId: aaravInternProfile.id,
+        type: "OFFER_LETTER",
+        content: offerLetterContent as any,
+        status: "PENDING",
+      },
+      {
+        internId: aaravInternProfile.id,
+        type: "NDA",
+        content: ndaContent as any,
+        status: "PENDING",
+      },
+      {
+        internId: aaravInternProfile.id,
+        type: "AGREEMENT",
+        content: agreementContent as any,
+        status: "PENDING",
+      },
+      {
+        internId: aaravInternProfile.id,
+        type: "ID_CARD",
+        content: idCardContent as any,
+        status: "PENDING",
+      },
+    ]
   });
 
   // Seed tasks for Aarav
@@ -119,6 +158,67 @@ async function main() {
       status: "IN_PROGRESS",
       assignedById: leadUser.id,
     },
+  });
+
+  // Seed todos for Aarav User
+  await prisma.todo.createMany({
+    data: [
+      {
+        userId: aaravInternUser.id,
+        title: "Review NDA and Sign Offer Letter",
+        description: "Must read the terms and complete onboarding signature flow",
+        completed: false,
+        date: "2026-05-26",
+        type: "TODO",
+      },
+      {
+        userId: aaravInternUser.id,
+        title: "Setup Local Development Environment",
+        description: "Clone aurxon repos and set up env files",
+        completed: true,
+        date: "2026-05-25",
+        type: "TODO",
+      },
+      {
+        userId: aaravInternUser.id,
+        title: "Submit Daily Standup Update",
+        description: "Report blockers to Team Lead before 11 AM daily",
+        completed: false,
+        date: "2026-05-27",
+        type: "REMINDER",
+      }
+    ]
+  });
+
+  // Seed project records (Working Portfolio Timeline) for Aarav Intern
+  await prisma.projectRecord.create({
+    data: {
+      internId: aaravInternProfile.id,
+      title: "Aurxon Operating System Core Auth Modules",
+      description: "Refactored JWT session validation and implemented routing guards compatibility with Next.js edge runtime.",
+      technologies: ["Next.js", "Prisma", "TypeScript", "NextAuth"],
+      roleInProject: "Lead Security Integrator",
+      documentName: "auth-architecture-spec.pdf",
+      deliverableUrl: "https://github.com/aurxon/aims-core/pull/42",
+      status: "IN_PROGRESS",
+      assignedById: leadUser.id,
+      reviewNotes: "Security architecture looks solid. Proceed to verify on production environment."
+    }
+  });
+
+  await prisma.projectRecord.create({
+    data: {
+      internId: aaravInternProfile.id,
+      title: "Premium Component UI Library",
+      description: "Developed dark mode glassmorphism theme components using vanilla CSS variables.",
+      technologies: ["React", "CSS Variables"],
+      roleInProject: "UI Developer",
+      documentName: "ui-component-showcase.mp4",
+      deliverableUrl: "https://github.com/aurxon/aims-ui/pull/11",
+      status: "COMPLETED",
+      assignedById: founderUser.id,
+      reviewNotes: "Fabulous animations and gradients. This is precisely the premium operating system look we wanted!"
+    }
   });
 
   // 3. Seed default system settings
