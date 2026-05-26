@@ -61,6 +61,27 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verify magic bytes content validation
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    let isValidMagic = false;
+    const hex = buffer.toString("hex", 0, 8).toUpperCase();
+
+    if (file.type === "application/pdf" && hex.startsWith("25504446")) {
+      isValidMagic = true;
+    } else if (file.type === "image/jpeg" && hex.startsWith("FFD8FF")) {
+      isValidMagic = true;
+    } else if (file.type === "image/png" && hex.startsWith("89504E470D0A1A0A")) {
+      isValidMagic = true;
+    }
+
+    if (!isValidMagic) {
+      return NextResponse.json(
+        { error: "Invalid file content. The file signature does not match its extension." },
+        { status: 400 }
+      );
+    }
+
     // Validate that the document type matches the DocType enum values
     if (!Object.values(DocType).includes(type as any)) {
       return NextResponse.json({ error: `Validation failed. Invalid document type. Must be one of: ${Object.values(DocType).join(", ")}` }, { status: 400 });
