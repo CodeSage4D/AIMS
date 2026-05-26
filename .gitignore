@@ -56,3 +56,6 @@ credential.txt
 
 # Scratch folder
 scratch/
+
+# Local database backups
+backups/
