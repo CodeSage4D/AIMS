@@ -97,6 +97,7 @@ model User {
   todos                     Todo[]
   assignedProjects          ProjectRecord[]        @relation("AssignedProjects")
   tempPassword              String?                @map("temp_password")
+  notes                     String?                @default("{}")
   diaries                   Diary[]
 
   @@map("users")
