@@ -28,32 +28,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const password = String(credentials.password);
 
         try {
-          let user = null;
-          
-          if (input.includes("@")) {
-            // Unambiguous Email Address Lookup
-            user = await db.user.findUnique({
-              where: { email: input.toLowerCase() },
-            });
-          } else if (input.toLowerCase().startsWith("axn-")) {
-            // Unambiguous Intern ID Lookup
-            const intern = await db.intern.findUnique({
-              where: { internId: input.toUpperCase() },
-              include: { user: true },
-            });
-            user = intern?.user || null;
-          } else {
-            // Unambiguous Username Lookup
-            user = await db.user.findFirst({
-              where: {
-                OR: [
-                  { username: input },
-                  { username: input.toLowerCase() },
-                  { username: input.toUpperCase() },
-                ],
-              },
-            });
-          }
+          // Robust, multi-vector authentication lookup:
+          // Check by email, or username, or internId (all case-insensitive)
+          const user = await db.user.findFirst({
+            where: {
+              OR: [
+                { email: { equals: input, mode: "insensitive" } },
+                { username: { equals: input, mode: "insensitive" } },
+                {
+                  internProfile: {
+                    internId: { equals: input, mode: "insensitive" }
+                  }
+                }
+              ]
+            }
+          });
 
           if (user) {
             if (user.status === "PENDING") {
