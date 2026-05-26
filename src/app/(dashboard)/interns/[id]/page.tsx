@@ -593,6 +593,8 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                 status={intern.status}
                 dbInternId={intern.id}
                 employmentType={intern.employmentType}
+                linkedIn={customProfile?.linkedIn}
+                gitHub={customProfile?.gitHub}
               />
             </CardContent>
           </Card>
