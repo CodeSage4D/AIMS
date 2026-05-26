@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
+import { validatePassword } from "@/lib/passwordValidator";
+
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -11,9 +13,9 @@ export async function POST(request: Request) {
     }
 
     const { newPassword } = await request.json();
-    if (!newPassword || newPassword.length < 8) {
+    if (!newPassword || !validatePassword(newPassword)) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters long." },
+        { error: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character." },
         { status: 400 }
       );
     }
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
       data: {
         passwordHash,
         changePasswordRequired: false,
+        tokenVersion: { increment: 1 },
       },
     });
 
