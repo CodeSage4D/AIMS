@@ -45,7 +45,7 @@ export default async function ProfilePage() {
   });
 
   if (!user) {
-    return notFound();
+    redirect("/login");
   }
 
   const isIntern = userRole === "INTERN";
