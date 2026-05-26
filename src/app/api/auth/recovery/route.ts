@@ -3,8 +3,19 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+import { rateLimit } from "@/lib/rateLimit";
+
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const limiter = rateLimit(ip, 3, 24 * 60 * 60 * 1000); // Max 3 recovery attempts per day
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Too many recovery attempts. Please try again tomorrow." },
+        { status: 429 }
+      );
+    }
+
     const { email, recoveryKey } = await req.json();
 
     if (!email || !recoveryKey) {
@@ -14,8 +25,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const envRecoveryKey = process.env.FOUNDER_RECOVERY_KEY;
-    if (!envRecoveryKey || recoveryKey !== envRecoveryKey) {
+    const envRecoveryKeyHash = process.env.FOUNDER_RECOVERY_KEY_HASH;
+    if (!envRecoveryKeyHash || !bcrypt.compareSync(recoveryKey, envRecoveryKeyHash)) {
       return NextResponse.json(
         { error: "Invalid founder recovery credentials." },
         { status: 401 }
