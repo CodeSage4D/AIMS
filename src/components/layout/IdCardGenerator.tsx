@@ -825,15 +825,16 @@ export default function IdCardGenerator({
         </div>
 
         {/* Right: Modern High-Contrast Real-Time Preview Card */}
-        <div className="flex justify-center items-center">
-          <div
-            className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
-            style={{
-              borderColor: design.primaryColor,
-              boxShadow: `0 10px 40px ${design.primaryColor}1a`,
-              background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
-            }}
-          >
+        <div className="flex justify-center items-center w-full py-8 overflow-visible">
+          <div className="scale-100 sm:scale-105 md:scale-115 lg:scale-120 xl:scale-125 origin-center transition-all duration-300">
+            <div
+              className="w-[290px] h-[450px] rounded-2xl border-4 p-5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
+              style={{
+                borderColor: design.primaryColor,
+                boxShadow: `0 10px 40px ${design.primaryColor}1a`,
+                background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
+              }}
+            >
             {cardStatus === "DEACTIVATED" && (
               <div className="absolute inset-0 z-40 bg-rose-950/20 backdrop-blur-[1.5px] flex items-center justify-center select-none">
                 <div className="bg-red-650 border-2 border-white px-3 py-1.5 rounded-lg shadow-xl -rotate-12 transform">
@@ -974,6 +975,7 @@ export default function IdCardGenerator({
               </div>
             </div>
             
+            </div>
           </div>
         </div>
 
