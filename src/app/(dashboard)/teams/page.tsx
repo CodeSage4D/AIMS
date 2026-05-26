@@ -72,6 +72,7 @@ export default async function TeamsPage() {
       fullName: true,
       email: true,
       role: true,
+      username: true,
     },
     orderBy: { fullName: "asc" },
   });
@@ -127,7 +128,7 @@ export default async function TeamsPage() {
       const isExec = admin.role === "FOUNDER" || admin.role === "SUPER_ADMIN";
       const member: Member = {
         id: admin.email,
-        internId: admin.role === "FOUNDER" ? "AXN-FND-00" : "AXN-ADM-00",
+        internId: admin.username || (admin.role === "FOUNDER" ? "AXN-FND-2401-KM01" : "AXN-ADM-00"),
         fullName: admin.fullName,
         email: admin.email,
         department: isExec ? "Management" : "Administration",
