@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
+import { rateLimit } from "@/lib/rateLimit";
+
 export async function GET(request: Request) {
   try {
     const session = await auth();
@@ -30,6 +32,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
+    const limiter = rateLimit(ip, 5, 15 * 60 * 1000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Too many reset attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const { internId, internName, internEmail } = await request.json();
 
     if (!internId || !internName || !internEmail) {
@@ -53,8 +64,8 @@ export async function POST(request: Request) {
 
     if (!intern) {
       return NextResponse.json(
-        { error: "No matching active intern found with the provided ID and Email." },
-        { status: 404 }
+        { message: "Reset request successfully filed. Please contact the Founder for approval." },
+        { status: 200 }
       );
     }
 
