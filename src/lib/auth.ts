@@ -27,6 +27,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const input = String(credentials.email).trim();
         const password = String(credentials.password);
 
+        console.log("[AUTH DEBUG] authorize called with input:", input);
+
         try {
           // Robust, multi-vector authentication lookup:
           // Check by email, or username, or internId (all case-insensitive)
@@ -45,18 +47,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             }
           });
 
+          console.log("[AUTH DEBUG] User query returned:", user ? { email: user.email, role: user.role, status: user.status, deletedAt: user.deletedAt } : "null");
+
           if (user) {
             if (user.status === "PENDING") {
+              console.log("[AUTH DEBUG] User status is PENDING. Rejecting login.");
               throw new Error("Your account registration is pending review by the administration.");
             }
             if (user.status === "REJECTED") {
+              console.log("[AUTH DEBUG] User status is REJECTED. Rejecting login.");
               throw new Error("Your account registration has been rejected.");
             }
             if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+              console.log("[AUTH DEBUG] User account is locked until:", user.lockedUntil);
               throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
             }
 
             const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
+            console.log("[AUTH DEBUG] Password check result:", isPasswordValid);
             if (isPasswordValid) {
               await db.user.update({
                 where: { id: user.id },
