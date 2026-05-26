@@ -159,7 +159,14 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, intern: updatedIntern });
+    const maskedIntern = {
+      ...updatedIntern,
+      accountNumber: updatedIntern.accountNumber ? `****${updatedIntern.accountNumber.slice(-4)}` : null,
+      panCard: updatedIntern.panCard ? `******${updatedIntern.panCard.slice(-4)}` : null,
+      ifscCode: updatedIntern.ifscCode ? `*******${updatedIntern.ifscCode.slice(-4)}` : null,
+    };
+
+    return NextResponse.json({ success: true, intern: maskedIntern });
   } catch (error: any) {
     console.error("Onboarding Submit Error:", error);
     return NextResponse.json({ error: error.message || "Failed to process onboarding submission." }, { status: 500 });
