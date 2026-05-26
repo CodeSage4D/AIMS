@@ -5,6 +5,8 @@ import { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getSafeUserId } from "@/lib/safeUser";
 
+import { validatePassword } from "@/lib/passwordValidator";
+
 // Helper to authenticate and check roles dynamically
 async function getAdminUser() {
   const session = await auth();
@@ -99,6 +101,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Validation failed. Missing required fields: email, password, fullName, or role." }, { status: 400 });
     }
 
+    // Enforce password complexity
+    if (!validatePassword(password)) {
+      return NextResponse.json({ error: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character." }, { status: 400 });
+    }
+
     // Role restrictions
     const targetRole = role as Role;
     if (!Object.values(Role).includes(targetRole)) {
@@ -112,6 +119,16 @@ export async function POST(req: Request) {
     // Only Founder can create Super Admins
     if (targetRole === Role.SUPER_ADMIN && currentUser.role !== Role.FOUNDER) {
       return NextResponse.json({ error: "Forbidden. Only the Founder can create Super Admin accounts." }, { status: 403 });
+    }
+
+    // HR cannot create administrative accounts
+    if (currentUser.role === Role.HR && ([Role.SUPER_ADMIN, Role.ADMIN, Role.HR] as Role[]).includes(targetRole)) {
+      return NextResponse.json({ error: "Forbidden. HR cannot create administrative accounts." }, { status: 403 });
+    }
+
+    // Admin cannot create Super Admin or Founder or Admin accounts
+    if (currentUser.role === Role.ADMIN && ([Role.SUPER_ADMIN, Role.ADMIN, Role.FOUNDER] as Role[]).includes(targetRole)) {
+      return NextResponse.json({ error: "Forbidden. Insufficient privileges to create this role." }, { status: 403 });
     }
 
     // Check if email already exists
@@ -217,6 +234,19 @@ export async function PUT(req: Request) {
       return NextResponse.json({
         error: "Forbidden. HR can only manage permissions for Interns and Team Leads.",
       }, { status: 403 });
+    }
+
+    // If new role is supplied, check promotion privileges
+    if (role) {
+      const nextRole = role as Role;
+      // HR cannot promote anyone to Founder, Super Admin, Admin, or HR
+      if (currentUser.role === Role.HR && ([Role.FOUNDER, Role.SUPER_ADMIN, Role.ADMIN, Role.HR] as Role[]).includes(nextRole)) {
+        return NextResponse.json({ error: "Forbidden. HR cannot assign administrative roles." }, { status: 403 });
+      }
+      // Admin cannot promote anyone to Founder, Super Admin, or Admin
+      if (currentUser.role === Role.ADMIN && ([Role.FOUNDER, Role.SUPER_ADMIN, Role.ADMIN] as Role[]).includes(nextRole)) {
+        return NextResponse.json({ error: "Forbidden. Insufficient privileges to assign this role." }, { status: 403 });
+      }
     }
 
 
