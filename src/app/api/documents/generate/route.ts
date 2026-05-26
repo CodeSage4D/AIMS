@@ -7,6 +7,7 @@ import {
   generateNDADraft,
   generateIDCardDraft,
   generateExperienceLetterDraft,
+  generateAgreementDraft,
 } from "@/lib/documentTemplates";
 
 export async function POST(req: Request) {
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden. Administrative access or hired status required." }, { status: 403 });
     }
 
-    const validTypes = ["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"];
+    const validTypes = ["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER", "AGREEMENT"];
     if (!validTypes.includes(type)) {
       return NextResponse.json({ error: `Invalid type. Must be one of: ${validTypes.join(", ")}` }, { status: 400 });
     }
@@ -76,6 +77,8 @@ export async function POST(req: Request) {
       content = generateIDCardDraft(intern);
     } else if (type === "EXPERIENCE_LETTER") {
       content = generateExperienceLetterDraft(intern);
+    } else if (type === "AGREEMENT") {
+      content = generateAgreementDraft(intern);
     }
 
     let resultDoc;

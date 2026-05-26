@@ -231,3 +231,42 @@ export function generateExperienceLetterDraft(intern: {
   };
 }
 
+export interface AgreementContent {
+  title: string;
+  companyName: string;
+  partyA: string;
+  partyB: string;
+  effectiveDate: string;
+  terms: string[];
+  closing: string;
+}
+
+export function generateAgreementDraft(intern: {
+  fullName: string;
+  startDate: Date | string;
+  roleDomain: string;
+  department: string;
+}): AgreementContent {
+  const formattedDate = new Date(intern.startDate).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return {
+    title: "OFFICIAL INTERNSHIP AGREEMENT & ENGAGEMENT POLICY",
+    companyName: "AURXON DB & SOFTWARE SYSTEMS INC.",
+    partyA: "AURXON DB & SOFTWARE SYSTEMS INC.",
+    partyB: intern.fullName,
+    effectiveDate: formattedDate,
+    terms: [
+      `Engagement Scope: The Intern is appointed as a ${intern.roleDomain} within the ${intern.department} Division.`,
+      "Code of Conduct: The Intern agrees to participate in sync calls, maintain active coding hours, and submit contribution records regularly.",
+      "Regulatory Compliance: The Intern agrees to strictly follow data access controls, and avoid leaking technical database structures.",
+      "IP Ownership: All codes, designs, database schemas, and documentation created remain the sole intellectual property of AURXON.",
+      "Termination Policy: Either party may terminate this agreement with 3 days prior written notice."
+    ],
+    closing: "By signing below, both parties agree to the corporate rules and terms specified in this document.",
+  };
+}
+

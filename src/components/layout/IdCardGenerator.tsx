@@ -206,7 +206,7 @@ export default function IdCardGenerator({
       try {
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.src = "/Logo-AIMS/Light-Mode-Logo.png";
+        img.src = "/Logo-AIMS/AurxonLogo.png";
         await new Promise<void>((resImg) => {
           img.onload = () => {
             logoImg = img;
@@ -870,7 +870,7 @@ export default function IdCardGenerator({
             {/* Header Area */}
             <div className="flex flex-col items-center justify-center space-y-1 relative z-10 pt-1 select-none">
               <img
-                src="/Logo-AIMS/Light-Mode-Logo.png"
+                src="/Logo-AIMS/AurxonLogo.png"
                 alt="AIMS Logo"
                 className="h-6 w-auto object-contain shrink-0"
               />

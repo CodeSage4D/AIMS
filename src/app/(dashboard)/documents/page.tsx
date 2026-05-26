@@ -23,7 +23,7 @@ export default async function DocumentsPage() {
 
   let interns: any[] = [];
   try {
-    if (userRole === "FOUNDER" || userRole === "HR") {
+    if (userRole === "FOUNDER" || userRole === "HR" || userRole === "SUPER_ADMIN" || userRole === "ADMIN") {
       // Fetch all active or onboarding interns with their uploaded documents
       interns = await db.intern.findMany({
         where: {
