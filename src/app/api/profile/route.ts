@@ -449,7 +449,7 @@ export async function PATCH(req: Request) {
 
       // Custom fields serialization
       const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
-      const existingCustom = parseInternNotes(internProfile.notes);
+      const existingCustom = internProfile ? parseInternNotes(internProfile.notes) : {} as any;
 
       const nextLinkedIn = body.linkedIn !== undefined ? body.linkedIn : existingCustom.linkedIn;
       const nextGitHub = body.gitHub !== undefined ? body.gitHub : existingCustom.gitHub;
