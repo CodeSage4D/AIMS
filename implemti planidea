@@ -1,0 +1,19 @@
+Prompt:
+
+Update the system to use only real production data and completely remove any fake, demo, placeholder, or test entries from all modules and screens.
+
+The application must use PostgreSQL Neon DB with a fully secure architecture. After every new onboarding, the system must automatically generate a temporary password and store it securely. The temporary password should be hashed, protected, and never exposed in plain text except through a secure admin-only flow when absolutely required.
+
+Add a role assignment system so roles can be assigned properly during onboarding and updated later through secure admin controls. Role-based access must be enforced across the entire application.
+
+Also implement:
+
+secure database handling
+encrypted or hashed sensitive fields where required
+audit logs for critical actions
+backup support with an extra backup database
+safe password reset / re-generation flow
+strict protection against unauthorized access
+removal of all fake records and demo content
+
+Make sure all existing features are updated to reflect real data only, with a strong security-first implementation and proper role management throughout the system.
