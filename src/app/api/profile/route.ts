@@ -365,7 +365,24 @@ export async function PATCH(req: Request) {
         where: { userId: user.id },
       });
 
-      if (!internProfile) {
+      // FOUNDER / non-intern users: only pictureUrl update allowed from this scenario
+      // (Bank details require an intern profile - handled below)
+      const isPictureOnlyUpdate =
+        body.pictureUrl !== undefined &&
+        !body.bankName &&
+        !body.accountNumber &&
+        !body.ifscCode &&
+        !body.upiId &&
+        !body.branchName &&
+        !body.panCard &&
+        !body.accountHolderName &&
+        !body.paymentPreference &&
+        !body.linkedIn &&
+        !body.gitHub &&
+        !body.bloodGroup &&
+        !body.pinCode;
+
+      if (!internProfile && !isPictureOnlyUpdate) {
         return NextResponse.json({ error: "No intern profile associated with this account." }, { status: 404 });
       }
 
@@ -456,23 +473,38 @@ export async function PATCH(req: Request) {
       await db.$transaction(async (tx) => {
         const safeUserId = await getSafeUserId(user.id, tx);
         
-        // Audit log bank update if bank details changed
-        if (isUpdatingBank) {
-          await tx.permissionChangeLog.create({
-            data: {
-              changedById: user.id,
-              targetId: user.id,
-              previousRole: internProfile.roleDomain,
-              newRole: internProfile.roleDomain,
-              details: `Self-update of disbursement banking metadata.`,
-            },
+        if (!internProfile) {
+          // Non-intern (Founder): save pictureUrl in user.notes field
+          const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
+          const existingUserNotes = parseInternNotes(dbUser.notes || "");
+          const updatedUserNotes = serializeInternNotes({
+            ...existingUserNotes,
+            pictureUrl: body.pictureUrl || "",
+          });
+          await tx.user.update({
+            where: { id: user.id },
+            data: { notes: updatedUserNotes },
+          });
+        } else {
+          // Intern: save all fields including pictureUrl in intern.notes
+          // Audit log bank update if bank details changed
+          if (isUpdatingBank) {
+            await tx.permissionChangeLog.create({
+              data: {
+                changedById: user.id,
+                targetId: user.id,
+                previousRole: internProfile.roleDomain,
+                newRole: internProfile.roleDomain,
+                details: `Self-update of disbursement banking metadata.`,
+              },
+            });
+          }
+
+          await tx.intern.update({
+            where: { id: internProfile.id },
+            data: dataToUpdate,
           });
         }
-
-        await tx.intern.update({
-          where: { id: internProfile.id },
-          data: dataToUpdate,
-        });
 
         await tx.activityLog.create({
           data: {
