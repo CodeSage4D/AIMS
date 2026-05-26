@@ -350,7 +350,8 @@ export async function PATCH(req: Request) {
       body.branchName !== undefined ||
       body.panCard !== undefined ||
       body.accountHolderName !== undefined ||
-      body.paymentPreference !== undefined
+      body.paymentPreference !== undefined ||
+      body.pictureUrl !== undefined
     ) {
       const dbUser = await db.user.findUnique({
         where: { id: user.id },
@@ -438,6 +439,7 @@ export async function PATCH(req: Request) {
       const nextBloodGroup = body.bloodGroup !== undefined ? body.bloodGroup : existingCustom.bloodGroup;
       const nextAccountHolder = body.accountHolderName !== undefined ? body.accountHolderName : existingCustom.accountHolderName;
       const nextPaymentPref = body.paymentPreference !== undefined ? body.paymentPreference : existingCustom.paymentPreference;
+      const nextPictureUrl = body.pictureUrl !== undefined ? body.pictureUrl : existingCustom.pictureUrl;
       const nextCustomNotes = existingCustom.customNotes || "";
 
       dataToUpdate.notes = serializeInternNotes({
@@ -446,6 +448,7 @@ export async function PATCH(req: Request) {
         bloodGroup: nextBloodGroup || "",
         accountHolderName: nextAccountHolder || "",
         paymentPreference: nextPaymentPref || "",
+        pictureUrl: nextPictureUrl || "",
         customNotes: nextCustomNotes || "",
       });
 
