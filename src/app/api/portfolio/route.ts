@@ -186,6 +186,97 @@ export async function PATCH(req: Request) {
 }
 
 /**
+ * PUT /api/portfolio
+ * Allows Admins/Founders/Team Leads to assign work, review submissions, and add internal summaries.
+ */
+export async function PUT(req: Request) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const userRole = (session.user as any).role || "INTERN";
+
+    // Validate permission (must not be INTERN)
+    if (userRole === "INTERN") {
+      return NextResponse.json({ error: "Access Denied. Administrative access required." }, { status: 403 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { id, title, description, technologies, roleInProject, documentName, deliverableUrl, status, reviewNotes, internId } = body;
+
+    // 1. If creating a new assigned project/work deliverable
+    if (!id) {
+      if (!internId || !title || !roleInProject) {
+        return NextResponse.json({ error: "Validation failed. Missing internId, title, or roleInProject." }, { status: 400 });
+      }
+
+      const parsedTech = Array.isArray(technologies) 
+        ? technologies 
+        : typeof technologies === "string" 
+        ? technologies.split(",").map(t => t.trim()).filter(Boolean)
+        : [];
+
+      const newProject = await db.projectRecord.create({
+        data: {
+          internId,
+          title: title.trim(),
+          description: description?.trim() || "",
+          technologies: parsedTech,
+          roleInProject: roleInProject.trim(),
+          documentName: documentName?.trim() || null,
+          deliverableUrl: deliverableUrl?.trim() || null,
+          status: status || "IN_PROGRESS",
+          assignedById: userId,
+          reviewNotes: reviewNotes?.trim() || null,
+        }
+      });
+
+      return NextResponse.json(newProject, { status: 201 });
+    }
+
+    // 2. If reviewing/updating an existing project record
+    const existing = await db.projectRecord.findUnique({
+      where: { id }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Project record not found." }, { status: 404 });
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (roleInProject !== undefined) updateData.roleInProject = roleInProject.trim();
+    if (documentName !== undefined) updateData.documentName = documentName.trim() || null;
+    if (deliverableUrl !== undefined) updateData.deliverableUrl = deliverableUrl.trim() || null;
+    if (status !== undefined) updateData.status = status;
+    if (reviewNotes !== undefined) updateData.reviewNotes = reviewNotes.trim() || null;
+    if (technologies !== undefined) {
+      updateData.technologies = Array.isArray(technologies) 
+        ? technologies 
+        : typeof technologies === "string" 
+        ? technologies.split(",").map(t => t.trim()).filter(Boolean)
+        : [];
+    }
+
+    const updated = await db.projectRecord.update({
+      where: { id },
+      data: updateData
+    });
+
+    return NextResponse.json(updated, { status: 200 });
+
+  } catch (error: any) {
+    console.error("PUT Portfolio API Error:", error);
+    return NextResponse.json({ error: "Failed to process project assignment/review." }, { status: 500 });
+  }
+}
+
+
+/**
  * DELETE /api/portfolio
  * Deletes a project record (Interns only).
  */
