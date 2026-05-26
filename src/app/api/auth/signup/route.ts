@@ -3,8 +3,19 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+import { rateLimit } from "@/lib/rateLimit";
+
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const limiter = rateLimit(ip, 5, 15 * 60 * 1000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { 
       fullName, 
@@ -218,7 +229,6 @@ export async function POST(req: Request) {
     return NextResponse.json({
       message: "Registration successful! Account is under administrative review.",
       referenceId,
-      tempPassword: rawTempPassword,
     });
   } catch (error: any) {
     console.error("Signup Endpoint Error:", error);
