@@ -79,10 +79,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
     // Fallback mock data for local testing
     interns = [
       {
-        id: "uuid-aarav",
         internId: "AXN-SWE-2605-AS01",
-        fullName: "Aarav Sharma",
-        email: "aarav@aurxon.com",
         department: "Engineering",
         roleDomain: "Software Engineer",
         startDate: new Date("2026-05-01"),

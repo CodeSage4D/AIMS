@@ -43,7 +43,6 @@ export default async function LogsPage() {
       {
         id: "log-1",
         action: "ONBOARD_INTERN",
-        description: "Successfully onboarded new intern Aarav Sharma under engineering department.",
         createdAt: new Date(Date.now() - 10 * 60 * 1000), // 10 mins ago
         user: { fullName: "AIMS Administrator", role: "ADMIN" },
       },
@@ -57,7 +56,6 @@ export default async function LogsPage() {
       {
         id: "log-3",
         action: "VERIFY_DOCUMENT",
-        description: "Audited and verified document 'Aarav_Offer_Letter.pdf' (OFFER_LETTER) for intern Aarav Sharma.",
         createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
         user: { fullName: "AIMS Administrator", role: "ADMIN" },
       },

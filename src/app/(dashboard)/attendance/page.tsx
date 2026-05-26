@@ -42,7 +42,6 @@ export default async function AttendancePage() {
   } catch (err) {
     // Mock fallbacks for early local layout testing
     interns = [
-      { id: "uuid-aarav", internId: "AXN-SWE-BE-2605-AS01", fullName: "Aarav Sharma", department: "Engineering" },
       { id: "uuid-ananya", internId: "AXN-PED-UX-2605-AI01", fullName: "Ananya Iyer", department: "Design" },
     ];
   }

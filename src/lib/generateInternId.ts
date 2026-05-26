@@ -74,8 +74,8 @@ export function getRoleCode(roleDomain: string): string {
 
 // Extractor logic for full name initials (First Letter + Last Letter)
 export function getInitials(name: string): string {
-  // Strip out non-alphanumeric characters except spaces to keep initials clean and professional
-  const cleanName = (name || "").replace(/[^a-zA-Z0-9\s]/g, "");
+  // Strip out non-alphabetic characters except spaces to keep initials clean and professional
+  const cleanName = (name || "").replace(/[^a-zA-Z\s]/g, "");
   const parts = cleanName.trim().split(/\s+/).filter(Boolean);
   
   if (parts.length === 0) return "XX";
@@ -110,11 +110,11 @@ export async function generateInternId(
   // Get initials
   const initials = getInitials(fullName);
   
-  // Fetch matching enrollees to calculate sequential counter safely across the entire role group prefix
+  // Fetch all interns to calculate sequential counter safely across the entire company
   const existing = await tx.intern.findMany({
     where: {
       internId: {
-        startsWith: `AXN-${roleCode}-`,
+        startsWith: `AXN-`,
       },
     },
     select: {
