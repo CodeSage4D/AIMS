@@ -43,6 +43,14 @@ function decrypt(textObj: { iv: string; encryptedData: string }): string {
 }
 
 async function main() {
+  const code = process.argv[2];
+  if (code !== "221102") {
+    console.error("CRITICAL ERROR: Unauthorized database restore access.");
+    console.error("Please provide the correct restore password as an argument:");
+    console.error("  npx tsx prisma/secure-restore.ts <password>");
+    process.exit(1);
+  }
+
   console.log("-----------------------------------------------------------------");
   console.log("  AURXON AIMS SECURE DATABASE RESTORE ENGINE");
   console.log("-----------------------------------------------------------------");
@@ -76,6 +84,8 @@ async function main() {
 
   // 1. Wipe existing databases in safe dependency order
   console.log("Wiping current database records to prepare for clean restore...");
+  await prisma.diary.deleteMany({});
+  await prisma.project.deleteMany({});
   await prisma.todo.deleteMany({});
   await prisma.projectRecord.deleteMany({});
   await prisma.activityLog.deleteMany({});
@@ -173,6 +183,16 @@ async function main() {
   console.log("Restoring project records...");
   if (backup.projectRecords && backup.projectRecords.length > 0) {
     await prisma.projectRecord.createMany({ data: backup.projectRecords });
+  }
+
+  console.log("Restoring diaries...");
+  if (backup.diaries && backup.diaries.length > 0) {
+    await prisma.diary.createMany({ data: backup.diaries });
+  }
+
+  console.log("Restoring projects...");
+  if (backup.projects && backup.projects.length > 0) {
+    await prisma.project.createMany({ data: backup.projects });
   }
 
   console.log("-----------------------------------------------------------------");

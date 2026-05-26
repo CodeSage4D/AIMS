@@ -2352,10 +2352,11 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           <line x1="0" y1="20" x2="150" y2="20" stroke={cardTheme.accentColor} strokeWidth="1" strokeDasharray="2 3" opacity="0.8" />
                           
                           <text x="0" y="38" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">EMERGENCY LINE</text>
-                          <text x="0" y="48" fill="#ffffff" fontFamily="monospace" fontWeight="700" fontSize="8.5">+91 99999-XXXXX</text>
+                          <text x="0" y="48" fill="#ffffff" fontFamily="monospace" fontWeight="700" fontSize="8.5">+91 83490-53536</text>
                           
-                          <text x="0" y="62" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">SERVER NODE</text>
-                          <text x="0" y="71" fill={cardTheme.textColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">aims.aurxon.com</text>
+                          <text x="0" y="62" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">OFFICIAL EMAIL</text>
+                          <text x="0" y="71" fill={cardTheme.textColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">aurxon.global@gmail.com</text>
+
                         </g>
                       </g>
 

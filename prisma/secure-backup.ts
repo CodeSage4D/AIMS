@@ -45,6 +45,14 @@ function encrypt(text: string): { iv: string; encryptedData: string } {
 }
 
 async function main() {
+  const code = process.argv[2];
+  if (code !== "221102") {
+    console.error("CRITICAL ERROR: Unauthorized database backup access.");
+    console.error("Please provide the correct backup password as an argument:");
+    console.error("  npx tsx prisma/secure-backup.ts <password>");
+    process.exit(1);
+  }
+
   console.log("-----------------------------------------------------------------");
   console.log("  AURXON AIMS SECURE DATABASE BACKUP ENGINE");
   console.log("-----------------------------------------------------------------");
@@ -71,6 +79,8 @@ async function main() {
   const holidays = await prisma.holiday.findMany();
   const systemSettings = await prisma.systemSetting.findMany();
   const projectRecords = await prisma.projectRecord.findMany();
+  const diaries = await prisma.diary.findMany();
+  const projects = await prisma.project.findMany();
 
   const backupPayload = {
     timestamp: new Date().toISOString(),
@@ -87,7 +97,9 @@ async function main() {
     resetRequests,
     holidays,
     systemSettings,
-    projectRecords
+    projectRecords,
+    diaries,
+    projects
   };
 
   // 2. Encrypt the backup payload for security

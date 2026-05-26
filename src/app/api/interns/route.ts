@@ -230,6 +230,7 @@ export async function POST(req: Request) {
     let retries = 3;
     let intern;
     let finalAssignedId = "";
+    let finalTempPassword = "";
 
     while (retries > 0) {
       try {
@@ -238,8 +239,10 @@ export async function POST(req: Request) {
           finalAssignedId = computedId;
 
           // Create linked User account for the intern/employee
-          const defaultPassword = "aims-official-intern-2026";
-          const passwordHash = bcrypt.hashSync(defaultPassword, 10);
+          const crypto = require("crypto");
+          const rawTempPassword = body.tempPassword || `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+          finalTempPassword = rawTempPassword;
+          const passwordHash = bcrypt.hashSync(rawTempPassword, 10);
           
           const createdUser = await tx.user.create({
             data: {
@@ -250,6 +253,7 @@ export async function POST(req: Request) {
               role: "INTERN",
               changePasswordRequired: true,
               status: isGated ? "PENDING" : "APPROVED",
+              tempPassword: rawTempPassword,
             },
           });
 
@@ -261,7 +265,9 @@ export async function POST(req: Request) {
             accountHolderName: body.accountHolderName || "",
             paymentPreference: body.paymentPreference || "",
             customNotes: notes || "",
+            pictureUrl: body.pictureUrl || "",
           });
+
 
           // Create corresponding Intern record
           const createdIntern = await tx.intern.create({
@@ -391,7 +397,7 @@ export async function POST(req: Request) {
       const { sendOnboardingWelcomeEmail } = await import("@/lib/emailService");
       sendOnboardingWelcomeEmail(
         { fullName: intern.fullName, email: intern.email, internId: intern.internId },
-        "aims-official-intern-2026",
+        finalTempPassword,
         loginUrl
       ).catch((err) => console.error("Asynchronous welcome email dispatch failed:", err));
     }
@@ -401,13 +407,14 @@ export async function POST(req: Request) {
         { 
           success: true, 
           intern, 
+          tempPassword: finalTempPassword,
           message: "The requested executive role requires Founder approval before activation. The request has been submitted to the Founder's queue." 
         }, 
         { status: 201 }
       );
     }
 
-    return NextResponse.json({ success: true, intern }, { status: 201 });
+    return NextResponse.json({ success: true, intern, tempPassword: finalTempPassword }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "An internal server error occurred during database insertion." },
@@ -845,6 +852,7 @@ export async function PUT(req: Request) {
     const nextBloodGroup = updateData.bloodGroup !== undefined ? updateData.bloodGroup : existingCustom.bloodGroup;
     const nextAccountHolder = updateData.accountHolderName !== undefined ? updateData.accountHolderName : existingCustom.accountHolderName;
     const nextPaymentPref = updateData.paymentPreference !== undefined ? updateData.paymentPreference : existingCustom.paymentPreference;
+    const nextPictureUrl = updateData.pictureUrl !== undefined ? updateData.pictureUrl : (existingCustom as any).pictureUrl;
 
     dataToUpdate.notes = serializeInternNotes({
       linkedIn: nextLinkedIn || "",
@@ -853,7 +861,9 @@ export async function PUT(req: Request) {
       accountHolderName: nextAccountHolder || "",
       paymentPreference: nextPaymentPref || "",
       customNotes: nextCustomNotes || "",
-    });
+      pictureUrl: nextPictureUrl || "",
+    } as any);
+
 
     if (updateData.ssidn !== undefined) dataToUpdate.ssidn = updateData.ssidn || null;
     if (updateData.supervisorId !== undefined) dataToUpdate.supervisorId = updateData.supervisorId || null;
@@ -886,6 +896,15 @@ export async function PUT(req: Request) {
         }
         if (updateData.userStatus !== undefined && userRole === "FOUNDER") {
           userUpdateData.status = updateData.userStatus;
+        }
+        if (updateData.regeneratePassword && userRole === "FOUNDER") {
+          const crypto = require("crypto");
+          const freshTempPassword = `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+          userUpdateData.tempPassword = freshTempPassword;
+          userUpdateData.passwordHash = bcrypt.hashSync(freshTempPassword, 10);
+        } else if (updateData.customPassword && userRole === "FOUNDER") {
+          userUpdateData.tempPassword = updateData.customPassword;
+          userUpdateData.passwordHash = bcrypt.hashSync(updateData.customPassword, 10);
         }
 
         if (Object.keys(userUpdateData).length > 0) {
@@ -954,15 +973,24 @@ export async function PUT(req: Request) {
       },
     });
 
+    const freshUser = existing.userId
+      ? await db.user.findUnique({ where: { id: existing.userId }, select: { tempPassword: true } })
+      : null;
+
     if (isRoleDomainGated) {
       return NextResponse.json({
         success: true,
         intern: updated,
+        tempPassword: freshUser?.tempPassword || null,
         message: "The requested executive role update requires Founder approval. A correction request has been enqueued in the Founder's queue."
       });
     }
 
-    return NextResponse.json({ success: true, intern: updated });
+    return NextResponse.json({
+      success: true,
+      intern: updated,
+      tempPassword: freshUser?.tempPassword || null
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "An internal server error occurred during database update." },

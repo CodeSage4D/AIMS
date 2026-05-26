@@ -21,6 +21,8 @@ async function main() {
 
   // 1. Wipe existing databases to prevent collision
   console.log("Wiping existing records...");
+  await prisma.diary.deleteMany({});
+  await prisma.project.deleteMany({});
   await prisma.todo.deleteMany({});
   await prisma.projectRecord.deleteMany({});
   await prisma.activityLog.deleteMany({});
@@ -36,14 +38,14 @@ async function main() {
   // 2. Hydrate access roles
   console.log("Creating administrative system users...");
   
-  const founderPasswordHash = bcrypt.hashSync("aims-official-founder-2026", 10);
+  const founderPasswordHash = bcrypt.hashSync("KarannFuture$136", 10);
   const hrPasswordHash = bcrypt.hashSync("aims-official-hr-2026", 10);
   const leadPasswordHash = bcrypt.hashSync("aims-official-lead-2026", 10);
   const internPasswordHash = bcrypt.hashSync("aims-official-intern-2026", 10);
 
   const founderUser = await prisma.user.create({
     data: {
-      email: "founder@aurxon.com",
+      email: "karannmishra136@gmail.com",
       passwordHash: founderPasswordHash,
       fullName: "Karan Mishra",
       role: Role.FOUNDER,
@@ -219,6 +221,44 @@ async function main() {
       assignedById: founderUser.id,
       reviewNotes: "Fabulous animations and gradients. This is precisely the premium operating system look we wanted!"
     }
+  });
+
+  // Seed Founder's Diaries
+  await prisma.diary.createMany({
+    data: [
+      {
+        userId: founderUser.id,
+        title: "Systems Launch Reflections",
+        content: "AIMS platform setup is officially completed. The security protocols and edge guards feel rock solid. Ready to scale onboarding.",
+      },
+      {
+        userId: founderUser.id,
+        title: "Aurxon Strategy Call",
+        content: "Met with lead designers to outline requirements for the glassmorphism asset vault. Next milestone: secure document stamps.",
+      }
+    ]
+  });
+
+  // Seed Projects Directory
+  await prisma.project.createMany({
+    data: [
+      {
+        projectId: "AXN-PRJ-2605-01",
+        title: "AIMS Core Operating System",
+        description: "Startup core infrastructure and management portal.",
+        status: "ACTIVE",
+        details: "Development of 4-tier access control dashboard, onboarding pipelines, and compliance verification.",
+        allowedUsers: [aaravInternUser.id],
+      },
+      {
+        projectId: "AXN-PRJ-2605-02",
+        title: "Aurxon Global Expansion Platform",
+        description: "Localized content delivery and international payment compliance engine.",
+        status: "PLANNED",
+        details: "Strategic outline for handling multicurrency routing, bank details audits, and security compliance.",
+        allowedUsers: [],
+      }
+    ]
   });
 
   // 3. Seed default system settings

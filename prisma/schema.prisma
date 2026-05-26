@@ -96,6 +96,8 @@ model User {
   permissionChangesReceived PermissionChangeLog[]  @relation("PermissionChangesReceived")
   todos                     Todo[]
   assignedProjects          ProjectRecord[]        @relation("AssignedProjects")
+  tempPassword              String?                @map("temp_password")
+  diaries                   Diary[]
 
   @@map("users")
 }
@@ -500,4 +502,30 @@ model Todo {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("todos")
+}
+
+model Diary {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("diaries")
+}
+
+model Project {
+  id           String   @id @default(uuid())
+  projectId    String   @unique @map("project_id") // e.g. AXN-PRJ-2605-01
+  title        String
+  description  String   @db.Text
+  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED, PLANNED
+  details      String?  @db.Text
+  allowedUsers String[] @default([]) // Array of user IDs with learn/work permissions
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("projects")
 }

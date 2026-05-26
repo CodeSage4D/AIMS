@@ -411,7 +411,9 @@ export interface CustomProfileFields {
   accountHolderName?: string;
   paymentPreference?: string;
   customNotes?: string;
+  pictureUrl?: string;
 }
+
 
 export function parseInternNotes(notesStr: string | null | undefined): CustomProfileFields {
   if (!notesStr) return {};

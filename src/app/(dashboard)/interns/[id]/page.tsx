@@ -87,6 +87,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           username: true,
           role: true,
           status: true,
+          tempPassword: true,
         },
       },
     },
@@ -520,14 +521,59 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                 </div>
               </div>
 
-              {intern.notes && (
-                <div className="space-y-1 border-t border-border/40 pt-4">
+              {(customProfile.customNotes || customProfile.linkedIn || customProfile.gitHub || customProfile.bloodGroup || (customProfile as any).pictureUrl) && (
+                <div className="space-y-3 border-t border-border/40 pt-4">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Internal Admin remarks</span>
-                  <p className="text-xs text-muted-foreground/80 leading-relaxed font-medium select-text whitespace-pre-line">
-                    {intern.notes}
-                  </p>
+                  
+                  {customProfile.customNotes && (
+                    <p className="text-xs text-muted-foreground/80 leading-relaxed font-medium select-text whitespace-pre-line bg-secondary/5 p-2 rounded border border-border/20">
+                      {customProfile.customNotes}
+                    </p>
+                  )}
+
+                  {/* Social Profile links & Blood Group */}
+                  {(customProfile.linkedIn || customProfile.gitHub || customProfile.bloodGroup) && (
+                    <div className="grid grid-cols-1 gap-2 text-xs font-semibold bg-secondary/10 p-3 rounded border border-border/30">
+                      {customProfile.linkedIn && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">LinkedIn:</span>
+                          <a href={customProfile.linkedIn} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">{customProfile.linkedIn}</a>
+                        </div>
+                      )}
+                      {customProfile.gitHub && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">GitHub:</span>
+                          <a href={customProfile.gitHub} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">{customProfile.gitHub}</a>
+                        </div>
+                      )}
+                      {customProfile.bloodGroup && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Blood Group:</span>
+                          <span className="uppercase text-foreground font-bold">{customProfile.bloodGroup}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Attached Picture rendering */}
+                  {(customProfile as any).pictureUrl && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[9px] uppercase font-bold text-muted-foreground block">Attached Photo/Picture</span>
+                      <div className="relative rounded overflow-hidden border border-border/40 w-fit max-w-[240px]">
+                        <img 
+                          src={(customProfile as any).pictureUrl} 
+                          alt="Attachment" 
+                          className="object-cover max-h-[160px] w-auto rounded hover:scale-105 transition-all duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
             </CardContent>
           </Card>
 

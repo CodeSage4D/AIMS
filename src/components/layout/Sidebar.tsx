@@ -35,6 +35,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   // Dynamic Navigation Links Schema based on roles
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
+    ...(user.role === "FOUNDER" ? [{ label: "Founder Panel", href: "/founder", icon: ClipboardList }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
@@ -43,6 +44,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
   ];
+
 
   // Secure super-admin / administrative log view (Founder-Only)
   const isLogAllowed = user.role === "FOUNDER";

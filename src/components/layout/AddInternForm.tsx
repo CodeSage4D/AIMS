@@ -31,49 +31,54 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Form State Values
-  const [formData, setFormData] = useState({
-    id: "",
-    fullName: "",
-    gender: "Male",
-    dateOfBirth: "",
-    email: "",
-    phoneNumber: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "India",
-    pinCode: "",
-    citizenship: "",
-    region: "",
-    university: "",
-    degree: "",
-    department: "Engineering",
-    roleDomain: "Software Engineer", // Default compliant role
-    batchSemester: "",
-    startDate: "",
-    endDate: "",
-    employmentType: "INTERN",
-    stipendAmount: "",
-    paymentStatus: "UNPAID",
-    emergencyContactName: "",
-    emergencyContactNumber: "",
-    skillsInput: "",
-    notes: "",
-    ssidn: "",
-    supervisorId: "",
-    username: "",
-    linkedIn: "",
-    gitHub: "",
-    bloodGroup: "",
-    bankName: "",
-    accountNumber: "",
-    ifscCode: "",
-    upiId: "",
-    branchName: "",
-    panCard: "",
-    accountHolderName: "",
-    paymentPreference: "BANK_TRANSFER",
+  const [formData, setFormData] = useState(() => {
+    const randomPass = `AXN-TMP-${Math.floor(100000 + Math.random() * 900000)}`;
+    return {
+      id: "",
+      fullName: "",
+      gender: "Male",
+      dateOfBirth: "",
+      email: "",
+      phoneNumber: "",
+      address: "",
+      city: "",
+      state: "",
+      country: "India",
+      pinCode: "",
+      citizenship: "",
+      region: "",
+      university: "",
+      degree: "",
+      department: "Engineering",
+      roleDomain: "Software Engineer", // Default compliant role
+      batchSemester: "",
+      startDate: "",
+      endDate: "",
+      employmentType: "INTERN",
+      stipendAmount: "",
+      paymentStatus: "UNPAID",
+      emergencyContactName: "",
+      emergencyContactNumber: "",
+      skillsInput: "",
+      notes: "",
+      ssidn: "",
+      supervisorId: "",
+      username: "",
+      linkedIn: "",
+      gitHub: "",
+      bloodGroup: "",
+      bankName: "",
+      accountNumber: "",
+      ifscCode: "",
+      upiId: "",
+      branchName: "",
+      panCard: "",
+      accountHolderName: "",
+      paymentPreference: "BANK_TRANSFER",
+      tempPassword: randomPass,
+    };
   });
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -420,6 +425,37 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   onChange={handleChange}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col space-y-1.5 w-full">
+                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    <span>Temporary Account Password (Required)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomPass = `AXN-TMP-${Math.floor(100000 + Math.random() * 900000)}`;
+                        setFormData((prev) => ({ ...prev, tempPassword: randomPass }));
+                      }}
+                      className="text-[10px] font-bold text-cyan-400 hover:underline hover:text-cyan-300 transition-colors"
+                    >
+                      Generate New
+                    </button>
+                  </label>
+                  <Input
+                    name="tempPassword"
+                    placeholder="Enter temporary password"
+                    value={formData.tempPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="flex items-center justify-start pt-6">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Note: Storing a temporary password allows the founder or admins to view it for candidate reference during onboarding.
+                  </p>
+                </div>
+              </div>
+
 
               <div className="border-t border-border/40 pt-5 space-y-4">
                 <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">

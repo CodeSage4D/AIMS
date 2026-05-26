@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { PlusCircle, Trash2, Edit, AlertTriangle, Sparkles, User, School, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ROLE_CODES } from "@/lib/roles";
+import { ROLE_CODES, parseInternNotes } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+
 
 const sortedRoles = Object.keys(ROLE_CODES).sort();
 
@@ -60,8 +61,10 @@ interface InternData {
     username: string | null;
     role?: string;
     status?: string;
+    tempPassword?: string | null;
   } | null;
 }
+
 
 interface WorkspaceHeaderActionsProps {
   intern: InternData;
@@ -79,39 +82,53 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
   const [error, setError] = useState<string | null>(null);
 
   // Form State Values for Update Modal
-  const [formData, setFormData] = useState({
-    id: intern.id,
-    fullName: intern.fullName,
-    gender: intern.gender,
-    dateOfBirth: new Date(intern.dateOfBirth).toISOString().split("T")[0],
-    email: intern.email,
-    phoneNumber: intern.phoneNumber,
-    address: intern.address || "",
-    city: intern.city || "",
-    state: intern.state || "",
-    country: intern.country || "India",
-    university: intern.university,
-    degree: intern.degree,
-    department: intern.department,
-    roleDomain: intern.roleDomain,
-    batchSemester: intern.batchSemester || "",
-    startDate: new Date(intern.startDate).toISOString().split("T")[0],
-    endDate: intern.endDate ? new Date(intern.endDate).toISOString().split("T")[0] : "",
-    employmentType: intern.employmentType || "INTERN",
-    stipendAmount: String(intern.stipendAmount),
-    paymentStatus: intern.paymentStatus || "UNPAID",
-    emergencyContactName: intern.emergencyContactName,
-    emergencyContactNumber: intern.emergencyContactNumber,
-    skillsInput: intern.skills.join(", "),
-    badges: intern.badges || [],
-    notes: intern.notes || "",
-    ssidn: intern.ssidn || "",
-    supervisorId: intern.supervisorId || "",
-    status: intern.status,
-    username: intern.user?.username || "",
-    role: intern.user?.role || "INTERN",
-    userStatus: intern.user?.status || "APPROVED",
+  const [formData, setFormData] = useState(() => {
+    const customFields = parseInternNotes(intern.notes);
+    return {
+      id: intern.id,
+      fullName: intern.fullName,
+      gender: intern.gender,
+      dateOfBirth: new Date(intern.dateOfBirth).toISOString().split("T")[0],
+      email: intern.email,
+      phoneNumber: intern.phoneNumber,
+      address: intern.address || "",
+      city: intern.city || "",
+      state: intern.state || "",
+      country: intern.country || "India",
+      university: intern.university,
+      degree: intern.degree,
+      department: intern.department,
+      roleDomain: intern.roleDomain,
+      batchSemester: intern.batchSemester || "",
+      startDate: new Date(intern.startDate).toISOString().split("T")[0],
+      endDate: intern.endDate ? new Date(intern.endDate).toISOString().split("T")[0] : "",
+      employmentType: intern.employmentType || "INTERN",
+      stipendAmount: String(intern.stipendAmount),
+      paymentStatus: intern.paymentStatus || "UNPAID",
+      emergencyContactName: intern.emergencyContactName,
+      emergencyContactNumber: intern.emergencyContactNumber,
+      skillsInput: intern.skills.join(", "),
+      badges: intern.badges || [],
+      // Custom profile fields
+      notes: customFields.customNotes || "",
+      linkedIn: customFields.linkedIn || "",
+      gitHub: customFields.gitHub || "",
+      bloodGroup: customFields.bloodGroup || "",
+      accountHolderName: customFields.accountHolderName || "",
+      paymentPreference: customFields.paymentPreference || "BANK_TRANSFER",
+      pictureUrl: (customFields as any).pictureUrl || "",
+      ssidn: intern.ssidn || "",
+      supervisorId: intern.supervisorId || "",
+      status: intern.status,
+      username: intern.user?.username || "",
+      role: intern.user?.role || "INTERN",
+      userStatus: intern.user?.status || "APPROVED",
+      regeneratePassword: false,
+      customPassword: "",
+    };
   });
+
+
 
   const [activeTab, setActiveTab] = useState(1);
 
@@ -712,7 +729,54 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                         </select>
                       </div>
                     </div>
+
+                    <div className="border-t border-border/40 pt-4 mt-4 space-y-4">
+                      <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                        Account Password Management
+                      </span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-secondary/10 p-4 rounded-lg border border-border/40">
+                        <div className="flex flex-col space-y-1">
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Current Password</span>
+                          <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/5 px-2 py-1.5 rounded border border-cyan-500/10 inline-block w-fit select-all">
+                            {intern.user?.tempPassword || "None Stored"}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col space-y-1.5">
+                          <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Custom Password Override</label>
+                          <input
+                            type="text"
+                            placeholder="Enter new custom password"
+                            value={formData.customPassword}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, customPassword: e.target.value, regeneratePassword: false }))}
+                            className="flex h-9 w-full rounded-md border border-border bg-input px-3.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                          />
+                        </div>
+
+                        <div className="flex flex-col justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ 
+                                ...prev, 
+                                regeneratePassword: !prev.regeneratePassword,
+                                customPassword: "" 
+                              }));
+                            }}
+                            className={cn(
+                              "h-9 px-4 rounded-md text-xs font-bold transition-all border",
+                              formData.regeneratePassword
+                                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                                : "bg-secondary text-foreground hover:bg-secondary/80 border-border/60"
+                            )}
+                          >
+                            {formData.regeneratePassword ? "✓ Will Regenerate on Save" : "🔄 Re-generate random password"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
                 )}
 
                 {/* TAB 3: Emergency contact & Skillsets */}
@@ -799,19 +863,60 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                       />
                     </div>
 
-                    <div className="flex flex-col space-y-1.5 w-full">
+                    <div className="border-t border-border/40 pt-4 space-y-4">
+                      <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                        Social & Profile Connections
+                      </span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input
+                          label="LinkedIn Profile URL"
+                          name="linkedIn"
+                          value={formData.linkedIn}
+                          onChange={handleChange}
+                        />
+                        <Input
+                          label="GitHub Profile URL"
+                          name="gitHub"
+                          value={formData.gitHub}
+                          onChange={handleChange}
+                        />
+                        <Input
+                          label="Blood Group"
+                          name="bloodGroup"
+                          value={formData.bloodGroup}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/40 pt-4 space-y-4">
+                      <span className="text-xs font-heading font-bold text-foreground uppercase tracking-widest block">
+                        Picture Attachment
+                      </span>
+                      <Input
+                        label="Picture / Photo URL"
+                        name="pictureUrl"
+                        placeholder="https://example.com/photo.jpg"
+                        value={formData.pictureUrl}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="flex flex-col space-y-1.5 w-full border-t border-border/40 pt-4">
                       <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-                        Internal Admin Notes
+                        Internal Admin Remarks & Notes
                       </label>
                       <textarea
                         name="notes"
                         value={formData.notes}
                         onChange={handleChange}
                         rows={3}
+                        placeholder="Add private evaluation notes or feedback..."
                         className="flex w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm"
                       />
                     </div>
                   </div>
+
                 )}
               </form>
             </div>
