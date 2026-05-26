@@ -53,6 +53,7 @@ New folder/
 # Secrets & Local credentials files
 credentials.txt
 credential.txt
+necredential.txt
 
 # Scratch folder
 scratch/
