@@ -48,6 +48,8 @@ interface ProfileSettingsClientProps {
     email: string;
     username: string | null;
     role: string;
+    pictureUrl?: string | null;
+    employeeId?: string | null;
   };
   internProfile?: any | null;
   initialRequests: RequestItem[];
@@ -82,16 +84,19 @@ export default function ProfileSettingsClient({
   const isProfileOwner = internProfile ? internProfile.userId === user.id : true;
   const canViewBankDetails = user.role === "FOUNDER" || user.role === "HR" || isProfileOwner;
 
-  // Parse notes JSON properties
+  // Parse notes JSON properties (from intern or founder profile)
   const customProfile = internProfile ? parseInternNotes(internProfile.notes) : {};
+
+  // Initialize photoPreview from user.pictureUrl (Founders) or intern notes (Interns)
+  const initialPicture = user.pictureUrl || (customProfile as any).pictureUrl || null;
 
   // Form states for direct permitted updates
   const [directLinkedIn, setDirectLinkedIn] = useState(customProfile.linkedIn || "");
   const [directGitHub, setDirectGitHub] = useState(customProfile.gitHub || "");
   const [directBloodGroup, setDirectBloodGroup] = useState(customProfile.bloodGroup || "");
   const [directPinCode, setDirectPinCode] = useState(internProfile?.pinCode || "");
-  const [directPictureUrl, setDirectPictureUrl] = useState(customProfile.pictureUrl || "");
-  const [photoPreview, setPhotoPreview] = useState<string | null>(customProfile.pictureUrl || null);
+  const [directPictureUrl, setDirectPictureUrl] = useState((customProfile as any).pictureUrl || user.pictureUrl || "");
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialPicture);
   const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -705,7 +710,8 @@ export default function ProfileSettingsClient({
             </span>
           )}
         </button>
-        {internProfile && (
+        {/* ID Card tab: show for interns AND for Founders (digital badge) */}
+        {(internProfile || user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "ADMIN" || user.role === "HR") && (
           <button
             onClick={() => setActiveTab("idcard")}
             className={cn(
@@ -716,7 +722,7 @@ export default function ProfileSettingsClient({
             )}
           >
             <Contact className="h-4 w-4 shrink-0" />
-            <span>Digital ID Card</span>
+            <span>{internProfile ? "Digital ID Card" : "Digital Badge"}</span>
           </button>
         )}
         {isManager && (
@@ -1018,52 +1024,50 @@ export default function ProfileSettingsClient({
         {/* TAB 2: ACCOUNT SETTINGS */}
         {activeTab === "settings" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Profile Picture Upload Card */}
-            {internProfile && (
-              <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
-                <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
-                  <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                    <User className="h-4.5 w-4.5 text-primary" />
-                    <span>Profile Display Photo</span>
-                  </CardTitle>
-                  <CardDescription className="text-[10px] text-muted-foreground">Upload your workspace avatar photo (max 20KB).</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-16 w-16 rounded-full bg-secondary border border-border/80 flex items-center justify-center overflow-hidden shrink-0">
-                      {photoPreview ? (
-                        <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary select-none">
-                          {user.fullName[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-xs font-bold text-foreground">Upload Portrait Photo</p>
-                      <p className="text-[9px] text-muted-foreground leading-normal">
-                        Select a square portrait image. STRICT limit: **20KB**. Formats: JPG/PNG.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="relative border border-dashed border-border rounded-xl p-3 bg-secondary/15 hover:bg-secondary/25 transition-all flex flex-col items-center justify-center text-center cursor-pointer space-y-1">
-                      <span className="text-[11px] font-bold text-primary">Click to select photo file</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      />
-                    </div>
-                    {photoUploadError && (
-                      <p className="text-[10px] font-semibold text-destructive">{photoUploadError}</p>
+            {/* Profile Picture Upload Card - for ALL roles */}
+            <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+              <CardHeader className="p-0 pb-4 border-b border-border/40 mb-4">
+                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                  <User className="h-4.5 w-4.5 text-primary" />
+                  <span>Profile Display Photo</span>
+                </CardTitle>
+                <CardDescription className="text-[10px] text-muted-foreground">Upload your workspace avatar photo (max 20KB).</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="h-16 w-16 rounded-full bg-secondary border border-border/80 flex items-center justify-center overflow-hidden shrink-0">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-heading font-extrabold text-primary select-none">
+                        {user.fullName[0].toUpperCase()}
+                      </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  <div className="flex-1 space-y-1">
+                    <p className="text-xs font-bold text-foreground">Upload Portrait Photo</p>
+                    <p className="text-[9px] text-muted-foreground leading-normal">
+                      Select a square portrait image. STRICT limit: <strong>20KB</strong>. Formats: JPG/PNG.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="relative border border-dashed border-border rounded-xl p-3 bg-secondary/15 hover:bg-secondary/25 transition-all flex flex-col items-center justify-center text-center cursor-pointer space-y-1">
+                    <span className="text-[11px] font-bold text-primary">Click to select photo file</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                  {photoUploadError && (
+                    <p className="text-[10px] font-semibold text-destructive">{photoUploadError}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Change Username Card */}
             <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
