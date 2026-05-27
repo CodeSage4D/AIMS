@@ -2174,7 +2174,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
           }
         `}</style>
 
-        <div className="w-full max-w-5xl flex flex-col md:flex-row bg-card border border-border shadow-2xl rounded-2xl overflow-hidden max-h-[90vh] md:max-h-[85vh] print:max-h-none print:border-none print:shadow-none print:rounded-none">
+        <div className="w-full max-w-5xl flex flex-col md:flex-row bg-card border border-border shadow-2xl rounded-2xl overflow-hidden h-[90vh] md:h-[85vh] print:h-auto print:max-h-none print:border-none print:shadow-none print:rounded-none">
           {/* Close button inside modal */}
           <button
             onClick={() => setSelectedGeneratedDoc(null)}
@@ -2184,7 +2184,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
           </button>
 
           {/* Left Column: Premium Preview Element */}
-          <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center bg-secondary/10 overflow-y-auto select-text print:bg-white print:p-0">
+          <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-start bg-secondary/10 overflow-y-auto select-text print:bg-white print:p-0 h-full">
             
             {/* Top Selector pill only for Experience Letters */}
             {doc.type === "EXPERIENCE_LETTER" && (
@@ -2584,7 +2584,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
           </div>
 
           {/* Right Column: Dynamic Credentials Customization & Metadata Panel */}
-          <div className="w-full md:w-80 bg-card p-6 md:p-8 border-t md:border-t-0 md:border-l border-border/40 flex flex-col justify-between shrink-0 max-h-[45vh] md:max-h-none overflow-y-auto select-none print:hidden">
+          <div className="w-full md:w-80 bg-card p-6 md:p-8 border-t md:border-t-0 md:border-l border-border/40 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none print:hidden">
             <div className="space-y-6">
               <div>
                 <span className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
