@@ -92,12 +92,58 @@ export default function ExecutiveClockStation() {
 
   const todayRecord = getTodayRecord();
 
+  // Geolocation helpers
+  const getGeoLocation = (): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0
+      });
+    });
+  };
+
+  const getAddressFromCoords = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+        headers: { "Accept-Language": "en" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    } catch (e) {
+      console.warn("Reverse geocoding address failed:", e);
+    }
+    return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  };
+
   const handleCheckIn = async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    let geoBody = {};
+
     try {
-      const res = await fetch("/api/attendance/check-in", { method: "POST" });
+      const pos = await getGeoLocation();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const address = await getAddressFromCoords(lat, lng);
+      geoBody = { latitude: lat, longitude: lng, address };
+    } catch (err: any) {
+      console.warn("Failed to get high-accuracy geo location coordinates:", err.message);
+    }
+
+    try {
+      const res = await fetch("/api/attendance/check-in", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geoBody),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to check-in.");
       setSuccess("Checked in successfully!");
@@ -113,8 +159,24 @@ export default function ExecutiveClockStation() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    let geoBody = {};
+
     try {
-      const res = await fetch("/api/attendance/check-out", { method: "POST" });
+      const pos = await getGeoLocation();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const address = await getAddressFromCoords(lat, lng);
+      geoBody = { latitude: lat, longitude: lng, address };
+    } catch (err: any) {
+      console.warn("Failed to get high-accuracy geo location coordinates:", err.message);
+    }
+
+    try {
+      const res = await fetch("/api/attendance/check-out", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geoBody),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to check-out.");
       setSuccess("Checked out successfully!");
