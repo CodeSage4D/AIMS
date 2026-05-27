@@ -467,6 +467,7 @@ export async function PATCH(req: Request) {
         paymentPreference: nextPaymentPref || "",
         pictureUrl: nextPictureUrl || "",
         customNotes: nextCustomNotes || "",
+        onboardingSkipped: existingCustom.onboardingSkipped || false,
       });
 
       // Write direct update and log
