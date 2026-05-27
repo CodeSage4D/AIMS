@@ -173,17 +173,6 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   const [previewMode, setPreviewMode] = useState<"letter" | "certificate">("certificate");
   const [isDoubleSided, setIsDoubleSided] = useState<boolean>(true);
 
-  React.useEffect(() => {
-    if (selectedGeneratedDoc && selectedGeneratedDoc.type === "ID_CARD") {
-      const content = selectedGeneratedDoc.content || {};
-      setSelectedCardType(content.cardType || "standard");
-      setSelectedCardTheme(content.theme || "orange");
-      setSelectedBadgeColor(content.badgeColor || "#ea580c");
-      setSelectedThemeColor(content.themeColor || "#ea580c");
-      setSelectedVerificationBadgeStyle(content.verificationBadgeStyle || "gold");
-    }
-  }, [selectedGeneratedDoc]);
-
   // State Management
   const [search, setSearch] = useState("");
   const [selectedIntern, setSelectedIntern] = useState<InternRecord | null>(null);
@@ -203,6 +192,17 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   const [editFormContent, setEditFormContent] = useState<any>({});
   const [adminModalTab, setAdminModalTab] = useState<"upload" | "generated">("upload");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (selectedGeneratedDoc && selectedGeneratedDoc.type === "ID_CARD") {
+      const content = selectedGeneratedDoc.content || {};
+      setSelectedCardType(content.cardType || "standard");
+      setSelectedCardTheme(content.theme || "orange");
+      setSelectedBadgeColor(content.badgeColor || "#ea580c");
+      setSelectedThemeColor(content.themeColor || "#ea580c");
+      setSelectedVerificationBadgeStyle(content.verificationBadgeStyle || "gold");
+    }
+  }, [selectedGeneratedDoc]);
 
   // Custom high-fidelity workspace for regular enrollee Interns
   if (role === "INTERN") {
