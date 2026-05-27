@@ -407,6 +407,7 @@ export function getDefaultPermissionsForRoleDomain(roleDomain: string): Record<s
 export interface CustomProfileFields {
   linkedIn?: string;
   gitHub?: string;
+  instagram?: string;
   bloodGroup?: string;
   accountHolderName?: string;
   paymentPreference?: string;
