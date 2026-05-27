@@ -412,6 +412,7 @@ export interface CustomProfileFields {
   paymentPreference?: string;
   customNotes?: string;
   pictureUrl?: string;
+  onboardingSkipped?: boolean;
 }
 
 
