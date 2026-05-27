@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { UploadCloud, AlertTriangle, ShieldCheck, Download, Sparkles, RefreshCw, Eye, Printer } from "lucide-react";
 import { getRoleMeta } from "@/lib/roles";
 import { jsPDF } from "jspdf";
+import { cn } from "@/lib/utils";
 
 interface IdCardGeneratorProps {
   fullName: string;
@@ -18,6 +19,7 @@ interface IdCardGeneratorProps {
   defaultPhotoUrl?: string | null; // Profile picture default fallback
   linkedIn?: string | null;
   gitHub?: string | null;
+  viewOnly?: boolean; // Toggles simplified sidebar view
 }
 
 // Deterministic Cryptographic Security Key Generator
@@ -39,12 +41,119 @@ const generateEncryptionKey = (id: string, dbId: string) => {
 const getHandleName = (url?: string | null, fallback: string = "") => {
   if (!url) return fallback;
   try {
-    const clean = url.trim().replace(/\/$/, ""); // remove trailing slash
+    const clean = url.trim().replace(/\/$/, "");
     const parts = clean.split("/");
     return parts[parts.length - 1] || fallback;
   } catch {
     return fallback;
   }
+};
+
+const PREMIUM_THEMES = {
+  glacial: {
+    label: "ELITE GLACIAL",
+    themeName: "glacial",
+    primaryColor: "#3b82f6",
+    secondaryColor: "#06b6d4",
+    accentColor: "#06b6d4",
+    techColor: "#3b82f6",
+    bgColorStart: "#050811",
+    bgColorEnd: "#1c2541",
+    badgeBg: "bg-cyan-950/40 text-cyan-300 border border-cyan-800/40",
+    panelBg: "rgba(11, 19, 43, 0.75)",
+    badgeText: "VERIFIED ACTIVE",
+    textColor: "#ffffff",
+  },
+  gold: {
+    label: "IMPERIAL GOLD",
+    themeName: "gold",
+    primaryColor: "#f59e0b",
+    secondaryColor: "#fbbf24",
+    accentColor: "#fbbf24",
+    techColor: "#f59e0b",
+    bgColorStart: "#09090b",
+    bgColorEnd: "#27272a",
+    badgeBg: "bg-yellow-950/40 text-yellow-300 border border-yellow-800/40",
+    panelBg: "rgba(24, 24, 27, 0.75)",
+    badgeText: "VERIFIED ACTIVE",
+    textColor: "#ffffff",
+  },
+  matrix: {
+    label: "MATRIX GREEN",
+    themeName: "matrix",
+    primaryColor: "#10b981",
+    secondaryColor: "#34d399",
+    accentColor: "#34d399",
+    techColor: "#10b981",
+    bgColorStart: "#010702",
+    bgColorEnd: "#0c1f0e",
+    badgeBg: "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40",
+    panelBg: "rgba(2, 44, 6, 0.75)",
+    badgeText: "VERIFIED ACTIVE",
+    textColor: "#ffffff",
+  },
+  cyber: {
+    label: "CYBERPUNK PINK",
+    themeName: "cyber",
+    primaryColor: "#a855f7",
+    secondaryColor: "#e879f9",
+    accentColor: "#e879f9",
+    techColor: "#a855f7",
+    bgColorStart: "#0f081c",
+    bgColorEnd: "#250b38",
+    badgeBg: "bg-purple-950/40 text-purple-300 border border-purple-800/40",
+    panelBg: "rgba(37, 11, 56, 0.75)",
+    badgeText: "VERIFIED ACTIVE",
+    textColor: "#ffffff",
+  },
+  orange: {
+    label: "SUNSET ORANGE",
+    themeName: "orange",
+    primaryColor: "#ea580c",
+    secondaryColor: "#fb923c",
+    accentColor: "#fb923c",
+    techColor: "#ea580c",
+    bgColorStart: "#140e0a",
+    bgColorEnd: "#2b1c11",
+    badgeBg: "bg-orange-950/40 text-orange-300 border border-orange-800/40",
+    panelBg: "rgba(43, 28, 17, 0.75)",
+    badgeText: "VERIFIED ACTIVE",
+    textColor: "#ffffff",
+  }
+};
+
+const getCardDesign = (role: string, empType?: string, chosenTheme?: string | null) => {
+  const cleanTheme = (chosenTheme || "").toLowerCase();
+  
+  if (cleanTheme.includes("glacial") || cleanTheme.includes("blue")) return PREMIUM_THEMES.glacial;
+  if (cleanTheme.includes("gold") || cleanTheme.includes("yellow")) return PREMIUM_THEMES.gold;
+  if (cleanTheme.includes("matrix") || cleanTheme.includes("green")) return PREMIUM_THEMES.matrix;
+  if (cleanTheme.includes("cyber") || cleanTheme.includes("purple") || cleanTheme.includes("royal")) return PREMIUM_THEMES.cyber;
+  if (cleanTheme.includes("orange") || cleanTheme.includes("sunset")) return PREMIUM_THEMES.orange;
+
+  // Fallback to role-based mappings
+  const lowerRole = (role || "").toLowerCase();
+  const lowerEmp = (empType || "").toLowerCase();
+  
+  if (lowerRole.includes("founder") || lowerRole.includes("director") || lowerRole.includes("owner")) {
+    return PREMIUM_THEMES.cyber;
+  }
+  if (
+    lowerRole.includes("hr") || 
+    lowerRole.includes("human resources") || 
+    lowerRole.includes("talent") || 
+    lowerRole.includes("management") || 
+    lowerRole.includes("operations")
+  ) {
+    return PREMIUM_THEMES.glacial;
+  }
+  if (lowerRole.includes("intern") || lowerEmp.includes("intern")) {
+    return PREMIUM_THEMES.orange;
+  }
+  if (lowerEmp.includes("contract")) {
+    return PREMIUM_THEMES.matrix;
+  }
+  return PREMIUM_THEMES.glacial;
 };
 
 export default function IdCardGenerator({
@@ -58,10 +167,10 @@ export default function IdCardGenerator({
   defaultPhotoUrl,
   linkedIn = null,
   gitHub = null,
+  viewOnly = false,
 }: IdCardGeneratorProps) {
   const { data: session } = useSession();
   const loggedInRole = (session?.user as any)?.role || "INTERN";
-  const loggedInUserId = (session?.user as any)?.id;
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(defaultPhotoUrl || null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -71,111 +180,19 @@ export default function IdCardGenerator({
   const [isApproving, setIsApproving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
-  // Document state from DB
   const [cardStatus, setCardStatus] = useState<string | null>(null);
   const [cardDocId, setCardDocId] = useState<string | null>(null);
   const [cardSignature, setCardSignature] = useState<string | null>(null);
 
-  // Dynamic light-themed color configuration based on enrollee's role for high contrast visual identity
-  const getCardDesign = (domain: string, empType?: string) => {
-    const lowerRole = (domain || "").toLowerCase();
-    const lowerEmp = (empType || "").toLowerCase();
-    
-    // 1. Founder (Royal Purple)
-    if (lowerRole.includes("founder") || lowerRole.includes("director") || lowerRole.includes("owner")) {
-      return {
-        label: "ELITE FOUNDER",
-        themeName: "Royal Purple Premium (White Base)",
-        primaryColor: "#7c3aed", // Royal Purple
-        secondaryColor: "#8b5cf6", // Violet Highlight
-        accentColor: "#6d28d9", // Deep Purple
-        techColor: "#7c3aed", // Royal Purple
-        bgColorStart: "#ffffff",
-        bgColorEnd: "#faf8ff", // Cool Purple Tint
-        badgeBg: "bg-purple-100 text-purple-700 border border-purple-250 shadow-sm dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40",
-        panelBg: "rgba(255, 255, 255, 0.95)",
-        badgeText: "LEADERSHIP MANAGEMENT",
-        textColor: "#000000",
-      };
-    }
-    // 2. HR / Staff Management (Blue)
-    if (
-      lowerRole.includes("hr") || 
-      lowerRole.includes("human resources") || 
-      lowerRole.includes("talent") || 
-      lowerRole.includes("management") || 
-      lowerRole.includes("operations")
-    ) {
-      return {
-        label: "HR & MANAGEMENT",
-        themeName: "Soft Blue Enterprise (White Base)",
-        primaryColor: "#2563eb", // Royal Blue
-        secondaryColor: "#3b82f6", // Sky Blue Highlight
-        accentColor: "#1d4ed8", // Dark Blue
-        techColor: "#2563eb", // Blue
-        bgColorStart: "#ffffff",
-        bgColorEnd: "#f8faff", // Cool Blue Tint
-        badgeBg: "bg-blue-100 text-blue-700 border border-blue-250 shadow-sm dark:bg-blue-950/40 dark:text-blue-350 dark:border-blue-800/40",
-        panelBg: "rgba(255, 255, 255, 0.95)",
-        badgeText: "HR ADMINISTRATION",
-        textColor: "#000000",
-      };
-    }
-    // 3. Intern (Orange)
-    if (lowerRole.includes("intern") || lowerEmp.includes("intern")) {
-      return {
-        label: "OFFICIAL INTERN",
-        themeName: "Off-White Minimalist Orange (White Base)",
-        primaryColor: "#f97316", // Orange
-        secondaryColor: "#ea580c", // Orange Highlight
-        accentColor: "#c2410c", // Charcoal Orange
-        techColor: "#f97316", // Orange
-        bgColorStart: "#ffffff",
-        bgColorEnd: "#fffbf7", // Cool Orange Tint
-        badgeBg: "bg-orange-100 text-orange-700 border border-orange-250 shadow-sm dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/40",
-        panelBg: "rgba(255, 255, 255, 0.95)",
-        badgeText: "LEARNING ENROLLEE",
-        textColor: "#000000",
-      };
-    }
-    // 4. Contract Employee (Green)
-    if (lowerEmp.includes("contract")) {
-      return {
-        label: "CONTRACT ASSOCIATE",
-        themeName: "White + Green Enterprise (White Base)",
-        primaryColor: "#10b981", // Green Accent
-        secondaryColor: "#059669", // Green Highlight
-        accentColor: "#047857", // Deep Green
-        techColor: "#10b981", // Green
-        bgColorStart: "#ffffff",
-        bgColorEnd: "#f6fffb", // Cool Green Tint
-        badgeBg: "bg-emerald-100 text-emerald-700 border border-emerald-250 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40",
-        panelBg: "rgba(255, 255, 255, 0.95)",
-        badgeText: "CONTRACT MEMBER",
-        textColor: "#000000",
-      };
-    }
-    // 5. Permanent Employee (Dark Navy or Teal - default fallback for Software Engineers etc.)
-    return {
-      label: "PERMANENT ASSOCIATE",
-      themeName: "Dark Navy & Teal (White Base)",
-      primaryColor: "#1e3a8a", // Dark Navy
-      secondaryColor: "#0f766e", // Teal Accent
-      accentColor: "#1e3a8a", // Dark Navy
-      techColor: "#1e3a8a", // Dark Navy
-      bgColorStart: "#ffffff",
-      bgColorEnd: "#f8fafc", // Cool Navy-Grey Tint
-      badgeBg: "bg-teal-100 text-teal-700 border border-teal-250 shadow-sm dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40",
-      panelBg: "rgba(255, 255, 255, 0.95)",
-      badgeText: "PERMANENT STAFF",
-      textColor: "#000000",
-    };
-  };
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [savedTheme, setSavedTheme] = useState<string | null>(null);
 
-  const design = getCardDesign(roleDomain, employmentType);
+  // Tabs for viewOnly preview switcher
+  const [previewTab, setPreviewTab] = useState<"card" | "badge">("card");
+
+  const design = getCardDesign(roleDomain, employmentType, selectedTheme || savedTheme);
   const roleMeta = getRoleMeta(roleDomain);
 
-  // Fetch saved configuration and approvals on mount
   const fetchSavedCard = async () => {
     try {
       const res = await fetch(`/api/documents/id-card?internId=${dbInternId}`);
@@ -185,14 +202,20 @@ export default function IdCardGenerator({
           setCardStatus(data.status);
           setCardDocId(data.id);
           setCardSignature(data.signature);
-          if (data.content && data.content.avatarUrl) {
-            setPhotoUrl(data.content.avatarUrl);
+          if (data.content) {
+            if (data.content.avatarUrl) {
+              setPhotoUrl(data.content.avatarUrl);
+            }
+            if (data.content.theme) {
+              setSavedTheme(data.content.theme);
+            }
           }
         }
       } else {
         setCardStatus(null);
         setCardDocId(null);
         setCardSignature(null);
+        setSavedTheme(null);
       }
     } catch (err) {
       console.warn("Failed to fetch saved ID card badge setup:", err);
@@ -212,7 +235,6 @@ export default function IdCardGenerator({
 
     if (!file) return;
 
-    // Secure 20 KB client-side validation
     if (file.size > 20 * 1024) {
       setPhotoError("Rejected: Profile photo exceeds the secure 20 KB maximum limit. Please compress your picture.");
       setPhotoUrl(null);
@@ -234,7 +256,6 @@ export default function IdCardGenerator({
 
   const drawCardOnCanvas = (ctx: CanvasRenderingContext2D, width: number, height: number, imgElement?: HTMLImageElement): Promise<void> => {
     return new Promise(async (resolve) => {
-      // Load corporate AIMS logo image first for high contrast header identity
       let logoImg: HTMLImageElement | null = null;
       try {
         const img = new Image();
@@ -246,288 +267,261 @@ export default function IdCardGenerator({
             resImg();
           };
           img.onerror = () => {
-            resImg(); // Resolve gracefully without blocking preview compilation
+            resImg();
           };
         });
       } catch (e) {
         console.warn("Canvas logo load exception:", e);
       }
 
-      // 1. High Contrast Background Gradient (Light-themed)
+      // 1. Fill Dark Base Background
       let bgGradient = ctx.createLinearGradient(0, 0, width, height);
       bgGradient.addColorStop(0, design.bgColorStart);
       bgGradient.addColorStop(1, design.bgColorEnd);
-      
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle light-contrast grid overlay
-      ctx.fillStyle = "rgba(15, 23, 42, 0.015)";
+      // 2. High-Fidelity Futuristic Tech Grid lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+      ctx.lineWidth = 1;
       for (let x = 0; x < width; x += 15) {
-        ctx.fillRect(x, 0, 1, height);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
       }
       for (let y = 0; y < height; y += 15) {
-        ctx.fillRect(0, y, width, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
       }
 
-      // 2. High-Readability Card Frame
-      ctx.strokeStyle = design.secondaryColor;
-      ctx.lineWidth = 8;
-      ctx.strokeRect(4, 4, width - 8, height - 8);
-
-      ctx.strokeStyle = "rgba(15, 23, 42, 0.08)";
+      // 3. Tech circular orbit guides
+      ctx.strokeStyle = design.primaryColor + "15";
       ctx.lineWidth = 1;
-      ctx.strokeRect(10, 10, width - 20, height - 20);
-
-      // Draw top tech line stripes
-      ctx.strokeStyle = design.techColor;
-      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(25, 22);
-      ctx.lineTo(width - 25, 22);
+      ctx.arc(width / 2, height / 2 - 30, 140, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2 - 30, 90, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Top decorative tech block
-      ctx.fillStyle = design.techColor;
-      ctx.fillRect(width / 2 - 25, 20, 50, 4);
+      // 4. Secure Border Frame
+      ctx.strokeStyle = design.secondaryColor;
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, width - 6, height - 6);
 
-      // Draw bottom tech line stripes
-      ctx.beginPath();
-      ctx.moveTo(25, height - 22);
-      ctx.lineTo(width - 25, height - 22);
-      ctx.stroke();
+      // 5. Tech Accent Bar Top and Bottom
+      ctx.fillStyle = design.primaryColor;
+      ctx.fillRect(20, 14, width - 40, 3);
+      ctx.fillRect(20, height - 17, width - 40, 3);
 
-      // Bottom decorative tech block
-      ctx.fillRect(width / 2 - 25, height - 24, 50, 4);
-
-      // 3. Header Section (Highly Readable Slate Black Title)
+      // 6. Header Section (Logo + Brand Text in White)
       ctx.textAlign = "center";
-      ctx.fillStyle = "#0f172a"; // Slate-900
+      ctx.fillStyle = "#ffffff";
       
-      // Shadow for subtle contrast
-      ctx.shadowColor = "rgba(0, 0, 0, 0.08)";
-      ctx.shadowBlur = 1;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
-
-      // Aligned text and separator heights
       let textY = 46;
       let subtitleY = 65;
-      let sepY = 80;
+      let sepY = 78;
 
       if (logoImg) {
-        const logoSize = 48; // Increased logo size from 24
-        ctx.drawImage(logoImg, width / 2 - logoSize / 2, 16, logoSize, logoSize);
-        textY = 82;
-        subtitleY = 98;
-        sepY = 108;
+        const logoSize = 36;
+        ctx.drawImage(logoImg, width / 2 - logoSize / 2, 18, logoSize, logoSize);
+        textY = 70;
+        subtitleY = 85;
+        sepY = 94;
       }
 
-      ctx.font = "900 22px sans-serif";
+      ctx.font = "900 19px sans-serif";
       ctx.fillText("AURXON", width / 2, textY);
 
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-
-      ctx.font = "bold 9px sans-serif";
-      ctx.fillStyle = "#334155"; // Slate-700
+      ctx.font = "bold 8px sans-serif";
+      ctx.fillStyle = design.secondaryColor;
       ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, subtitleY);
 
-      // Horizontal separator
-      ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
-      ctx.fillRect(30, sepY, width - 60, 1.5);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.fillRect(30, sepY, width - 60, 1);
 
-      // 4. Draw Profile Picture Frame
+      // 7. Portrait Circle and Glow
       const centerX = width / 2;
-      const centerY = 190;
-      const radius = 68;
+      const centerY = 175;
+      const radius = 54;
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius + 4, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(15, 23, 42, 0.04)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.02)";
       ctx.fill();
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 2.5;
       ctx.strokeStyle = design.secondaryColor;
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(15, 23, 42, 0.1)";
-      ctx.stroke();
-
       if (imgElement) {
-        // Clipped photo draw
         ctx.save();
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.clip();
         ctx.drawImage(imgElement, centerX - radius, centerY - radius, radius * 2, radius * 2);
         ctx.restore();
       } else {
-        // Draw crisp vector avatar placeholder (Light style)
         ctx.save();
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.clip();
         
-        ctx.fillStyle = "#f1f5f9"; // Slate-100
+        ctx.fillStyle = "#1e293b";
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY - 12, 22, 0, Math.PI * 2);
-        ctx.fillStyle = "#cbd5e1"; // Slate-300
+        ctx.arc(centerX, centerY - 8, 18, 0, Math.PI * 2);
+        ctx.fillStyle = "#475569";
         ctx.fill();
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY + 48, 42, 0, Math.PI * 2);
-        ctx.fillStyle = "#cbd5e1"; // Slate-300
+        ctx.arc(centerX, centerY + 40, 34, 0, Math.PI * 2);
+        ctx.fillStyle = "#475569";
         ctx.fill();
         ctx.restore();
       }
 
-      // 5. Solid Opaque Overlay Panel for Superior Text Readability (White theme)
-      const panelY = 280;
-      const panelHeight = 158;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; // Solid Opaque White Panel
-      ctx.strokeStyle = "rgba(15, 23, 42, 0.08)";  // Soft border
+      // 8. Holographic microchip
+      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.strokeStyle = design.secondaryColor + "33";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(30, 110, 24, 18, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // 9. Info Panel (Futuristic Glassmorphic details panel)
+      const panelY = 250;
+      const panelHeight = 145;
+      ctx.fillStyle = "rgba(10, 15, 30, 0.85)"; // Semi-opaque deep space black
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
       ctx.lineWidth = 1;
       
-      // Draw rounded container panel
       ctx.beginPath();
-      ctx.roundRect(25, panelY, width - 50, panelHeight, 16);
+      ctx.roundRect(25, panelY, width - 50, panelHeight, 12);
       ctx.fill();
       ctx.stroke();
 
-      // Draw text inside panel
       ctx.textAlign = "center";
-      
-      // Full Name (Heavy Slate Black Font)
-      ctx.font = "900 21px sans-serif";
-      ctx.fillStyle = "#090d16"; // Ink Black
-      ctx.fillText(fullName, width / 2, panelY + 32);
+      ctx.font = "900 18px sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(fullName, width / 2, panelY + 26);
 
-      // Role Domain Badge Text
-      ctx.font = "900 11px sans-serif";
-      ctx.fillStyle = design.accentColor;
-      ctx.fillText(`${roleDomain.toUpperCase()} (${roleMeta.shortCode})`, width / 2, panelY + 54);
+      ctx.font = "900 10px sans-serif";
+      ctx.fillStyle = design.secondaryColor;
+      ctx.fillText(`${roleDomain.toUpperCase()} (${roleMeta.shortCode})`, width / 2, panelY + 44);
       
-      // Department
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillStyle = "#475569"; // Slate-600
-      ctx.fillText(department, width / 2, panelY + 74);
+      ctx.font = "bold 9.5px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.fillText(department, width / 2, panelY + 60);
 
-      // Dynamic Design Role Label Badge
-      const badgeW = 160;
+      // Pill badge
+      const badgeW = 140;
       const badgeH = 18;
-      ctx.fillStyle = "rgba(15, 23, 42, 0.03)";
-      ctx.strokeStyle = design.primaryColor + "33"; // soft border
+      ctx.fillStyle = design.primaryColor + "1a";
+      ctx.strokeStyle = design.secondaryColor + "33";
       ctx.beginPath();
-      ctx.roundRect(width / 2 - badgeW / 2, panelY + 90, badgeW, badgeH, 6);
+      ctx.roundRect(width / 2 - badgeW / 2, panelY + 74, badgeW, badgeH, 6);
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = "900 8.5px sans-serif";
-      ctx.fillStyle = design.accentColor;
-      ctx.fillText(design.label, width / 2, panelY + 102);
+      ctx.font = "900 7.5px sans-serif";
+      ctx.fillStyle = design.secondaryColor;
+      ctx.fillText(design.label, width / 2, panelY + 86);
 
-      // Separator
-      ctx.fillStyle = "rgba(15, 23, 42, 0.08)";
-      ctx.fillRect(40, panelY + 118, width - 80, 1.5);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+      ctx.fillRect(40, panelY + 102, width - 80, 1);
 
-      // Credential ID (Highly Readable Black)
       ctx.textAlign = "left";
-      ctx.font = "900 9px sans-serif";
-      ctx.fillStyle = "#64748b";
-      ctx.fillText("CREDENTIAL ID", 45, panelY + 134);
+      ctx.font = "900 8px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillText("CREDENTIAL ID", 40, panelY + 118);
       
-      ctx.font = "bold 13px monospace";
-      ctx.fillStyle = "#0f172a";
-      ctx.fillText(internId, 45, panelY + 148);
+      ctx.font = "bold 11.5px monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(internId, 40, panelY + 131);
 
-      // Status
       ctx.textAlign = "right";
-      ctx.font = "900 9px sans-serif";
-      ctx.fillStyle = "#64748b";
-      ctx.fillText("STATUS", width - 45, panelY + 134);
+      ctx.font = "900 8px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillText("STATUS", width - 40, panelY + 118);
 
       const isApproved = cardStatus === "APPROVED" || isAdminActor;
-      ctx.font = "900 11.5px sans-serif";
-      ctx.fillStyle = isApproved ? "#047857" : "#c2410c"; // Dark Green or Dark Orange
-      ctx.fillText(isApproved ? "VERIFIED ACTIVE" : "PENDING AUDIT", width - 45, panelY + 148);
+      ctx.font = "900 10.5px sans-serif";
+      ctx.fillStyle = isApproved ? "#34d399" : "#fb923c";
+      ctx.fillText(isApproved ? "VERIFIED ACTIVE" : "PENDING AUDIT", width - 40, panelY + 131);
 
-      // Draw the digital encryption key block
-      const encryptionKey = generateEncryptionKey(internId, dbInternId);
-      ctx.textAlign = "center";
-      ctx.font = "bold 7px monospace";
-      ctx.fillStyle = "#475569";
-      ctx.fillText(`SECURITY KEY: ${encryptionKey}`, width / 2, 446);
-
-      // 6. Draw Barcode Section
-      const barcodeY = 458;
+      // 10. Barcode (White block for perfect scanner contrast)
+      const barcodeY = 408;
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(35, barcodeY, width - 70, 48); // white base block (keeps scan contrast high)
+      ctx.beginPath();
+      ctx.roundRect(35, barcodeY, width - 70, 42, 6);
+      ctx.fill();
       
       ctx.fillStyle = "#000000";
       let cursorX = 45;
-      const barHeight = 36;
-      
-      // Structured barcode generation loop for uniform appearance
+      const barHeight = 25;
       let count = 0;
       while (cursorX < width - 45) {
-        const lineW = [1, 2, 3, 1.5][(count + internId.charCodeAt(count % internId.length)) % 4];
+        const lineW = [1, 2, 1.5, 3][(count + internId.charCodeAt(count % internId.length)) % 4];
         ctx.fillRect(cursorX, barcodeY + 4, lineW, barHeight);
-        cursorX += lineW + [1, 2.5, 1.5][(count * 2) % 3];
+        cursorX += lineW + [1, 2, 1.5][(count * 2) % 3];
         count++;
       }
       
       ctx.textAlign = "center";
-      ctx.font = "bold 9px monospace";
-      ctx.fillStyle = "#374151"; // Charcoal
-      ctx.fillText(`* ${internId} *`, width / 2, barcodeY + 45);
+      ctx.font = "bold 7.5px monospace";
+      ctx.fillStyle = "#1e293b";
+      ctx.fillText(`* ${internId} *`, width / 2, barcodeY + 36);
 
-      // 7. Security Footnotes & Signature Stamp
-      ctx.font = "bold 8px sans-serif";
-      ctx.fillStyle = "rgba(15, 23, 42, 0.4)"; // Charcoal opaque footnotes
-      ctx.fillText("AURXON SECURE COMPLIANCE BADGE - COMPLIANCE SHIELD ACTIVE", width / 2, 524);
+      // 11. Digital keys and stamps
+      const encryptionKey = generateEncryptionKey(internId, dbInternId);
+      ctx.textAlign = "center";
+      ctx.font = "bold 6.5px monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.fillText(`SECURITY KEY: ${encryptionKey}`, width / 2, height - 34);
+
+      ctx.font = "bold 6.5px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.fillText("AURXON SECURE COMPLIANCE BADGE - COMPLIANCE SHIELD ACTIVE", width / 2, height - 24);
 
       if (cardStatus === "DEACTIVATED") {
-        ctx.font = "bold 7.5px sans-serif";
-        ctx.fillStyle = "#dc2626"; // High contrast Red
-        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED / REVOKED", width / 2, 538);
+        ctx.font = "bold 7px sans-serif";
+        ctx.fillStyle = "#ef4444";
+        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED / REVOKED", width / 2, height - 12);
       } else if (isApproved) {
-        ctx.font = "500 7px monospace";
-        ctx.fillStyle = "#0f172a"; // Signature ink black
-        // Fallback cryptographically simulated signature if missing from DB
+        ctx.font = "500 6px monospace";
+        ctx.fillStyle = "#ffffff";
         const sig = cardSignature || `ARXN-SIG-${internId}-${dbInternId.substring(0, 6)}`.toUpperCase();
         const cleanSig = sig.length > 55 ? sig.substring(0, 52) + "..." : sig;
-        ctx.fillText(cleanSig, width / 2, 538);
+        ctx.fillText(cleanSig, width / 2, height - 12);
       } else {
-        ctx.font = "bold 7.5px sans-serif";
-        ctx.fillStyle = "#dc2626"; // High contrast Red
-        ctx.fillText("⚠️ UNAPPROVED CREDENTIAL DRAFT", width / 2, 538);
+        ctx.font = "bold 7px sans-serif";
+        ctx.fillStyle = "#ef4444";
+        ctx.fillText("⚠️ UNAPPROVED CREDENTIAL DRAFT", width / 2, height - 12);
       }
 
-      // 8. Deactivation Watermark if deactivated
+      // Watermark Stamp overlay if deactivated
       if (cardStatus === "DEACTIVATED") {
         ctx.save();
         ctx.translate(width / 2, height / 2);
-        ctx.rotate(-Math.PI / 6); // -30 degrees
+        ctx.rotate(-Math.PI / 6);
         ctx.textAlign = "center";
         
-        // Solid white backing block for readability
         ctx.fillStyle = "rgba(254, 242, 242, 0.95)";
-        ctx.strokeStyle = "#dc2626";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.roundRect(-140, -18, 280, 36, 8);
+        ctx.roundRect(-100, -14, 200, 28, 6);
         ctx.fill();
         ctx.stroke();
 
-        ctx.font = "900 13px sans-serif";
-        ctx.fillStyle = "#dc2626"; // Bold Red text
-        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED", 0, 5);
+        ctx.font = "900 11px sans-serif";
+        ctx.fillStyle = "#ef4444";
+        ctx.fillText("⚠️ COMPLIANCE DEACTIVATED", 0, 4);
         ctx.restore();
       }
 
@@ -546,7 +540,7 @@ export default function IdCardGenerator({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           internId: dbInternId,
-          theme: design.themeName,
+          theme: selectedTheme || design.themeName,
           avatarUrl: photoUrl,
         }),
       });
@@ -580,6 +574,7 @@ export default function IdCardGenerator({
         body: JSON.stringify({
           documentId: cardDocId,
           action: "APPROVE",
+          theme: selectedTheme || design.themeName,
           notes: "Approved and signed digital ID Card badge.",
         }),
       });
@@ -588,6 +583,9 @@ export default function IdCardGenerator({
       if (!res.ok) throw new Error(data.error || "Failed to approve ID card.");
 
       setPhotoSuccess("Successfully approved, cryptographically signed, and finalized this ID Card!");
+      await fetchSavedCard();
+    } catch (err: any) {
+      setPhotoError(err.message || "Failed to approve ID card.");
     } finally {
       setIsApproving(false);
     }
@@ -599,7 +597,6 @@ export default function IdCardGenerator({
     setPhotoError(null);
     setPhotoSuccess(null);
     try {
-      // HD Badge canvas: 1920x640 (widescreen LinkedIn-style)
       const SCALE = 4;
       const bW = 480 * SCALE;
       const bH = 160 * SCALE;
@@ -616,7 +613,23 @@ export default function IdCardGenerator({
       bctx.fillStyle = bg;
       bctx.fillRect(0, 0, bW / SCALE, bH / SCALE);
 
-      // Left accent bar
+      // Grid overlay
+      bctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+      bctx.lineWidth = 1;
+      for (let x = 0; x < bW / SCALE; x += 15) {
+        bctx.beginPath();
+        bctx.moveTo(x, 0);
+        bctx.lineTo(x, bH / SCALE);
+        bctx.stroke();
+      }
+      for (let y = 0; y < bH / SCALE; y += 15) {
+        bctx.beginPath();
+        bctx.moveTo(0, y);
+        bctx.lineTo(bW / SCALE, y);
+        bctx.stroke();
+      }
+
+      // Left bar
       bctx.fillStyle = design.primaryColor;
       bctx.fillRect(0, 0, 6, bH / SCALE);
 
@@ -635,8 +648,8 @@ export default function IdCardGenerator({
       const photoR = 52;
       bctx.beginPath();
       bctx.arc(photoX, photoY, photoR + 3, 0, Math.PI * 2);
-      bctx.strokeStyle = design.primaryColor;
-      bctx.lineWidth = 3;
+      bctx.strokeStyle = design.secondaryColor;
+      bctx.lineWidth = 2.5;
       bctx.stroke();
 
       if (photoUrl) {
@@ -657,100 +670,68 @@ export default function IdCardGenerator({
         bctx.beginPath();
         bctx.arc(photoX, photoY, photoR, 0, Math.PI * 2);
         bctx.clip();
-        bctx.fillStyle = "#f1f5f9";
+        bctx.fillStyle = "#1e293b";
         bctx.fillRect(photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
         bctx.restore();
       }
 
-      // Company logo top right
       if (logoImg) bctx.drawImage(logoImg, bW / SCALE - 50, 12, 30, 30);
 
-      // Text block
       const textX = 120;
       bctx.textAlign = "left";
-      bctx.shadowColor = "transparent";
 
-      bctx.font = `900 22px sans-serif`;
-      bctx.fillStyle = "#0f172a";
+      bctx.font = `900 21px sans-serif`;
+      bctx.fillStyle = "#ffffff";
       bctx.fillText(fullName, textX, 48);
 
-      bctx.font = `bold 11px sans-serif`;
-      bctx.fillStyle = design.primaryColor;
+      bctx.font = `bold 10.5px sans-serif`;
+      bctx.fillStyle = design.secondaryColor;
       bctx.fillText(`${roleDomain.toUpperCase()} · ${department.toUpperCase()}`, textX, 70);
 
-      bctx.font = `bold 10px monospace`;
-      bctx.fillStyle = "#475569";
+      bctx.font = `bold 9.5px monospace`;
+      bctx.fillStyle = "rgba(255, 255, 255, 0.4)";
       bctx.fillText(`ID: ${internId}`, textX, 90);
 
       // Badge pill
-      bctx.fillStyle = design.primaryColor + "18";
-      bctx.strokeStyle = design.primaryColor + "44";
+      bctx.fillStyle = design.primaryColor + "1a";
+      bctx.strokeStyle = design.secondaryColor + "33";
       bctx.lineWidth = 1;
       bctx.beginPath();
       bctx.roundRect(textX, 100, 140, 18, 6);
       bctx.fill();
       bctx.stroke();
-      bctx.font = `900 8px sans-serif`;
-      bctx.fillStyle = design.primaryColor;
+      bctx.font = `900 8.5px sans-serif`;
+      bctx.fillStyle = design.secondaryColor;
       bctx.textAlign = "center";
-      bctx.fillText(design.label, textX + 70, 113);
+      bctx.fillText(design.label, textX + 70, 112);
 
       // Status
       bctx.textAlign = "right";
-      bctx.font = `900 10px sans-serif`;
-      bctx.fillStyle = "#047857";
-      bctx.fillText("✓ ACTIVE VERIFIED", bW / SCALE - 16, bH / SCALE - 18);
+      const isApproved = cardStatus === "APPROVED" || isAdminActor;
+      bctx.font = `900 9.5px sans-serif`;
+      bctx.fillStyle = isApproved ? "#34d399" : "#fb923c";
+      bctx.fillText(isApproved ? "✓ ACTIVE VERIFIED" : "⏱ PENDING AUDIT", bW / SCALE - 16, bH / SCALE - 18);
 
-      // Bottom border
       bctx.fillStyle = design.primaryColor;
       bctx.fillRect(0, bH / SCALE - 4, bW / SCALE, 4);
 
-      // Draw Social Icons and Handles on the right side
+      // Social Links
       const nameSlug = fullName.toLowerCase().replace(/\s+/g, "-");
       const liHandle = getHandleName(linkedIn, nameSlug);
       const ghHandle = getHandleName(gitHub, nameSlug);
 
       const socialX = 310;
-      // 1. LinkedIn Icon
-      bctx.fillStyle = "#0077b5";
-      bctx.beginPath();
-      bctx.roundRect(socialX, 32, 14, 14, 3);
-      bctx.fill();
-      bctx.fillStyle = "#ffffff";
-      bctx.font = "bold 9px sans-serif";
-      bctx.textAlign = "center";
-      bctx.fillText("in", socialX + 7, 42);
-
-      // LinkedIn text
-      bctx.fillStyle = "#334155";
-      bctx.font = "bold 10px sans-serif";
+      bctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      bctx.font = "bold 9.5px sans-serif";
       bctx.textAlign = "left";
-      bctx.fillText(`/in/${liHandle}`, socialX + 20, 43);
+      bctx.fillText(`/in/${liHandle}`, socialX, 43);
+      bctx.fillText(`@${ghHandle}`, socialX, 63);
 
-      // 2. GitHub Icon
-      bctx.fillStyle = "#24292e";
-      bctx.beginPath();
-      bctx.roundRect(socialX, 52, 14, 14, 3);
-      bctx.fill();
-      bctx.fillStyle = "#ffffff";
-      bctx.font = "bold 9px sans-serif";
-      bctx.textAlign = "center";
-      bctx.fillText("gh", socialX + 7, 62);
-
-      // GitHub text
-      bctx.fillStyle = "#334155";
-      bctx.font = "bold 10px sans-serif";
-      bctx.textAlign = "left";
-      bctx.fillText(`@${ghHandle}`, socialX + 20, 63);
-
-      // 3. Security Key display on the right
       const encryptionKey = generateEncryptionKey(internId, dbInternId);
-      bctx.fillStyle = "#64748b";
-      bctx.font = "bold 8px monospace";
-      bctx.textAlign = "left";
-      bctx.fillText(`KEY: ${encryptionKey.substring(0, 20)}...`, socialX, 83);
+      bctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      bctx.font = "bold 7.5px monospace";
+      bctx.fillText(`KEY: ${encryptionKey.substring(0, 18)}...`, socialX, 83);
 
-      // Export
       const link = document.createElement("a");
       link.download = `AURXON-BADGE-${internId}.png`;
       link.href = bc.toDataURL("image/png");
@@ -769,7 +750,6 @@ export default function IdCardGenerator({
       return;
     }
     
-    // Safety guard: Standard enrollees cannot download until approved
     const isApproved = cardStatus === "APPROVED";
     const isAdmin = loggedInRole === "FOUNDER" || loggedInRole === "HR" || loggedInRole === "ADMIN" || loggedInRole === "SUPER_ADMIN";
     
@@ -789,10 +769,9 @@ export default function IdCardGenerator({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Failed to initialize graphics pipeline.");
 
-      // Full HD 4x resolution rendering (1440x2240 output)
       const SCALE = 4;
-      const baseW = 360;
-      const baseH = 560;
+      const baseW = 320;
+      const baseH = 480;
       const width = baseW * SCALE;
       const height = baseH * SCALE;
       canvas.width = width;
@@ -800,7 +779,6 @@ export default function IdCardGenerator({
       ctx.scale(SCALE, SCALE);
 
       if (photoUrl) {
-        // Load image safely inside browser thread
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.src = photoUrl;
@@ -815,7 +793,6 @@ export default function IdCardGenerator({
         await drawCardOnCanvas(ctx, baseW, baseH);
       }
 
-      // 1. Export in requested formats (Full HD quality)
       if (format === "PNG") {
         const link = document.createElement("a");
         link.download = `AURXON-ID-${internId}-HD.png`;
@@ -837,7 +814,6 @@ export default function IdCardGenerator({
         pdf.save(`AURXON-ID-${internId}-HD.pdf`);
       }
       
-      // Perform security audit log fetch
       try {
         await fetch("/api/documents/id-card/log-download", {
           method: "POST",
@@ -856,7 +832,6 @@ export default function IdCardGenerator({
   };
 
   const isAdminActor = loggedInRole === "FOUNDER" || loggedInRole === "HR" || loggedInRole === "SUPER_ADMIN" || loggedInRole === "ADMIN";
-  // Admins/Founder always see as approved — they issued the card
   const isCardApproved = cardStatus === "APPROVED" || isAdminActor;
 
   const nameSlug = fullName.toLowerCase().replace(/\s+/g, "-");
@@ -864,495 +839,484 @@ export default function IdCardGenerator({
   const ghHandle = getHandleName(gitHub, nameSlug);
   const encryptionKey = generateEncryptionKey(internId, dbInternId);
 
+  // Previews container component
+  const PreviewsContent = () => (
+    <div className="flex flex-col items-center justify-center space-y-5 w-full">
+      {/* Tab Selectors inside Previews Block for viewOnly mode */}
+      {viewOnly && (
+        <div className="flex bg-slate-900 border border-white/[0.08] p-1 rounded-xl w-fit mb-2">
+          <button
+            type="button"
+            onClick={() => setPreviewTab("card")}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-xs font-bold font-heading transition-all",
+              previewTab === "card" ? "bg-white/10 text-white shadow-sm" : "text-gray-400 hover:text-white"
+            )}
+          >
+            Identity Card
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewTab("badge")}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-xs font-bold font-heading transition-all",
+              previewTab === "badge" ? "bg-white/10 text-white shadow-sm" : "text-gray-400 hover:text-white"
+            )}
+          >
+            ID Badge
+          </button>
+        </div>
+      )}
+
+      {/* RENDER IDENTITY CARD (Vertical) */}
+      {(!viewOnly || previewTab === "card") && (
+        <div className="w-[310px] h-[465px] shrink-0 relative select-none">
+          <div
+            className="w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-white"
+            style={{
+              borderColor: design.secondaryColor,
+              boxShadow: `0 10px 30px ${design.primaryColor}1a`,
+              background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
+            }}
+          >
+            {cardStatus === "DEACTIVATED" && (
+              <div className="absolute inset-0 z-40 bg-rose-950/20 backdrop-blur-[1.5px] flex items-center justify-center">
+                <div className="bg-red-600 border-2 border-white px-3 py-1.5 rounded-lg shadow-xl -rotate-12 transform">
+                  <span className="text-white text-[11px] font-heading font-black tracking-widest">
+                    ⚠️ COMPLIANCE DEACTIVATED
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Tech details grids */}
+            <div className="absolute top-4 left-5 right-5 h-[3px] rounded-full z-20" style={{ backgroundColor: design.primaryColor }} />
+            <div className="absolute bottom-4 left-5 right-5 h-[3px] rounded-full z-20" style={{ backgroundColor: design.primaryColor }} />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex flex-col items-center justify-center space-y-0.5 relative z-10 pt-1 select-none">
+              <img
+                src="/Logo-AIMS/AurxonLogo.png"
+                alt="AIMS Logo"
+                className="h-8 w-auto object-contain shrink-0 mt-1 mb-0.5"
+              />
+              <h4 className="text-xs font-heading font-extrabold tracking-widest text-white leading-none mt-1">
+                AURXON
+              </h4>
+              <span className="text-[7.5px] font-black uppercase tracking-widest block leading-none mt-0.5" style={{ color: design.secondaryColor }}>
+                WORKFORCE CREDENTIAL
+              </span>
+              <div className="h-[1px] w-full bg-white/10 mt-1" />
+            </div>
+
+            {/* Photo & Ring */}
+            <div className="flex flex-col items-center space-y-2.5 relative z-10">
+              <div 
+                className="h-[90px] w-[90px] rounded-full flex items-center justify-center border-[2.5px] shadow-sm bg-slate-950"
+                style={{ borderColor: design.secondaryColor }}
+              >
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Badge portrait"
+                    className="h-[80px] w-[80px] rounded-full object-cover shadow-inner"
+                  />
+                ) : (
+                  <div className="h-[80px] w-[80px] rounded-full bg-slate-900 flex items-center justify-center text-slate-500 border border-white/5 shadow-inner">
+                    <span className="text-[8px] uppercase font-bold text-center tracking-wider px-2">No Photo</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Details card body (Glassmorphic) */}
+              <div className="w-full rounded-xl border border-white/[0.06] p-2.5 text-center space-y-0.5 shadow-sm bg-black/85">
+                <span className="text-xs font-heading font-extrabold tracking-wide block text-white select-text">
+                  {fullName}
+                </span>
+                
+                <span className="text-[9px] font-extrabold uppercase tracking-wider block" style={{ color: design.secondaryColor }}>
+                  {roleDomain} ({roleMeta.shortCode})
+                </span>
+                
+                <span className="text-[8px] text-gray-400 block font-bold uppercase tracking-wide">
+                  {department}
+                </span>
+
+                <div className="pt-0.5 select-none">
+                  <span className={cn("text-[7.5px] font-heading font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border", design.badgeBg)}>
+                    {design.badgeText}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer blocks */}
+            <div className="space-y-2 relative z-10 pb-1">
+              <div className="flex justify-between items-center text-[8.5px] px-1.5 border border-white/[0.06] bg-black/50 p-1.5 rounded-xl">
+                <div>
+                  <span className="text-gray-500 block text-[6.5px] font-bold uppercase tracking-wider">Credential ID</span>
+                  <span className="font-mono font-bold tracking-wide text-white select-text">{internId}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-gray-500 block text-[6.5px] font-bold uppercase tracking-wider">Status</span>
+                  <span className="font-black uppercase tracking-wide text-[8.5px]" style={{ color: isCardApproved ? "#34d399" : "#fb923c" }}>
+                    {isCardApproved ? "Active verified" : "Pending audit"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[7.5px] border border-white/[0.06] bg-black/50 px-2 py-1 rounded-xl text-center font-mono text-gray-400">
+                <span className="font-sans font-bold text-[6px] uppercase text-gray-500 block leading-none mb-0.5">Digital Encryption Key</span>
+                <span className="truncate block font-bold text-gray-300">{encryptionKey}</span>
+              </div>
+
+              {/* Barcode (High contrast container) */}
+              <div className="bg-white p-1 rounded-xl border border-white/10 shadow-sm h-7 overflow-hidden flex flex-col justify-between">
+                <div className="flex items-end justify-between h-4 w-full select-none">
+                  {Array.from({ length: 36 }).map((_, i) => {
+                    const h = [6, 12, 16, 20, 24][(i + (internId.charCodeAt(i % internId.length) || 0)) % 5];
+                    const w = [1, 2, 1.5][(i * 3) % 3];
+                    return (
+                      <div
+                        key={i}
+                        className="bg-black shrink-0"
+                        style={{ height: `${h * 0.6}px`, width: `${w}px` }}
+                      />
+                    );
+                  })}
+                </div>
+                <span className="block text-[6px] text-center text-slate-700 font-bold font-mono tracking-widest leading-none">
+                  {internId}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RENDER DIGITAL BADGE (Horizontal) */}
+      {(!viewOnly || previewTab === "badge") && (
+        <div className="w-full max-w-[440px] shrink-0 relative select-none">
+          <div
+            className="w-full rounded-2xl border-4 p-4 flex items-center justify-between relative shadow-xl overflow-hidden text-white aspect-[3/1] min-h-[148px]"
+            style={{
+              borderColor: design.secondaryColor,
+              boxShadow: `0 8px 30px ${design.primaryColor}15`,
+              background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
+            }}
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: design.primaryColor }} />
+            <div className="absolute left-0 right-0 bottom-0 h-1" style={{ backgroundColor: design.primaryColor }} />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" />
+
+            <div className="flex items-center space-x-3 relative z-10">
+              <div
+                className="h-[70px] w-[70px] rounded-full flex items-center justify-center border-2 bg-slate-950 shrink-0"
+                style={{ borderColor: design.secondaryColor }}
+              >
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Badge avatar"
+                    className="h-[64px] w-[64px] rounded-full object-cover shadow-inner"
+                  />
+                ) : (
+                  <div className="h-[64px] w-[64px] rounded-full bg-slate-900 flex items-center justify-center text-slate-500 text-[8px] font-bold uppercase tracking-wider text-center">
+                    No Photo
+                  </div>
+                )}
+              </div>
+
+              <div className="text-left space-y-0.5">
+                <h4 className="text-xs sm:text-sm font-heading font-black text-white leading-tight">
+                  {fullName}
+                </h4>
+                <p className="text-[9px] font-extrabold uppercase tracking-wider" style={{ color: design.secondaryColor }}>
+                  {roleDomain} ({roleMeta.shortCode})
+                </p>
+                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wide">
+                  {department}
+                </p>
+                <div className="pt-0.5">
+                  <span className={cn("text-[7px] font-heading font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md border", design.badgeBg)}>
+                    {design.badgeText}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end justify-between h-full py-0.5 text-right relative z-10 shrink-0">
+              <img
+                src="/Logo-AIMS/AurxonLogo.png"
+                alt="AIMS Logo"
+                className="h-7 w-auto object-contain shrink-0"
+              />
+
+              <div className="space-y-0.5 my-1 text-left">
+                <div className="flex items-center space-x-1.5 text-[8.5px] font-semibold text-gray-300">
+                  <span className="font-mono text-gray-400 truncate max-w-[95px]">/in/{liHandle}</span>
+                </div>
+                <div className="flex items-center space-x-1.5 text-[8.5px] font-semibold text-gray-300">
+                  <span className="font-mono text-gray-400 truncate max-w-[95px]">@{ghHandle}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end space-y-0.5">
+                <span className="text-[7px] font-mono text-gray-500 block leading-none">
+                  {encryptionKey.substring(0, 16)}...
+                </span>
+                <span className="text-[8px] font-black uppercase text-emerald-400 flex items-center gap-0.5 leading-none">
+                  ✓ VERIFIED ACTIVE
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Downloads Actions for viewOnly mode, presented cleanly underneath preview */}
+      {viewOnly && (
+        <div className="w-full flex flex-col space-y-2 border-t border-white/[0.08] pt-4 select-none">
+          <span className="text-[8.5px] font-bold text-gray-500 uppercase tracking-wider block text-center">Export Verified Assets</span>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => handleDownload("PNG")}
+              disabled={isGenerating || cardStatus === "DEACTIVATED"}
+              variant="secondary"
+              className="h-9 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Identity PNG</span>
+            </Button>
+            <Button
+              onClick={handleBadgeDownload}
+              disabled={isGenerating || cardStatus === "DEACTIVATED"}
+              variant="secondary"
+              className="h-9 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 disabled:opacity-50"
+            >
+              <Eye className="h-3.5 w-3.5 text-yellow-400" />
+              <span>Badge PNG</span>
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="relative text-slate-800 dark:text-white space-y-6">
+    <div className="relative text-slate-800 dark:text-white">
       
       {/* Hidden Render Canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Main card customizer UI */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start overflow-hidden">
-        
-        {/* Left: Customizer Controls */}
-        <div className="lg:col-span-5 p-5 sm:p-6 border border-slate-200 dark:border-white/[0.08] bg-white/60 dark:bg-[#0b0f19]/70 backdrop-blur-md rounded-2xl shadow-xl space-y-5">
-          <div className="space-y-1 border-b border-slate-200 dark:border-white/[0.06] pb-3">
-            <h3 className="text-sm font-heading font-extrabold flex items-center space-x-2">
-              <Sparkles className="h-4.5 w-4.5 text-indigo-500" />
-              <span>Sleek ID Card Customizer</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 dark:text-gray-400">
-              Attach a profile photo, save your configuration, and download your verified role badge.
-            </p>
-          </div>
-
-          {/* Feedback alerts */}
-          {photoError && (
-            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg flex items-center space-x-2 animate-pulse">
-              <AlertTriangle className="h-4 w-4 text-red-550 shrink-0" />
-              <span>{photoError}</span>
-            </div>
-          )}
-
-          {photoSuccess && (
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-250 dark:border-emerald-500/20 text-emerald-650 dark:text-emerald-450 text-[10px] font-bold rounded-lg flex items-center space-x-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-              <span>{photoSuccess}</span>
-            </div>
-          )}
-
-          {/* Upload photo controller */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
-              Profile Portrait Attachment
-            </label>
-            <div className="relative border border-dashed border-slate-250 dark:border-white/10 rounded-xl p-4 bg-slate-50/50 dark:bg-[#0c1220] hover:bg-slate-100 dark:hover:bg-[#0f172a] transition-all flex flex-col items-center justify-center text-center cursor-pointer space-y-2">
-              <UploadCloud className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
-              <div className="text-xs">
-                <span className="font-bold text-indigo-550 dark:text-indigo-400">Click to attach photo</span>
-                <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-indigo-550 dark:text-indigo-400">Strictly ≤ 20 KB</span></p>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-            </div>
-          </div>
-
-          {/* Role Visual Identity Theme Display */}
-          <div className="p-3 rounded-xl border border-white/[0.05] bg-white/[0.01] space-y-1">
-            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">Visual Identity</span>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-gray-300">Design Schema:</span>
-              <span className="font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg text-[10px]">
-                🎨 {design.themeName}
-              </span>
-            </div>
-          </div>
-
-          {/* Approval Action for Admins/Founder */}
-          {cardStatus === "PENDING" && isAdminActor && (
-            <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2.5 animate-fadeIn">
-              <div className="flex items-start space-x-2">
-                <AlertTriangle className="h-4.5 w-4.5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white">Pending Administrative Sign-Off</h4>
-                  <p className="text-[9px] text-gray-400 leading-normal">
-                    This enrollee's credentials card is awaiting approval. Review the design preview and apply your digital signature.
-                  </p>
-                </div>
-              </div>
-              
-              <Button
-                onClick={handleApproveCard}
-                disabled={isApproving}
-                variant="primary"
-                className="w-full h-9 text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-lg flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/10"
-              >
-                {isApproving ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                )}
-                <span>{isApproving ? "Authenticating Card..." : "Approve & Cryptographically Sign Card"}</span>
-              </Button>
-            </div>
-          )}
-
-          {/* Pending Alert banner for Interns */}
-          {!isCardApproved && !isAdminActor && cardStatus !== "DEACTIVATED" && (
-            <div className="p-4 rounded-xl border border-red-500/25 bg-red-500/5 flex items-start space-x-2.5">
-              <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0 mt-0.5 animate-pulse" />
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-white">Pending Review Gate</h4>
-                <p className="text-[9px] text-red-300 leading-normal">
-                  Your corporate ID card is currently awaiting review. The download buttons below are disabled and watermark stamp is locked until finalized by Founder (Karan Mishra) or HR.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Deactivated Compliance Alert block */}
-          {cardStatus === "DEACTIVATED" && (
-            <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start space-x-2.5 animate-fadeIn">
-              <AlertTriangle className="h-4.5 w-4.5 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-rose-500">⚠️ COMPLIANCE DEACTIVATED</h4>
-                <p className="text-[9px] text-rose-450 leading-normal">
-                  This identity credential has been suspended/deactivated by administrative compliance. All exports are locked, and the credential badge is visually revoked.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Download and Save actions */}
-          <div className="space-y-3.5 pt-1.5 border-t border-slate-200 dark:border-white/[0.06]">
-            
-            <Button
-              onClick={handleSaveAndGenerate}
-              disabled={isSaving || cardStatus === "DEACTIVATED"}
-              variant="outline"
-              className="w-full h-11 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl shadow flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
-              isLoading={isSaving}
-            >
-              <Sparkles className="h-4 w-4" />
-              <span>Compile & Save Configuration</span>
-            </Button>
-
-            <div className="space-y-2">
-              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">ID Card — Full HD Download</span>
-              <div className="grid grid-cols-3 gap-2.5">
-                <Button
-                  onClick={() => handleDownload("PNG")}
-                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
-                  variant="secondary"
-                  className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Download className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>PNG</span>
-                </Button>
-
-                <Button
-                  onClick={() => handleDownload("JPG")}
-                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
-                  variant="secondary"
-                  className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Download className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>JPG</span>
-                </Button>
-
-                <Button
-                  onClick={() => handleDownload("PDF")}
-                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
-                  variant="secondary"
-                  className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Printer className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>PDF</span>
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-1 border-t border-white/[0.06]">
-              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">Digital Badge — LinkedIn / Social</span>
-              <Button
-                onClick={handleBadgeDownload}
-                disabled={isGenerating || cardStatus === "DEACTIVATED"}
-                variant="outline"
-                className="w-full h-10 text-[10px] font-bold border-yellow-500/20 hover:bg-yellow-500/5 text-yellow-400 rounded-xl flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
-              >
-                <Eye className="h-4 w-4" />
-                <span>Download Digital Badge (HD PNG)</span>
-              </Button>
-            </div>
-
-          </div>
+      {/* If viewOnly mode, render the clean centered preview block directly */}
+      {viewOnly ? (
+        <div className="flex flex-col items-center justify-center w-full max-w-full">
+          <PreviewsContent />
         </div>
-
-        {/* Right: Previews Container (ID Card + Digital Badge + Legend) */}
-        <div className="lg:col-span-7 flex flex-col xl:flex-row gap-6 items-center xl:items-start justify-center w-full pt-6 xl:pt-0 pb-4 overflow-hidden">
+      ) : (
+        /* Full Customizer Grid UI (Admin customization mode) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start overflow-hidden">
           
-          {/* Vertical ID Card Preview */}
-          <div className="w-[340px] h-[530px] shrink-0 relative select-none">
-            <div
-              className="w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-slate-800 bg-white"
-              style={{
-                borderColor: design.primaryColor,
-                boxShadow: `0 10px 40px ${design.primaryColor}1a`,
-                background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
-              }}
-            >
-              {cardStatus === "DEACTIVATED" && (
-                <div className="absolute inset-0 z-40 bg-rose-950/20 backdrop-blur-[1.5px] flex items-center justify-center select-none">
-                  <div className="bg-red-650 border-2 border-white px-3 py-1.5 rounded-lg shadow-xl -rotate-12 transform">
-                    <span className="text-white text-[11px] font-heading font-black tracking-widest flex items-center gap-1.5">
-                      ⚠️ COMPLIANCE DEACTIVATED
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Top Tech Accent Line */}
-              <div 
-                className="absolute top-4 left-5 right-5 h-[4px] rounded-full z-20"
-                style={{ backgroundColor: design.primaryColor }}
-              />
-              {/* Top Tech Center Block */}
-              <div 
-                className="absolute top-[14px] left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-b-md z-20"
-                style={{ backgroundColor: design.primaryColor }}
-              />
-
-              {/* Bottom Tech Accent Line */}
-              <div 
-                className="absolute bottom-4 left-5 right-5 h-[4px] rounded-full z-20"
-                style={{ backgroundColor: design.primaryColor }}
-              />
-              {/* Bottom Tech Center Block */}
-              <div 
-                className="absolute bottom-[14px] left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-t-md z-20"
-                style={{ backgroundColor: design.primaryColor }}
-              />
-
-              {/* Ambient Background Grid Overlay */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
-
-              {/* Header Area */}
-              <div className="flex flex-col items-center justify-center space-y-0.5 relative z-10 pt-1 select-none">
-                <img
-                  src="/Logo-AIMS/AurxonLogo.png"
-                  alt="AIMS Logo"
-                  className="h-10 w-auto object-contain shrink-0 mt-1 mb-0.5"
-                />
-                <h4 className="text-xs font-heading font-extrabold tracking-widest text-slate-900 leading-none mt-1">
-                  AURXON
-                </h4>
-                <span 
-                  className="text-[7.5px] font-black uppercase tracking-widest block leading-none mt-0.5"
-                  style={{ color: design.primaryColor }}
-                >
-                  WORKFORCE CREDENTIAL
-                </span>
-                <div className="h-0.5 w-full bg-slate-100 mt-1" />
-              </div>
-
-              {/* Photo & Identity Center */}
-              <div className="flex flex-col items-center space-y-2.5 relative z-10">
-                {/* Photo Ring wrapper */}
-                <div 
-                  className="h-[96px] w-[96px] rounded-full flex items-center justify-center border-[3px] shadow-sm bg-slate-50"
-                  style={{ borderColor: design.primaryColor }}
-                >
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt="Badge portrait"
-                      className="h-[86px] w-[86px] rounded-full object-cover shadow-inner"
-                    />
-                  ) : (
-                    <div className="h-[86px] w-[86px] rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200/50 shadow-inner">
-                      <span className="text-[8px] uppercase font-bold text-center tracking-wider px-2">No Photo</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Text items inside solid panel */}
-                <div 
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-center space-y-0.5 shadow-sm bg-white"
-                >
-                  <span className="text-xs font-heading font-extrabold tracking-wide block text-slate-900 select-text">
-                    {fullName}
-                  </span>
-                  
-                  <span 
-                    className="text-[9px] font-extrabold uppercase tracking-wider block"
-                    style={{ color: design.primaryColor }}
-                  >
-                    {roleDomain} ({roleMeta.shortCode})
-                  </span>
-                  
-                  <span className="text-[8px] text-slate-500 block font-bold uppercase tracking-wide">
-                    {department}
-                  </span>
-
-                  <div className="pt-0.5 select-none">
-                    <span className={`text-[7.5px] font-heading font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${design.badgeBg}`}>
-                      {design.badgeText}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Identity details, security key and barcode */}
-              <div className="space-y-2 relative z-10 pb-1">
-                <div className="flex justify-between items-center text-[8.5px] px-1.5 border border-slate-200 bg-slate-50/50 p-1.5 rounded-xl">
-                  <div>
-                    <span className="text-slate-400 block text-[7px] font-bold uppercase tracking-wider">Credential ID</span>
-                    <span className="font-mono font-bold tracking-wide text-slate-800 select-text">{internId}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-slate-400 block text-[7px] font-bold uppercase tracking-wider">Status</span>
-                    <span 
-                      className="font-black uppercase tracking-wide text-[9px]"
-                      style={{ color: isCardApproved ? "#047857" : "#c2410c" }}
-                    >
-                      {isCardApproved ? "Active verified" : "Pending audit"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Security Key monospaced text */}
-                <div className="text-[7.5px] border border-slate-200 bg-slate-50/50 px-2 py-1 rounded-xl text-center font-mono text-slate-500">
-                  <span className="font-sans font-bold text-[6.5px] uppercase text-slate-400 block leading-none mb-0.5">Digital Encryption Key</span>
-                  <span className="truncate block font-bold text-slate-700">{encryptionKey}</span>
-                </div>
-
-                {/* Barcode representation */}
-                <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-sm h-8 overflow-hidden flex flex-col justify-between">
-                  <div className="flex items-end justify-between h-4.5 w-full select-none">
-                    {Array.from({ length: 42 }).map((_, i) => {
-                      const h = [6, 12, 16, 20, 24][(i + (internId.charCodeAt(i % internId.length) || 0)) % 5];
-                      const w = [1, 2, 1.5][(i * 3) % 3];
-                      return (
-                        <div
-                          key={i}
-                          className="bg-black shrink-0"
-                          style={{ height: `${h * 0.7}px`, width: `${w}px` }}
-                        />
-                      );
-                    })}
-                  </div>
-                  <span className="block text-[6px] text-center text-slate-500 font-bold font-mono tracking-widest leading-none">
-                    {internId}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right side previews: Digital Badge Preview & Color Legend */}
-          <div className="flex-1 min-w-[320px] max-w-[480px] space-y-6">
-            
-            {/* Horizontal Digital Badge Preview */}
-            <div className="space-y-2 select-none">
-              <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-slate-450 dark:text-gray-400 block text-center xl:text-left">
-                Verified Digital Badge Preview (LinkedIn)
-              </span>
-              <div
-                className="w-full rounded-2xl border-4 p-4 flex items-center justify-between relative shadow-xl overflow-hidden text-slate-800 bg-white aspect-[3/1] min-h-[148px]"
-                style={{
-                  borderColor: design.primaryColor,
-                  boxShadow: `0 8px 30px ${design.primaryColor}15`,
-                  background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
-                }}
-              >
-                {/* Left primary accent bar */}
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-1.5"
-                  style={{ backgroundColor: design.primaryColor }}
-                />
-
-                {/* Bottom primary border */}
-                <div
-                  className="absolute left-0 right-0 bottom-0 h-1"
-                  style={{ backgroundColor: design.primaryColor }}
-                />
-
-                {/* Grid overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.015)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" />
-
-                {/* Left: Avatar & Identity Block */}
-                <div className="flex items-center space-x-3 relative z-10">
-                  <div
-                    className="h-[74px] w-[74px] rounded-full flex items-center justify-center border-2 bg-slate-50 shrink-0"
-                    style={{ borderColor: design.primaryColor }}
-                  >
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt="Badge avatar"
-                        className="h-[68px] w-[68px] rounded-full object-cover shadow-inner"
-                      />
-                    ) : (
-                      <div className="h-[68px] w-[68px] rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-[8px] font-bold uppercase tracking-wider text-center">
-                        No Photo
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="text-left space-y-0.5">
-                    <h4 className="text-xs sm:text-sm font-heading font-black text-slate-900 leading-tight">
-                      {fullName}
-                    </h4>
-                    <p className="text-[9px] font-extrabold uppercase tracking-wider" style={{ color: design.primaryColor }}>
-                      {roleDomain} ({roleMeta.shortCode})
-                    </p>
-                    <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wide">
-                      {department}
-                    </p>
-                    <div className="pt-0.5">
-                      <span className={`text-[7px] font-heading font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md border ${design.badgeBg}`}>
-                        {design.badgeText}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Logos, Handles & Info */}
-                <div className="flex flex-col items-end justify-between h-full py-0.5 text-right relative z-10 shrink-0">
-                  <img
-                    src="/Logo-AIMS/AurxonLogo.png"
-                    alt="AIMS Logo"
-                    className="h-8 w-auto object-contain shrink-0"
-                  />
-
-                  {/* Social Links Handles */}
-                  <div className="space-y-0.5 my-1 text-left">
-                    <div className="flex items-center space-x-1.5 text-[8.5px] font-semibold text-slate-650">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 text-[#0077b5] shrink-0">
-                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                      </svg>
-                      <span className="font-mono text-slate-600 truncate max-w-[95px]">/in/{liHandle}</span>
-                    </div>
-                    <div className="flex items-center space-x-1.5 text-[8.5px] font-semibold text-slate-650">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 text-[#24292e] shrink-0">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                      </svg>
-                      <span className="font-mono text-slate-600 truncate max-w-[95px]">@{ghHandle}</span>
-                    </div>
-                  </div>
-
-                  {/* Verified Pill */}
-                  <div className="flex flex-col items-end space-y-0.5">
-                    <span className="text-[7px] font-mono text-slate-400 block leading-none">
-                      {encryptionKey.substring(0, 16)}...
-                    </span>
-                    <span className="text-[8px] font-black uppercase text-emerald-650 flex items-center gap-0.5 leading-none">
-                      ✓ VERIFIED ACTIVE
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Color Legend Card */}
-            <div className="p-4 sm:p-5 border border-slate-200 dark:border-white/[0.08] bg-white/60 dark:bg-[#0b0f19]/70 backdrop-blur-md rounded-2xl shadow-xl space-y-3.5">
-              <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-white/[0.06] pb-2">
-                <ShieldCheck className="h-4.5 w-4.5 text-indigo-500" />
-                <h4 className="text-xs font-heading font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
-                  Workforce Identity Color Legend
-                </h4>
-              </div>
-              <p className="text-[9.5px] text-slate-450 dark:text-gray-400 leading-normal font-medium font-sans">
-                Aurxon uses a standardized visual credential policy. Colored indicators represent security scopes, verification clearings, and internal hierarchy:
+          {/* Left: Customizer Controls */}
+          <div className="lg:col-span-5 p-5 sm:p-6 border border-slate-200 dark:border-white/[0.08] bg-white/60 dark:bg-[#0b0f19]/70 backdrop-blur-md rounded-2xl shadow-xl space-y-5">
+            <div className="space-y-1 border-b border-slate-200 dark:border-white/[0.06] pb-3">
+              <h3 className="text-sm font-heading font-extrabold flex items-center space-x-2">
+                <Sparkles className="h-4.5 w-4.5 text-indigo-500" />
+                <span>Sleek ID Card Customizer</span>
+              </h3>
+              <p className="text-[10px] text-slate-400 dark:text-gray-400">
+                Attach a profile photo, save your configuration, and download your verified role badge.
               </p>
-              <div className="space-y-3">
-                {[
-                  { color: "border-purple-500 bg-purple-500/10 text-purple-650 dark:text-purple-400", role: "Elite Founder & Owner", desc: "Purple theme. Absolute administrative clearance and platform control.", code: "FND" },
-                  { color: "border-blue-500 bg-blue-500/10 text-blue-650 dark:text-blue-400", role: "HR & Operations Management", desc: "Blue theme. Full workforce onboarding and management access.", code: "HR" },
-                  { color: "border-orange-500 bg-orange-500/10 text-orange-650 dark:text-orange-400", role: "Official Learning Intern", desc: "Orange theme. Standard learning track with scoped repository access.", code: "INT" },
-                  { color: "border-emerald-500 bg-emerald-500/10 text-emerald-650 dark:text-emerald-400", role: "Contract Associate", desc: "Green theme. Temporary project-specific workforce credentials.", code: "CON" },
-                  { color: "border-indigo-650 bg-indigo-650/10 text-indigo-600 dark:text-indigo-400", role: "Permanent Associate / Staff", desc: "Navy/Teal theme. Full-time corporate workforce member status.", code: "STA" },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-start space-x-3 text-xs leading-tight">
-                    <span className={`px-2 py-0.5 rounded-full border text-[8.5px] font-heading font-black tracking-wider shrink-0 ${item.color}`}>
-                      {item.code}
-                    </span>
-                    <div className="space-y-0.5">
-                      <span className="font-bold text-slate-800 dark:text-white block text-[11px]">{item.role}</span>
-                      <span className="text-[9.5px] text-slate-450 dark:text-gray-400 font-medium block leading-normal">{item.desc}</span>
-                    </div>
-                  </div>
+            </div>
+
+            {/* Feedback alerts */}
+            {photoError && (
+              <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg flex items-center space-x-2 animate-pulse">
+                <AlertTriangle className="h-4 w-4 text-red-550 shrink-0" />
+                <span>{photoError}</span>
+              </div>
+            )}
+
+            {photoSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-250 dark:border-emerald-500/20 text-emerald-650 dark:text-emerald-450 text-[10px] font-bold rounded-lg flex items-center space-x-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>{photoSuccess}</span>
+              </div>
+            )}
+
+            {/* Upload photo controller */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
+                Profile Portrait Attachment
+              </label>
+              <div className="relative border border-dashed border-slate-250 dark:border-white/10 rounded-xl p-4 bg-slate-50/50 dark:bg-[#0c1220] hover:bg-slate-100 dark:hover:bg-[#0f172a] transition-all flex flex-col items-center justify-center text-center cursor-pointer space-y-2">
+                <UploadCloud className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
+                <div className="text-xs">
+                  <span className="font-bold text-indigo-550 dark:text-indigo-400">Click to attach photo</span>
+                  <p className="text-[9px] text-slate-400 dark:text-gray-500 mt-1">Accepts JPG/PNG. Size limit: <span className="font-extrabold text-indigo-550 dark:text-indigo-400">Strictly ≤ 20 KB</span></p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+              </div>
+            </div>
+
+            {/* Custom Theme Selector Grid */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
+                Badge Theme Style
+              </label>
+              <div className="grid grid-cols-5 gap-1">
+                {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setSelectedTheme(t)}
+                    className={cn(
+                      "h-7 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
+                      (selectedTheme || savedTheme || "orange") === t
+                        ? "bg-indigo-500 border-indigo-500 text-white"
+                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-white/5"
+                    )}
+                    title={t}
+                  >
+                    {t[0]}
+                  </button>
                 ))}
               </div>
             </div>
 
+            {/* Approval Action for Admins/Founder */}
+            {cardStatus === "PENDING" && isAdminActor && (
+              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2.5 animate-fadeIn">
+                <div className="flex items-start space-x-2">
+                  <AlertTriangle className="h-4.5 w-4.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-white">Pending Administrative Sign-Off</h4>
+                    <p className="text-[9px] text-gray-400 leading-normal">
+                      This enrollee's credentials card is awaiting approval. Review the design preview and apply your digital signature.
+                    </p>
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={handleApproveCard}
+                  disabled={isApproving}
+                  variant="primary"
+                  className="w-full h-9 text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-lg flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/10"
+                >
+                  {isApproving ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  )}
+                  <span>{isApproving ? "Authenticating Card..." : "Approve & Cryptographically Sign Card"}</span>
+                </Button>
+              </div>
+            )}
+
+            {/* Pending Alert banner for Interns */}
+            {!isCardApproved && !isAdminActor && cardStatus !== "DEACTIVATED" && (
+              <div className="p-4 rounded-xl border border-red-500/25 bg-red-500/5 flex items-start space-x-2.5">
+                <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0 mt-0.5 animate-pulse" />
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-white">Pending Review Gate</h4>
+                  <p className="text-[9px] text-red-300 leading-normal">
+                    Your corporate ID card is currently awaiting review. The download buttons below are disabled and watermark stamp is locked until finalized by Founder (Karan Mishra) or HR.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Deactivated Compliance Alert block */}
+            {cardStatus === "DEACTIVATED" && (
+              <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start space-x-2.5 animate-fadeIn">
+                <AlertTriangle className="h-4.5 w-4.5 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-rose-500">⚠️ COMPLIANCE DEACTIVATED</h4>
+                  <p className="text-[9px] text-rose-450 leading-normal">
+                    This identity credential has been suspended/deactivated by administrative compliance. All exports are locked, and the credential badge is visually revoked.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Download and Save actions */}
+            <div className="space-y-3.5 pt-1.5 border-t border-slate-200 dark:border-white/[0.06]">
+              
+              <Button
+                onClick={handleSaveAndGenerate}
+                disabled={isSaving || cardStatus === "DEACTIVATED"}
+                variant="outline"
+                className="w-full h-11 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl shadow flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                isLoading={isSaving}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>Compile & Save Configuration</span>
+              </Button>
+
+              <div className="space-y-2">
+                <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">ID Card — Full HD Download</span>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <Button
+                    onClick={() => handleDownload("PNG")}
+                    disabled={isGenerating || cardStatus === "DEACTIVATED"}
+                    variant="secondary"
+                    className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>PNG</span>
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDownload("JPG")}
+                    disabled={isGenerating || cardStatus === "DEACTIVATED"}
+                    variant="secondary"
+                    className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>JPG</span>
+                  </Button>
+
+                  <Button
+                    onClick={() => handleDownload("PDF")}
+                    disabled={isGenerating || cardStatus === "DEACTIVATED"}
+                    variant="secondary"
+                    className="h-10 text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg flex items-center justify-center space-x-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-indigo-400" />
+                    <span>PDF</span>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1 border-t border-white/[0.06]">
+                <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider block">Digital Badge — LinkedIn / Social</span>
+                <Button
+                  onClick={handleBadgeDownload}
+                  disabled={isGenerating || cardStatus === "DEACTIVATED"}
+                  variant="outline"
+                  className="w-full h-10 text-[10px] font-bold border-yellow-500/20 hover:bg-yellow-500/5 text-yellow-400 rounded-xl flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>Download Digital Badge (HD PNG)</span>
+                </Button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Right: Previews Block */}
+          <div className="lg:col-span-7 flex flex-col xl:flex-row gap-6 items-center xl:items-start justify-center w-full pt-6 xl:pt-0 pb-4 overflow-hidden">
+            <PreviewsContent />
           </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }
