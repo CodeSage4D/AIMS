@@ -2649,33 +2649,36 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     </div>
 
                     {/* Smart Card settings */}
-                    {selectedCardType === "smart" && (
-                      <div className="space-y-2.5 pt-2 border-t border-border/20">
-                        {/* Custom Badge Color Picker */}
-                        <div className="space-y-1">
-                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Custom Badge Color</label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="color"
-                              value={selectedBadgeColor}
-                              onChange={(e) => setSelectedBadgeColor(e.target.value)}
-                              className="h-6 w-10 rounded border border-border bg-background cursor-pointer p-0.5"
-                            />
-                            <span className="font-mono text-[8px] text-muted-foreground">{selectedBadgeColor}</span>
-                          </div>
-                        </div>
-
-                        {/* Custom Theme Color Picker */}
-                        <div className="space-y-1">
-                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Custom End/Glow Color</label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="color"
-                              value={selectedThemeColor}
-                              onChange={(e) => setSelectedThemeColor(e.target.value)}
-                              className="h-6 w-10 rounded border border-border bg-background cursor-pointer p-0.5"
-                            />
-                            <span className="font-mono text-[8px] text-muted-foreground">{selectedThemeColor}</span>
+                        {/* Premium Preset Selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Premium Color Preset</label>
+                          <div className="grid grid-cols-5 gap-1">
+                            {[
+                              { name: "Glacial", badge: "#06b6d4", theme: "#3b82f6", bg: "bg-cyan-500" },
+                              { name: "Gold", badge: "#fbbf24", theme: "#f59e0b", bg: "bg-yellow-500" },
+                              { name: "Matrix", badge: "#34d399", theme: "#10b981", bg: "bg-emerald-500" },
+                              { name: "Cyber", badge: "#e879f9", theme: "#a855f7", bg: "bg-purple-500" },
+                              { name: "Orange", badge: "#fb923c", theme: "#ea580c", bg: "bg-orange-500" }
+                            ].map((preset) => (
+                              <button
+                                key={preset.name}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedBadgeColor(preset.badge);
+                                  setSelectedThemeColor(preset.theme);
+                                }}
+                                className={cn(
+                                  "h-8 rounded-md text-[7px] font-bold uppercase transition-all border flex flex-col items-center justify-center p-0.5",
+                                  selectedBadgeColor === preset.badge && selectedThemeColor === preset.theme
+                                    ? "border-primary bg-primary/20 text-white scale-105"
+                                    : "border-border bg-card hover:bg-secondary/15 text-muted-foreground"
+                                )}
+                                title={preset.name}
+                              >
+                                <span className={cn("w-1.5 h-1.5 rounded-full mb-0.5", preset.bg)} />
+                                <span>{preset.name[0]}</span>
+                              </button>
+                            ))}
                           </div>
                         </div>
 
