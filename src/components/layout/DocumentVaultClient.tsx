@@ -72,6 +72,73 @@ interface DocumentVaultClientProps {
   role: string;
 }
 
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+          if (width > height) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          } else {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return resolve(file);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = 0.8;
+        const getBlob = (q: number): Promise<Blob | null> => {
+          return new Promise((resBlob) => {
+            canvas.toBlob((blob) => resBlob(blob), "image/jpeg", q);
+          });
+        };
+
+        const tryCompress = async (q: number): Promise<File> => {
+          const blob = await getBlob(q);
+          if (!blob) return file;
+          if (blob.size > 100 * 1024 && q > 0.1) {
+            return tryCompress(q - 0.15);
+          }
+          return new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+        };
+
+        tryCompress(quality)
+          .then(resolve)
+          .catch(() => resolve(file));
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+};
+
 const REQUIRED_DOCS = [
   { type: "OFFER_LETTER", label: "Offer Letter" },
   { type: "RESUME", label: "Resume" },
@@ -79,7 +146,10 @@ const REQUIRED_DOCS = [
   { type: "AGREEMENT", label: "Signed Agreement" },
   { type: "CERTIFICATE", label: "Program Certificate" },
   { type: "NDA", label: "NDA (Non-Disclosure Agreement)" },
-  { type: "EXPERIENCE_LETTER", label: "Experience Letter" }
+  { type: "EXPERIENCE_LETTER", label: "Experience Letter" },
+  { type: "APPOINTMENT_LETTER", label: "Appointment Letter" },
+  { type: "JOINING_DOCUMENTS", label: "Joining Documents" },
+  { type: "OTHER_FILES", label: "Other Files / Addenda" }
 ];
 
 export default function DocumentVaultClient({ initialInterns, role }: DocumentVaultClientProps) {
@@ -94,10 +164,25 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   const { currency } = useCurrency();
 
   // Real-time customizer preview states (Phase 10)
-  const [selectedCardTheme, setSelectedCardTheme] = useState<"glacial" | "gold" | "matrix" | "cyber" | "orange">("glacial");
+  const [selectedCardType, setSelectedCardType] = useState<"standard" | "banner" | "smart">("standard");
+  const [selectedCardTheme, setSelectedCardTheme] = useState<"glacial" | "gold" | "matrix" | "cyber" | "orange">("orange");
+  const [selectedBadgeColor, setSelectedBadgeColor] = useState<string>("#ea580c");
+  const [selectedThemeColor, setSelectedThemeColor] = useState<string>("#ea580c");
+  const [selectedVerificationBadgeStyle, setSelectedVerificationBadgeStyle] = useState<string>("gold");
   const [selectedCertTheme, setSelectedCertTheme] = useState<"gold" | "glacial" | "emerald" | "royal">("gold");
   const [previewMode, setPreviewMode] = useState<"letter" | "certificate">("certificate");
   const [isDoubleSided, setIsDoubleSided] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    if (selectedGeneratedDoc && selectedGeneratedDoc.type === "ID_CARD") {
+      const content = selectedGeneratedDoc.content || {};
+      setSelectedCardType(content.cardType || "standard");
+      setSelectedCardTheme(content.theme || "orange");
+      setSelectedBadgeColor(content.badgeColor || "#ea580c");
+      setSelectedThemeColor(content.themeColor || "#ea580c");
+      setSelectedVerificationBadgeStyle(content.verificationBadgeStyle || "gold");
+    }
+  }, [selectedGeneratedDoc]);
 
   // State Management
   const [search, setSearch] = useState("");
@@ -179,14 +264,23 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
         return;
       }
 
-      if (selectedFile.size > 100 * 1024) {
+      let fileToUpload = selectedFile;
+      if (selectedFile.type.startsWith("image/")) {
+        try {
+          fileToUpload = await compressImage(selectedFile);
+        } catch (e) {
+          console.error("Compression failed:", e);
+        }
+      }
+
+      if (fileToUpload.size > 100 * 1024) {
         setError("Rejected: Selected file exceeds the strict maximum limit of 100 KB. Please compress the file.");
         setLoading(false);
         return;
       }
 
       const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-      if (!allowedTypes.includes(selectedFile.type)) {
+      if (!allowedTypes.includes(fileToUpload.type)) {
         setError("Rejected: Only PDF, JPEG, and PNG files are permitted for secure upload.");
         setLoading(false);
         return;
@@ -194,7 +288,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
       try {
         const formData = new FormData();
-        formData.append("file", selectedFile);
+        formData.append("file", fileToUpload);
         formData.append("internId", myRecord.id);
         formData.append("type", docType);
 
@@ -331,25 +425,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
               </CardHeader>
               <CardContent className="p-5 space-y-4">
                 {["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"].map((type) => {
-                  if (type === "ID_CARD") {
-                    return (
-                      <div
-                        key={type}
-                        className="p-4.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50/20 dark:bg-card/40 backdrop-blur-md shadow-xl transition-all duration-300"
-                      >
-                        <IdCardGenerator
-                          fullName={myRecord.fullName}
-                          internId={myRecord.internId || "AXN-REF-PENDING"}
-                          department={myRecord.department}
-                          roleDomain={myRecord.roleDomain}
-                          status={myRecord.status}
-                          dbInternId={myRecord.id}
-                          employmentType={myRecord.employmentType}
-                          viewOnly={true}
-                        />
-                      </div>
-                    );
-                  }
+
 
                   const existing = (myRecord.generatedDocuments || []).find((d) => d.type === type);
                   const isApproved = existing?.status === "APPROVED";
@@ -694,14 +770,23 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
       return;
     }
 
-    if (selectedFile.size > 100 * 1024) {
+    let fileToUpload = selectedFile;
+    if (selectedFile.type.startsWith("image/")) {
+      try {
+        fileToUpload = await compressImage(selectedFile);
+      } catch (e) {
+        console.error("Compression failed:", e);
+      }
+    }
+
+    if (fileToUpload.size > 100 * 1024) {
       setError("Rejected: Selected file exceeds the strict maximum limit of 100 KB. Please compress the file.");
       setLoading(false);
       return;
     }
 
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    if (!allowedTypes.includes(selectedFile.type)) {
+    if (!allowedTypes.includes(fileToUpload.type)) {
       setError("Rejected: Only PDF, JPEG, and PNG files are permitted for secure upload.");
       setLoading(false);
       return;
@@ -709,7 +794,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", fileToUpload);
       formData.append("internId", targetInternId);
       formData.append("type", docType);
 
@@ -863,7 +948,12 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
       };
       
       if (isIdCard) {
+        payload.cardType = selectedCardType;
         payload.theme = selectedCardTheme;
+        payload.badgeColor = selectedBadgeColor;
+        payload.themeColor = selectedThemeColor;
+        payload.verificationStatus = "Authorized & Verified";
+        payload.verificationBadgeStyle = selectedVerificationBadgeStyle;
       }
 
       const res = await fetch("/api/documents/approvals", {
@@ -2128,283 +2218,27 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
             {/* Print Isolation Root Element */}
             <div id="aims-print-root" className="w-full flex items-center justify-center print:p-0">
               {isIdCard ? (
-                /* High-Fidelity Double-Sided SVG ID Card Preview */
-                <div className={cn(
-                  "flex items-center justify-center gap-6 select-none max-w-full",
-                  isDoubleSided ? "flex-col lg:flex-row flex-wrap" : "flex-row"
-                )}>
-                  {/* CARD FRONT SIDE */}
-                  <svg width="320" height="480" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg" className="shadow-2xl rounded-2xl shrink-0 max-w-[320px] transition-transform duration-300 hover:scale-[1.01] print:shadow-none print:border print:border-neutral-200">
-                    <defs>
-                      <linearGradient id={`bgGradFront-${doc.id}`} x1="160" y1="0" x2="160" y2="480" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor={cardTheme.bgStart} />
-                        <stop offset="50%" stopColor={cardTheme.bgMid} />
-                        <stop offset="100%" stopColor={cardTheme.bgEnd} />
-                      </linearGradient>
-                      <linearGradient id={`primaryGradFront-${doc.id}`} x1="0" y1="0" x2="320" y2="480" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor={cardTheme.gradStart} />
-                        <stop offset="100%" stopColor={cardTheme.gradEnd} />
-                      </linearGradient>
-                      <linearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#ffe69c" />
-                        <stop offset="50%" stopColor="#d3a237" />
-                        <stop offset="100%" stopColor="#805d15" />
-                      </linearGradient>
-                      <clipPath id={`avatarCircle-${doc.id}`}>
-                        <circle cx="160" cy="170" r="48" />
-                      </clipPath>
-                    </defs>
-
-                    {/* Outer Card frame */}
-                    <rect width="320" height="480" fill={`url(#bgGradFront-${doc.id})`} rx="16" stroke={cardTheme.borderColor} strokeWidth="1.5" />
-                    
-                    {/* Tech grids overlays */}
-                    <path d="M 0 60 L 320 60 M 0 420 L 320 420" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-                    <circle cx="160" cy="240" r="140" stroke={cardTheme.accentColor} strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4 4" />
-                    
-                    {/* Header brand section */}
-                    <g transform="translate(20, 20)">
-                      <image href="/Logo-AIMS/AurxonLogo.png" x="0" y="0" width="16" height="16" />
-                      <text x="24" y="13.5" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="11" letterSpacing="2.5" textAnchor="start">AURXON</text>
-                      
-                      <rect x="220" y="0" width="60" height="16" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" />
-                      <text x="250" y="10.5" fill={cardTheme.textColor} fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="1" textAnchor="middle" dominantBaseline="middle">OFFICIAL</text>
-                    </g>
-
-                    {/* Secure Microchip detailing */}
-                    <g transform="translate(20, 75)">
-                      <rect width="36" height="26" rx="4" fill="url(#chipGrad)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
-                      <path d="M9 0v26M18 0v26M27 0v26M0 8.5h36M0 17.5h36" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
-                      <rect x="13" y="8" width="10" height="10" rx="1.5" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
-                    </g>
-
-                    {/* Member photo with neon ring */}
-                    <circle cx="160" cy="170" r="54" fill="none" stroke={`url(#primaryGradFront-${doc.id})`} strokeWidth="2.5" />
-                    <circle cx="160" cy="170" r="50" fill="#050811" />
-                    
-                    {content.avatarUrl ? (
-                      <image href={content.avatarUrl} x="112" y="122" width="96" height="96" clipPath={`url(#avatarCircle-${doc.id})`} preserveAspectRatio="xMidYMid slice" />
-                    ) : (
-                      <g clipPath={`url(#avatarCircle-${doc.id})`}>
-                        <text x="160" y="180" fill={cardTheme.textColor} fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontSize="30" textAnchor="middle">{monogram}</text>
-                      </g>
-                    )}
-
-                    {/* Holographic Security Overlay Seal */}
-                    <g transform="translate(192, 192)">
-                      <circle cx="10" cy="10" r="13" fill="#0b132b" stroke={cardTheme.borderColor} strokeWidth="1.5" />
-                      <path d="M10 5.5l-4.5 1.8v4.5c0 2.7 4.5 4.5 4.5 4.5s4.5-1.8 4.5-4.5v-4.5l-4.5-1.8z" fill={cardTheme.accentColor} opacity="0.8" />
-                    </g>
-
-                    {/* User Identity Info */}
-                    <text x="160" y="262" fill="#ffffff" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="16" textAnchor="middle" letterSpacing="-0.5">{content.fullName}</text>
-                    <text x="160" y="279" fill={cardTheme.textColor} fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="9.5" letterSpacing="2.5" textAnchor="middle">{content.role?.toUpperCase() || "ENGINEERING INTERN"}</text>
-                    <text x="160" y="293" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="600" fontSize="8.5" textAnchor="middle">{content.department} Department</text>
-
-                    {/* Credentials block */}
-                    <g transform="translate(20, 315)">
-                      <rect width="280" height="45" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" />
-                      
-                      <text x="20" y="16" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="850" fontSize="7" letterSpacing="1">MEMBER ID</text>
-                      <text x="20" y="32" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="11">{content.internId || "AX-9999"}</text>
-                      
-                      <text x="160" y="16" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="850" fontSize="7" letterSpacing="1">VALID UNTIL</text>
-                      <text x="160" y="32" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="11">{content.validUntil || "PERMANENT"}</text>
-                    </g>
-
-                    {/* Barcode representation */}
-                    <g transform="translate(30, 380)">
-                      <rect width="260" height="24" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
-                      <g fill={cardTheme.accentColor}>
-                        <rect x="15" y="4" width="2" height="16" />
-                        <rect x="19" y="4" width="1" height="16" />
-                        <rect x="22" y="4" width="3" height="16" />
-                        <rect x="27" y="4" width="1" height="16" />
-                        <rect x="30" y="4" width="2" height="16" />
-                        <rect x="34" y="4" width="1" height="16" />
-                        <rect x="37" y="4" width="4" height="16" />
-                        <rect x="43" y="4" width="1" height="16" />
-                        <rect x="46" y="4" width="2" height="16" />
-                        <rect x="50" y="4" width="1" height="16" />
-                        <rect x="53" y="4" width="3" height="16" />
-                        <rect x="58" y="4" width="1" height="16" />
-                        <rect x="61" y="4" width="2" height="16" />
-                        <rect x="65" y="4" width="1" height="16" />
-                        <rect x="68" y="4" width="4" height="16" />
-                        <rect x="74" y="4" width="1" height="16" />
-                        <rect x="77" y="4" width="2" height="16" />
-                        <rect x="81" y="4" width="1" height="16" />
-                        <rect x="84" y="4" width="3" height="16" />
-                        <rect x="89" y="4" width="1" height="16" />
-                        <rect x="92" y="4" width="2" height="16" />
-                        <rect x="96" y="4" width="4" height="16" />
-                        <rect x="102" y="4" width="1" height="16" />
-                        <rect x="110" y="4" width="2" height="16" />
-                        <rect x="114" y="4" width="1" height="16" />
-                        <rect x="117" y="4" width="3" height="16" />
-                        <rect x="122" y="4" width="1" height="16" />
-                        <rect x="125" y="4" width="2" height="16" />
-                        <rect x="129" y="4" width="1" height="16" />
-                        <rect x="132" y="4" width="4" height="16" />
-                        <rect x="138" y="4" width="1" height="16" />
-                        <rect x="141" y="4" width="2" height="16" />
-                        <rect x="145" y="4" width="1" height="16" />
-                        <rect x="148" y="4" width="3" height="16" />
-                        <rect x="153" y="4" width="1" height="16" />
-                        <rect x="156" y="4" width="2" height="16" />
-                        <rect x="160" y="4" width="1" height="16" />
-                        <rect x="163" y="4" width="4" height="16" />
-                        <rect x="169" y="4" width="1" height="16" />
-                        <rect x="172" y="4" width="2" height="16" />
-                        <rect x="176" y="4" width="1" height="16" />
-                        <rect x="179" y="4" width="3" height="16" />
-                        <rect x="184" y="4" width="1" height="16" />
-                        <rect x="187" y="4" width="2" height="16" />
-                        <rect x="191" y="4" width="4" height="16" />
-                        <rect x="197" y="4" width="1" height="16" />
-                        <rect x="200" y="4" width="2" height="16" />
-                        <rect x="204" y="4" width="1" height="16" />
-                        <rect x="207" y="4" width="3" height="16" />
-                        <rect x="212" y="4" width="1" height="16" />
-                        <rect x="215" y="4" width="2" height="16" />
-                        <rect x="219" y="4" width="4" height="16" />
-                        <rect x="225" y="4" width="1" height="16" />
-                        <rect x="228" y="4" width="2" height="16" />
-                        <rect x="232" y="4" width="1" height="16" />
-                        <rect x="235" y="4" width="3" height="16" />
-                        <rect x="240" y="4" width="1" height="16" />
-                        <rect x="243" y="4" width="2" height="16" />
-                      </g>
-                    </g>
-
-                    {/* Monospace signature block */}
-                    <text x="160" y="450" fill="rgba(255,255,255,0.25)" fontFamily="monospace" fontSize="5" textAnchor="middle">{doc.signature || "AWAITING DIGITAL SIGNATURE"}</text>
-                    
-                    {/* Subtle Holographic reflection */}
-                    <rect width="320" height="480" fill={`url(#primaryGradFront-${doc.id})`} opacity="0.02" pointerEvents="none" />
-                  </svg>
-
-                  {/* CARD BACK SIDE */}
-                  {isDoubleSided && (
-                    <svg width="320" height="480" viewBox="0 0 320 480" fill="none" xmlns="http://www.w3.org/2000/svg" className="shadow-2xl rounded-2xl shrink-0 max-w-[320px] transition-transform duration-300 hover:scale-[1.01] print:shadow-none print:border print:border-neutral-200">
-                      <defs>
-                        <linearGradient id={`bgGradBack-${doc.id}`} x1="160" y1="0" x2="160" y2="480" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor={cardTheme.bgStart} />
-                          <stop offset="50%" stopColor={cardTheme.bgMid} />
-                          <stop offset="100%" stopColor={cardTheme.bgEnd} />
-                        </linearGradient>
-                        <linearGradient id={`primaryGradBack-${doc.id}`} x1="0" y1="0" x2="320" y2="480" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor={cardTheme.gradStart} />
-                          <stop offset="100%" stopColor={cardTheme.gradEnd} />
-                        </linearGradient>
-                      </defs>
-
-                      <rect width="320" height="480" fill={`url(#bgGradBack-${doc.id})`} rx="16" stroke={cardTheme.borderColor} strokeWidth="1.5" />
-                      
-                      {/* Magnetic strip mock */}
-                      <rect y="40" width="320" height="45" fill="#0f0f12" />
-                      <rect y="42" width="320" height="4" fill="rgba(255,255,255,0.03)" />
-                      
-                      {/* Card Guidelines */}
-                      <g transform="translate(20, 105)">
-                        <text y="0" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="0.8">TERMS OF COMPLIANCE & RULES</text>
-                        <text y="14" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="600" fontSize="6.2" letterSpacing="0.1">
-                          <tspan x="0" dy="0">1. This pass is official property of Aurxon DB & Systems.</tspan>
-                          <tspan x="0" dy="9">2. It must be displayed prominently at all times.</tspan>
-                          <tspan x="0" dy="9">3. Non-transferable. Loss must be reported immediately.</tspan>
-                          <tspan x="0" dy="9">4. Holder agrees to the internal NDA provisions.</tspan>
-                          <tspan x="0" dy="9">5. Duplication or misuse will trigger compliance audits.</tspan>
-                        </text>
-                      </g>
-
-                      {/* Technical Scanner target */}
-                      <g transform="translate(20, 175)">
-                        <rect width="280" height="110" rx="8" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.05)" />
-                        
-                        {/* Mock QR Code in SVG */}
-                        <g transform="translate(15, 15)">
-                          <rect width="80" height="80" rx="4" fill="#ffffff" />
-                          <g fill="#0b132b">
-                            <rect x="6" y="6" width="22" height="22" rx="2" />
-                            <rect x="9" y="9" width="16" height="16" rx="1" fill="#ffffff" />
-                            <rect x="12" y="12" width="10" height="10" rx="0.5" />
-                            
-                            <rect x="52" y="6" width="22" height="22" rx="2" />
-                            <rect x="55" y="9" width="16" height="16" rx="1" fill="#ffffff" />
-                            <rect x="58" y="12" width="10" height="10" rx="0.5" />
-                            
-                            <rect x="6" y="52" width="22" height="22" rx="2" />
-                            <rect x="9" y="55" width="16" height="16" rx="1" fill="#ffffff" />
-                            <rect x="12" y="58" width="10" height="10" rx="0.5" />
-                            
-                            <rect x="34" y="6" width="6" height="12" />
-                            <rect x="34" y="24" width="6" height="6" />
-                            <rect x="42" y="16" width="8" height="6" />
-                            <rect x="6" y="34" width="12" height="6" />
-                            <rect x="24" y="34" width="6" height="6" />
-                            <rect x="16" y="42" width="6" height="6" />
-                            
-                            <rect x="34" y="34" width="12" height="12" />
-                            <rect x="40" y="34" width="6" height="6" fill="#ffffff" />
-                            
-                            <rect x="52" y="34" width="6" height="12" />
-                            <rect x="52" y="52" width="12" height="6" />
-                            <rect x="34" y="52" width="6" height="18" />
-                            <rect x="40" y="64" width="12" height="6" />
-                            <rect x="64" y="40" width="8" height="8" />
-                            <rect x="64" y="56" width="8" height="18" />
-                          </g>
-                          <circle cx="40" cy="40" r="1.5" fill={cardTheme.accentColor} />
-                        </g>
-
-                        {/* Scanner Metadata parameters */}
-                        <g transform="translate(110, 20)">
-                          <text y="0" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="7" letterSpacing="1">SECURE ENCRYPT</text>
-                          <text y="12" fill="#ffffff" fontFamily="monospace" fontWeight="800" fontSize="8">AIMS SYSTEM SEAL</text>
-                          
-                          {/* Pulsing visual guide laser path */}
-                          <line x1="0" y1="20" x2="150" y2="20" stroke={cardTheme.accentColor} strokeWidth="1" strokeDasharray="2 3" opacity="0.8" />
-                          
-                          <text x="0" y="38" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">EMERGENCY LINE</text>
-                          <text x="0" y="48" fill="#ffffff" fontFamily="monospace" fontWeight="700" fontSize="8.5">+91 83490-53536</text>
-                          
-                          <text x="0" y="62" fill="rgba(255,255,255,0.4)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7">OFFICIAL EMAIL</text>
-                          <text x="0" y="71" fill={cardTheme.textColor} fontFamily="monospace" fontWeight="700" fontSize="7.5">aurxon.global@gmail.com</text>
-
-                        </g>
-                      </g>
-
-                      {/* Founder handwritten signature path */}
-                      <g transform="translate(20, 310)">
-                        <line x1="0" y1="42" x2="135" y2="42" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                        <text x="0" y="52" fill="rgba(255,255,255,0.3)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="6.5" letterSpacing="0.5">AUTHORIZED SIGNATURE</text>
-                        
-                        {/* Fluid elegant custom vector cursive */}
-                        <path d="M10 38 c6 -10, 16 -30, 24 -15 c8,12, -4,22, 10,12 c12 -8, 18 -32, 22 -22 c5,10, 0,15, 12,5 c8-8, 16-20, 22-10" stroke={cardTheme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.9" />
-                        <text x="5" y="32" fill="rgba(255,255,255,0.2)" fontFamily="monospace" fontSize="6.5">Founder & CEO</text>
-                      </g>
-
-                      {/* Biometric validation layout */}
-                      <g transform="translate(195, 310)">
-                        <rect width="105" height="58" rx="8" fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.05)" />
-                        <g stroke={cardTheme.accentColor} strokeOpacity="0.25" strokeWidth="1" fill="none" transform="translate(37, 8)">
-                          <path d="M15,30 C15,18 20,8 30,8 C40,8 45,18 45,30" />
-                          <path d="M10,30 C10,13 17,4 30,4 C43,4 50,13 50,30" />
-                          <path d="M5,30 C5,8 14,0 30,0 C46,0 55,8 55,30" />
-                          <path d="M20,30 C20,20 24,12 30,12 C36,12 40,20 40,30" strokeOpacity="0.6" />
-                          <circle cx="30" cy="22" r="1.8" fill={cardTheme.accentColor} fillOpacity="0.6" stroke="none" />
-                        </g>
-                        <text x="52.5" y="50" fill="rgba(255,255,255,0.35)" fontFamily="'Inter', sans-serif" fontWeight="800" fontSize="6.5" textAnchor="middle" letterSpacing="0.8">BIOMETRIC OK</text>
-                      </g>
-
-                      {/* Footer AIMS compliance stamp */}
-                      <g transform="translate(20, 420)">
-                        <line x1="0" y1="0" x2="280" y2="0" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                        <text x="140" y="16" fill="rgba(255,255,255,0.2)" fontFamily="'Inter', sans-serif" fontWeight="700" fontSize="7" letterSpacing="3.2" textAnchor="middle">AURXON ADMINISTRATIVE SECURE</text>
-                        <text x="140" y="27" fill="rgba(255,255,255,0.15)" fontFamily="monospace" fontSize="6" textAnchor="middle">AIMS v3.4 // COMPLIANT PASS</text>
-                      </g>
-                    </svg>
-                  )}
+                <div className="w-full flex justify-center items-center p-4">
+                  <IdCardGenerator
+                    fullName={fullName}
+                    internId={content.internId || doc.intern?.internId || "AXN-REF-PENDING"}
+                    department={content.department || doc.intern?.department || ""}
+                    roleDomain={content.role || doc.intern?.roleDomain || ""}
+                    status={doc.intern?.status || "ACTIVE"}
+                    dbInternId={doc.intern?.id || doc.internId || ""}
+                    employmentType={doc.intern?.employmentType || content.employmentType}
+                    defaultPhotoUrl={content.avatarUrl}
+                    linkedIn={content.linkedIn}
+                    gitHub={content.gitHub}
+                    instagram={content.instagram}
+                    viewOnly={true}
+                    overrideCardType={selectedCardType}
+                    overrideTheme={selectedCardTheme}
+                    overrideBadgeColor={selectedBadgeColor}
+                    overrideThemeColor={selectedThemeColor}
+                    overrideVerificationStatus={isApproved ? "Authorized & Verified" : "Pending Verification"}
+                    overrideVerificationBadgeStyle={selectedVerificationBadgeStyle}
+                  />
                 </div>
               ) : doc.type === "CERTIFICATE" || (doc.type === "EXPERIENCE_LETTER" && previewMode === "certificate") ? (
                 /* Phase 10: Elite Landscape Completion Certificate SVG Generator */
@@ -2768,12 +2602,37 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
                       Badge Design Options
                     </span>
-                    <div className="space-y-2">
+                    
+                    {/* Card Layout Type Selector */}
+                    <div className="space-y-1.5">
+                      <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Layout Type</label>
+                      <div className="grid grid-cols-3 gap-1">
+                        {(["standard", "banner", "smart"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setSelectedCardType(type)}
+                            className={cn(
+                              "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
+                              selectedCardType === type
+                                ? "bg-primary border-primary text-white"
+                                : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
+                            )}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Card Theme Style Selector */}
+                    <div className="space-y-1.5">
                       <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Theme Style</label>
                       <div className="grid grid-cols-5 gap-1">
                         {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
                           <button
                             key={t}
+                            type="button"
                             onClick={() => setSelectedCardTheme(t)}
                             className={cn(
                               "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
@@ -2783,11 +2642,59 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                             )}
                             title={t}
                           >
-                            {t[0]}
+                            {t[0].toUpperCase()}
                           </button>
                         ))}
                       </div>
                     </div>
+
+                    {/* Smart Card settings */}
+                    {selectedCardType === "smart" && (
+                      <div className="space-y-2.5 pt-2 border-t border-border/20">
+                        {/* Custom Badge Color Picker */}
+                        <div className="space-y-1">
+                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Custom Badge Color</label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="color"
+                              value={selectedBadgeColor}
+                              onChange={(e) => setSelectedBadgeColor(e.target.value)}
+                              className="h-6 w-10 rounded border border-border bg-background cursor-pointer p-0.5"
+                            />
+                            <span className="font-mono text-[8px] text-muted-foreground">{selectedBadgeColor}</span>
+                          </div>
+                        </div>
+
+                        {/* Custom Theme Color Picker */}
+                        <div className="space-y-1">
+                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Custom End/Glow Color</label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="color"
+                              value={selectedThemeColor}
+                              onChange={(e) => setSelectedThemeColor(e.target.value)}
+                              className="h-6 w-10 rounded border border-border bg-background cursor-pointer p-0.5"
+                            />
+                            <span className="font-mono text-[8px] text-muted-foreground">{selectedThemeColor}</span>
+                          </div>
+                        </div>
+
+                        {/* Verification Badge Style (e.g. Gold, Neon, Emerald) */}
+                        <div className="space-y-1">
+                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Verification Style</label>
+                          <select
+                            value={selectedVerificationBadgeStyle}
+                            onChange={(e) => setSelectedVerificationBadgeStyle(e.target.value)}
+                            className="flex h-7 w-full rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                          >
+                            <option value="gold" className="bg-card text-foreground">Imperial Gold</option>
+                            <option value="neon" className="bg-card text-foreground">Cyber Neon</option>
+                            <option value="emerald" className="bg-card text-foreground">Vibrant Emerald</option>
+                            <option value="royal" className="bg-card text-foreground">Royal Blue</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center justify-between border-t border-border/20 pt-2.5 mt-1">
                       <span className="text-[9.5px] font-bold text-muted-foreground">Show Back Badge</span>
