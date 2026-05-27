@@ -1122,24 +1122,35 @@ export default function IdCardGenerator({
                   Smart Card Dynamic Styling
                 </span>
 
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div className="space-y-1">
-                    <label className="text-[8.5px] text-muted-foreground font-bold uppercase block">Badge Color</label>
-                    <input
-                      type="color"
-                      value={badgeColor}
-                      onChange={(e) => setBadgeColor(e.target.value)}
-                      className="h-8 w-full rounded border border-border bg-transparent p-0.5 cursor-pointer"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[8.5px] text-muted-foreground font-bold uppercase block">Theme End Gradient</label>
-                    <input
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="h-8 w-full rounded border border-border bg-transparent p-0.5 cursor-pointer"
-                    />
+                <div className="space-y-2">
+                  <label className="text-[8.5px] text-muted-foreground font-bold uppercase block">Premium Styling Preset</label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[
+                      { name: "Glacial", badge: "#06b6d4", theme: "#3b82f6", bg: "bg-cyan-550" },
+                      { name: "Gold", badge: "#fbbf24", theme: "#f59e0b", bg: "bg-yellow-500" },
+                      { name: "Matrix", badge: "#34d399", theme: "#10b981", bg: "bg-emerald-500" },
+                      { name: "Cyber", badge: "#e879f9", theme: "#a855f7", bg: "bg-purple-500" },
+                      { name: "Orange", badge: "#fb923c", theme: "#ea580c", bg: "bg-orange-500" }
+                    ].map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setBadgeColor(preset.badge);
+                          setThemeColor(preset.theme);
+                        }}
+                        className={cn(
+                          "h-8 rounded-md text-[8.5px] font-extrabold uppercase transition-all border flex flex-col items-center justify-center p-1",
+                          badgeColor === preset.badge && themeColor === preset.theme
+                            ? "border-indigo-500 bg-indigo-500/20 text-white scale-105"
+                            : "border-white/10 bg-slate-900/60 text-gray-400 hover:bg-slate-900"
+                        )}
+                        title={`${preset.name} Preset`}
+                      >
+                        <span className={cn("w-2 h-2 rounded-full mb-1", preset.bg)} />
+                        <span className="text-[7px]">{preset.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
