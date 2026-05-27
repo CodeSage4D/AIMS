@@ -1202,6 +1202,7 @@ export default function FounderPanel({
               employmentType="FOUNDER"
               linkedIn="https://linkedin.com/in/karan-mishra-aurxon"
               gitHub="https://github.com/karanmishra"
+              viewOnly={true}
             />
           </div>
         </div>
