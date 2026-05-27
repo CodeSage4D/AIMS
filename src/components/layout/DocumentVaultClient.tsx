@@ -1251,14 +1251,14 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
           </div>
 
           {/* Desktop View: Table (md and larger) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="hidden md:block overflow-x-auto w-full">
+            <table className="w-full min-w-[1350px] text-left border-collapse table-auto">
               <thead>
                 <tr className="border-b border-border bg-secondary/15 text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                  <th className="py-4 px-6">Enrollee Profile</th>
-                  <th className="py-4 px-6">Department / Supervisor</th>
-                  <th className="py-4 px-6 text-center">Compliance Roster</th>
-                  <th className="py-4 px-6 text-center">Actions</th>
+                  <th className="py-4 px-6 w-[260px] min-w-[260px]">Enrollee Profile</th>
+                  <th className="py-4 px-6 w-[220px] min-w-[220px]">Department / Supervisor</th>
+                  <th className="py-4 px-6 text-center min-w-[740px]">Compliance Roster</th>
+                  <th className="py-4 px-6 w-[130px] min-w-[130px] text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30 text-xs font-medium text-muted-foreground">
@@ -1274,13 +1274,13 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 ) : (
                   filteredInterns.map((intern) => (
                     <tr key={intern.id} className="hover:bg-secondary/10 hover:text-foreground transition-colors duration-150">
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 w-[260px] min-w-[260px]">
                         <div className="flex flex-col">
                           <span className="font-bold text-foreground text-sm">{intern.fullName}</span>
                           <span className="text-[10px] text-muted-foreground mt-0.5">{intern.internId || intern.id} • {intern.email}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 w-[220px] min-w-[220px]">
                         <div className="flex flex-col">
                           <span className="font-bold text-foreground">{intern.department}</span>
                           <span className="text-[10px] text-muted-foreground mt-0.5">
@@ -1288,8 +1288,8 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2.5">
+                      <td className="py-4 px-6 min-w-[740px]">
+                        <div className="flex items-center justify-start space-x-2.5">
                           {REQUIRED_DOCS.map((docType) => {
                             const state = getDocStatus(intern, docType.type);
                             return (
@@ -1314,7 +1314,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           })}
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-center">
+                      <td className="py-4 px-6 w-[130px] min-w-[130px] text-center">
                         <Button
                           onClick={() => {
                             setSelectedIntern(intern);
