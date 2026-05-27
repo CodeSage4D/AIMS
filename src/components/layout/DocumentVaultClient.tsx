@@ -2649,6 +2649,8 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     </div>
 
                     {/* Smart Card settings */}
+                    {selectedCardType === "smart" && (
+                      <div className="space-y-2.5 pt-2 border-t border-border/20">
                         {/* Premium Preset Selector */}
                         <div className="space-y-1.5">
                           <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Premium Color Preset</label>

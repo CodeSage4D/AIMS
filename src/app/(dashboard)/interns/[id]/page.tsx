@@ -798,7 +798,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-heading font-extrabold text-foreground tracking-tight truncate">
-                              {doc.name}
+                              {doc.fileName}
                             </p>
                             <p className="text-[10px] text-muted-foreground font-medium">
                               Compiled: {formatDate(doc.createdAt)} &bull; Type: {doc.type.replace("_", " ")}
