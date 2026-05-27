@@ -576,30 +576,6 @@ export default async function InternWorkspacePage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Card C: Official Corporate ID Badge */}
-          <Card className="border-border/60">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                <Contact className="h-4.5 w-4.5 text-primary" />
-                <span>Official Corporate ID Badge</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <IdCardGenerator
-                fullName={intern.fullName}
-                internId={intern.internId || "AXN-REF-PENDING"}
-                department={intern.department}
-                roleDomain={intern.roleDomain}
-                status={intern.status}
-                dbInternId={intern.id}
-                employmentType={intern.employmentType}
-                linkedIn={customProfile?.linkedIn}
-                gitHub={customProfile?.gitHub}
-                instagram={customProfile?.instagram}
-                viewOnly={!isAdmin}
-              />
-            </CardContent>
-          </Card>
         </div>
 
         {/* Right Hand: Workspace Assignments & Attendance Logs (2/3 Width) */}
@@ -834,6 +810,31 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           </Card>
         </div>
       </div>
+
+      {/* 4. Official Corporate ID Badge Section (Full Width for clear rendering and approval) */}
+      <Card className="border-border/60">
+        <CardHeader className="pb-3 border-b border-border/40">
+          <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+            <Contact className="h-4.5 w-4.5 text-primary" />
+            <span>Official Corporate ID Badge</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <IdCardGenerator
+            fullName={intern.fullName}
+            internId={intern.internId || "AXN-REF-PENDING"}
+            department={intern.department}
+            roleDomain={intern.roleDomain}
+            status={intern.status}
+            dbInternId={intern.id}
+            employmentType={intern.employmentType}
+            linkedIn={customProfile?.linkedIn}
+            gitHub={customProfile?.gitHub}
+            instagram={customProfile?.instagram}
+            viewOnly={!isAdmin}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
