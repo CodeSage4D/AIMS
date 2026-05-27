@@ -435,7 +435,10 @@ export default function IdCardGenerator({
 
     // Brand Header
     if (logoImg) {
-      ctx.drawImage(logoImg, width / 2 - 24, 20, 48, 48);
+      const targetHeight = 36;
+      const aspect = logoImg.width / logoImg.height;
+      const targetWidth = targetHeight * aspect;
+      ctx.drawImage(logoImg, width / 2 - targetWidth / 2, 22, targetWidth, targetHeight);
     }
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
@@ -552,7 +555,7 @@ export default function IdCardGenerator({
     ctx.font = "900 8.5px sans-serif";
     const verified = cardStatus === "APPROVED";
     ctx.fillStyle = verified ? "#10b981" : "#f59e0b";
-    ctx.fillText(verified ? (verificationBadgeStyle || "GOLD").toUpperCase() : "PENDING", width - 40, py + 124);
+    ctx.fillText(verified ? "VERIFIED" : "PENDING", width - 40, py + 124);
 
     // Barcode Container
     const barY = 408;
@@ -797,7 +800,10 @@ export default function IdCardGenerator({
 
     // Logo image top right
     if (logoImg) {
-      ctx.drawImage(logoImg, width - 60, 10, 42, 42);
+      const targetHeight = 32;
+      const aspect = logoImg.width / logoImg.height;
+      const targetWidth = targetHeight * aspect;
+      ctx.drawImage(logoImg, width - 20 - targetWidth, 15, targetWidth, targetHeight);
     }
 
     // Details Text
@@ -993,6 +999,7 @@ export default function IdCardGenerator({
         .flip-card {
           background-color: transparent;
           perspective: 1000px;
+          -webkit-perspective: 1000px;
         }
         .flip-card-inner {
           position: relative;
@@ -1000,9 +1007,11 @@ export default function IdCardGenerator({
           height: 100%;
           transition: transform 0.6s;
           transform-style: preserve-3d;
+          -webkit-transform-style: preserve-3d;
         }
-        .flip-card.flipped .flip-card-inner {
+        .flip-card-inner.flipped {
           transform: rotateY(180deg);
+          -webkit-transform: rotateY(180deg);
         }
         .flip-card-front, .flip-card-back {
           position: absolute;
@@ -1011,8 +1020,13 @@ export default function IdCardGenerator({
           -webkit-backface-visibility: hidden;
           backface-visibility: hidden;
         }
+        .flip-card-front {
+          transform: rotateY(0deg);
+          -webkit-transform: rotateY(0deg);
+        }
         .flip-card-back {
           transform: rotateY(180deg);
+          -webkit-transform: rotateY(180deg);
         }
       `}</style>
       
@@ -1163,9 +1177,9 @@ export default function IdCardGenerator({
                     onChange={(e) => setVerificationBadgeStyle(e.target.value)}
                     className="w-full text-xs rounded border border-border bg-background p-1.5 text-foreground cursor-pointer focus:outline-none"
                   >
-                    <option value="gold">Gold Emblem Verified</option>
-                    <option value="silver">Silver Shield Verified</option>
-                    <option value="emerald">Emerald Neon Verified</option>
+                    <option value="gold">Executive Level</option>
+                    <option value="silver">Standard Level</option>
+                    <option value="emerald">Associate Level</option>
                   </select>
                 </div>
               </div>
@@ -1306,7 +1320,7 @@ export default function IdCardGenerator({
               <div className={cn("w-full h-full flip-card-inner transition-transform duration-600", isFlipped && "flipped")}>
                 
                 {/* Standard FRONT */}
-                <div className="flip-card-front w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-white"
+                <div className="flip-card-front w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between relative shadow-2xl overflow-hidden text-white"
                   style={{
                     borderColor: design.secondaryColor,
                     boxShadow: `0 10px 30px ${design.primaryColor}1a`,
@@ -1379,7 +1393,7 @@ export default function IdCardGenerator({
                 </div>
 
                 {/* Standard BACK */}
-                <div className="flip-card-back w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-white"
+                <div className="flip-card-back w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between relative shadow-2xl overflow-hidden text-white"
                   style={{
                     borderColor: design.secondaryColor,
                     boxShadow: `0 10px 30px ${design.primaryColor}1a`,
