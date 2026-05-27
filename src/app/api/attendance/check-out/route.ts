@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
  * Handles daily self-service check-out for authenticated interns.
  * POST /api/attendance/check-out
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
     // 1. Session verification
     const session = await auth();
@@ -22,6 +22,19 @@ export async function POST() {
     // Fetch or create profile dynamically
     const { getOrCreateInternProfile } = await import("@/lib/safeUser");
     const intern = await getOrCreateInternProfile(userId, userRole, userName, userEmail);
+
+    // Parse request body for check-out geo-location details
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    let address: string | undefined;
+    try {
+      const body = await request.json();
+      if (body) {
+        latitude = body.latitude ? parseFloat(body.latitude) : undefined;
+        longitude = body.longitude ? parseFloat(body.longitude) : undefined;
+        address = body.address || undefined;
+      }
+    } catch {}
 
     // 3. Resolve current date & IST (UTC + 5.5 Hours)
     const now = new Date();
@@ -136,6 +149,9 @@ export async function POST() {
         checkOut: now,
         status: finalStatus as any,
         totalWorkDuration,
+        checkOutLatitude: latitude,
+        checkOutLongitude: longitude,
+        checkOutAddress: address,
         remarks: `${currentRemarks}Checked out via portal at ${hourIST
           .toString()
           .padStart(2, "0")}:${minuteIST.toString().padStart(2, "0")} IST. Total session time: ${totalWorkDuration} mins.`,
