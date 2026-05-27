@@ -54,7 +54,7 @@ interface TaskItem {
 
 interface DocumentItem {
   id: string;
-  type: "OFFER_LETTER" | "RESUME" | "ID_PROOF" | "AGREEMENT" | "CERTIFICATE" | "NDA" | "EXPERIENCE_LETTER";
+  type: "OFFER_LETTER" | "RESUME" | "ID_PROOF" | "AGREEMENT" | "CERTIFICATE" | "NDA" | "EXPERIENCE_LETTER" | "APPOINTMENT_LETTER" | "JOINING_DOCUMENTS" | "OTHER_FILES";
   fileName: string;
   fileUrl: string;
   verified: boolean;
@@ -90,7 +90,10 @@ const REQUIRED_DOCS = [
   { type: "AGREEMENT", label: "Signed Agreement" },
   { type: "CERTIFICATE", label: "Program Certificate" },
   { type: "NDA", label: "NDA (Non-Disclosure Agreement)" },
-  { type: "EXPERIENCE_LETTER", label: "Experience Letter" }
+  { type: "EXPERIENCE_LETTER", label: "Experience Letter" },
+  { type: "APPOINTMENT_LETTER", label: "Appointment Letter" },
+  { type: "JOINING_DOCUMENTS", label: "Joining Documents" },
+  { type: "OTHER_FILES", label: "Other Files / Addenda" }
 ];
 
 export default function InternDashboard({
