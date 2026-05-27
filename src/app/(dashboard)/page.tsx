@@ -264,6 +264,7 @@ export default async function DashboardPage() {
       status: intern.status,
       startDate: intern.startDate.toISOString(),
       endDate: intern.endDate ? intern.endDate.toISOString() : null,
+      notes: intern.notes,
       supervisor: intern.supervisor
         ? { fullName: intern.supervisor.fullName, email: intern.supervisor.email }
         : null
