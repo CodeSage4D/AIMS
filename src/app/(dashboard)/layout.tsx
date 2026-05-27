@@ -35,10 +35,12 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
   });
 
   let pictureUrl = null;
+  let onboardingSkipped = false;
   if (intern) {
     const { parseInternNotes } = await import("@/lib/roles");
     const customFields = parseInternNotes(intern.notes);
     pictureUrl = customFields.pictureUrl || null;
+    onboardingSkipped = !!customFields.onboardingSkipped;
   }
 
   // 5. Fallback default metadata object to prevent TypeScript signatures errors
@@ -50,7 +52,7 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
     pictureUrl,
   };
 
-  if (intern && intern.status === "ONBOARDING") {
+  if (intern && intern.status === "ONBOARDING" && !onboardingSkipped) {
     const OnboardingFlow = (await import("@/components/layout/OnboardingFlow")).default;
     const serializedIntern = {
       id: intern.id,
