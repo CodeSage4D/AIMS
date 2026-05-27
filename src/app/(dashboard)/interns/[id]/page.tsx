@@ -603,246 +603,236 @@ export default async function InternWorkspacePage({ params }: PageProps) {
         </div>
 
         {/* Right Hand: Workspace Assignments & Attendance Logs (2/3 Width) */}
-        {(isOwner || !isAdmin) ? (
-          <div className="lg:col-span-2 space-y-6">
-            {/* Card C: Tasks Assigned Queue */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                    <CheckSquare className="h-4.5 w-4.5 text-blue-400" />
-                    <span>Assigned Tasks Queue</span>
-                  </CardTitle>
-                  <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
-                    Tasks assigned directly to this intern profile.
-                  </CardDescription>
-                </div>
-                <span className="text-[10px] font-heading font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
-                  {completedTasks} / {totalTasks} COMPLETED
-                </span>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {intern.tasks.length === 0 ? (
-                  <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
-                    <CheckSquare className="h-8 w-8 text-muted-foreground/35" />
-                    <span>No tasks have been assigned to this intern workspace yet.</span>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {intern.tasks.map((task) => {
-                      const isCompleted = task.status === "COMPLETED";
-                      const isPending = task.status === "PENDING";
-                      const isProgress = task.status === "IN_PROGRESS";
-                      const isReview = task.status === "IN_REVIEW";
-
-                      return (
-                        <div
-                          key={task.id}
-                          className="p-4 bg-secondary/10 hover:bg-secondary/20 border border-border/40 hover:border-border/80 transition-all rounded-md space-y-3"
-                        >
-                          <div className="flex items-start justify-between space-x-4">
-                            <div className="space-y-1 min-w-0">
-                              <p className="text-xs font-heading font-extrabold text-foreground tracking-tight truncate">
-                                {task.title}
-                              </p>
-                              <p className="text-xs font-medium text-muted-foreground leading-relaxed select-text">
-                                {task.description}
-                              </p>
-                            </div>
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border shrink-0 ${
-                                isCompleted
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : isReview
-                                  ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                                  : isProgress
-                                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                              }`}
-                            >
-                              {task.status}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/40 text-[10px] text-muted-foreground font-semibold">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-3.5 w-3.5 shrink-0" />
-                              <span>Deadline: {formatDate(task.deadline)}</span>
-                            </div>
-
-                            {task.remarks && (
-                              <div className="w-full text-foreground/80 bg-secondary/30 p-2 rounded text-[11px] font-medium leading-relaxed italic mt-1 border-l-2 border-border select-text">
-                                Remarks: &ldquo;{task.remarks}&rdquo;
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Card D: Attendance History Logs */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                    <Calendar className="h-4.5 w-4.5 text-emerald-400" />
-                    <span>Attendance Log Register</span>
-                  </CardTitle>
-                  <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
-                    Real-time operational records of check-ins and check-outs.
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-heading font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                    {attendanceRate}% ATTENDANCE SCORE
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {intern.attendance.length === 0 ? (
-                  <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
-                    <Calendar className="h-8 w-8 text-muted-foreground/35" />
-                    <span>No attendance check-in events logged.</span>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-border/40 text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                          <th className="pb-2.5 font-bold">Date</th>
-                          <th className="pb-2.5 font-bold">Check-In Info</th>
-                          <th className="pb-2.5 font-bold">Check-Out Info</th>
-                          <th className="pb-2.5 font-bold text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/20">
-                        {intern.attendance.map((record) => {
-                          const isPresent = record.status === "PRESENT";
-                          const isLate = record.status === "LATE";
-                          const isAbsent = record.status === "ABSENT";
-
-                          return (
-                            <tr key={record.id} className="hover:bg-secondary/5">
-                              <td className="py-3 font-semibold text-foreground">{formatDate(record.date)}</td>
-                              <td className="py-3 text-left">
-                                <div className="font-mono font-bold text-muted-foreground">
-                                  {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
-                                </div>
-                                {record.checkInAddress && (
-                                  <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkInAddress}>
-                                    📍 {record.checkInAddress}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="py-3 text-left">
-                                <div className="font-mono font-bold text-muted-foreground">
-                                  {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
-                                </div>
-                                {record.checkOutAddress && (
-                                  <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkOutAddress}>
-                                    📍 {record.checkOutAddress}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="py-3 text-center">
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border ${
-                                    isPresent
-                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                      : isLate
-                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                                  }`}
-                                >
-                                  {record.status}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Card E: Compliance Document Dossier Vault */}
-            <Card className="border-border/60">
-              <CardHeader className="pb-3 border-b border-border/40">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Card C: Tasks Assigned Queue */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
+              <div>
                 <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                  <FileText className="h-4.5 w-4.5 text-cyan-400" />
-                  <span>Compliance Document Dossier</span>
+                  <CheckSquare className="h-4.5 w-4.5 text-blue-400" />
+                  <span>Assigned Tasks Queue</span>
                 </CardTitle>
                 <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
-                  Securely stored identity verification documents and files.
+                  Tasks assigned directly to this intern profile.
                 </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {intern.documents.length === 0 ? (
-                  <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
-                    <FileText className="h-8 w-8 text-muted-foreground/35" />
-                    <span>No files or agreements compiled in vault.</span>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/20">
-                    {intern.documents.map((doc) => (
-                      <div key={doc.id} className="py-3.5 flex items-center justify-between gap-4">
-                        <div className="flex items-start space-x-3 min-w-0">
-                          <div className="p-2 rounded bg-secondary border border-border/40 text-muted-foreground shrink-0">
-                            <FileText className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-heading font-extrabold text-foreground tracking-tight truncate">
-                              {doc.fileName}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground font-medium">
-                              Compiled: {formatDate(doc.createdAt)} &bull; Type: {doc.type.replace("_", " ")}
-                            </p>
-                          </div>
-                        </div>
+              </div>
+              <span className="text-[10px] font-heading font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
+                {completedTasks} / {totalTasks} COMPLETED
+              </span>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {intern.tasks.length === 0 ? (
+                <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
+                  <CheckSquare className="h-8 w-8 text-muted-foreground/35" />
+                  <span>No tasks have been assigned to this intern workspace yet.</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {intern.tasks.map((task) => {
+                    const isCompleted = task.status === "COMPLETED";
+                    const isPending = task.status === "PENDING";
+                    const isProgress = task.status === "IN_PROGRESS";
+                    const isReview = task.status === "IN_REVIEW";
 
-                        <div className="flex items-center space-x-3 shrink-0">
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-4 bg-secondary/10 hover:bg-secondary/20 border border-border/40 hover:border-border/80 transition-all rounded-md space-y-3"
+                      >
+                        <div className="flex items-start justify-between space-x-4">
+                          <div className="space-y-1 min-w-0">
+                            <p className="text-xs font-heading font-extrabold text-foreground tracking-tight truncate">
+                              {task.title}
+                            </p>
+                            <p className="text-xs font-medium text-muted-foreground leading-relaxed select-text">
+                              {task.description}
+                            </p>
+                          </div>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border ${
-                              doc.verified
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border shrink-0 ${
+                              isCompleted
                                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : isReview
+                                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                                : isProgress
+                                ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
                                 : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                             }`}
                           >
-                            {doc.verified ? "VERIFIED" : "PENDING AUDIT"}
+                            {task.status}
                           </span>
-                          
-                          <a
-                            href={`/api/documents/view?id=${doc.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-md bg-secondary border border-border/60 hover:border-primary/40 hover:text-primary transition-all"
-                            title="Open Document File"
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                          </a>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/40 text-[10px] text-muted-foreground font-semibold">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            <span>Deadline: {formatDate(task.deadline)}</span>
+                          </div>
+
+                          {task.remarks && (
+                            <div className="w-full text-foreground/80 bg-secondary/30 p-2 rounded text-[11px] font-medium leading-relaxed italic mt-1 border-l-2 border-border select-text">
+                              Remarks: &ldquo;{task.remarks}&rdquo;
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="lg:col-span-2 flex flex-col justify-center items-center p-8 border border-dashed border-border/40 rounded-2xl bg-secondary/5 space-y-3 min-h-[300px]">
-            <Activity className="h-10 w-10 text-muted-foreground/40 animate-pulse" />
-            <h4 className="text-sm font-heading font-extrabold text-foreground">Operational Dashboard Restricted</h4>
-            <p className="text-xs text-muted-foreground text-center max-w-sm leading-relaxed">
-              As an administrative viewer, you only have access to review, update, save, and verify/approve compliance files. Workspaces are restricted to profile owners.
-            </p>
-          </div>
-        )}
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card D: Attendance History Logs */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                  <Calendar className="h-4.5 w-4.5 text-emerald-400" />
+                  <span>Attendance Log Register</span>
+                </CardTitle>
+                <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                  Real-time operational records of check-ins and check-outs.
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-heading font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  {attendanceRate}% ATTENDANCE SCORE
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {intern.attendance.length === 0 ? (
+                <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
+                  <Calendar className="h-8 w-8 text-muted-foreground/35" />
+                  <span>No attendance check-in events logged.</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-border/40 text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                        <th className="pb-2.5 font-bold">Date</th>
+                        <th className="pb-2.5 font-bold">Check-In Info</th>
+                        <th className="pb-2.5 font-bold">Check-Out Info</th>
+                        <th className="pb-2.5 font-bold text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20">
+                      {intern.attendance.map((record) => {
+                        const isPresent = record.status === "PRESENT";
+                        const isLate = record.status === "LATE";
+                        const isAbsent = record.status === "ABSENT";
+
+                        return (
+                          <tr key={record.id} className="hover:bg-secondary/5">
+                            <td className="py-3 font-semibold text-foreground">{formatDate(record.date)}</td>
+                            <td className="py-3 text-left">
+                              <div className="font-mono font-bold text-muted-foreground">
+                                {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                              </div>
+                              {record.checkInAddress && (
+                                <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkInAddress}>
+                                  📍 {record.checkInAddress}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 text-left">
+                              <div className="font-mono font-bold text-muted-foreground">
+                                {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                              </div>
+                              {record.checkOutAddress && (
+                                <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkOutAddress}>
+                                  📍 {record.checkOutAddress}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 text-center">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border ${
+                                  isPresent
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                    : isLate
+                                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                    : "bg-red-500/10 text-red-400 border-red-500/20"
+                                }`}
+                              >
+                                {record.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card E: Compliance Document Dossier Vault */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                <FileText className="h-4.5 w-4.5 text-cyan-400" />
+                <span>Compliance Document Dossier</span>
+              </CardTitle>
+              <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                Securely stored identity verification documents and files.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {intern.documents.length === 0 ? (
+                <div className="py-12 text-center text-xs font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2.5 select-none">
+                  <FileText className="h-8 w-8 text-muted-foreground/35" />
+                  <span>No files or agreements compiled in vault.</span>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/20">
+                  {intern.documents.map((doc) => (
+                    <div key={doc.id} className="py-3.5 flex items-center justify-between gap-4">
+                      <div className="flex items-start space-x-3 min-w-0">
+                        <div className="p-2 rounded bg-secondary border border-border/40 text-muted-foreground shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-heading font-extrabold text-foreground tracking-tight truncate">
+                            {doc.fileName}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground font-medium">
+                            Compiled: {formatDate(doc.createdAt)} &bull; Type: {doc.type.replace("_", " ")}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 shrink-0">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-heading font-extrabold uppercase tracking-widest border ${
+                            doc.verified
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          }`}
+                        >
+                          {doc.verified ? "VERIFIED" : "PENDING AUDIT"}
+                        </span>
+                        
+                        <a
+                          href={`/api/documents/view?id=${doc.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-md bg-secondary border border-border/60 hover:border-primary/40 hover:text-primary transition-all"
+                          title="Open Document File"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
