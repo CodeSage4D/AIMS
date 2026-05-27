@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { documentId, action, notes, content } = body;
+    const { documentId, action, notes, content, theme } = body;
 
     if (!documentId) {
       return NextResponse.json({ error: "Missing parameter: documentId" }, { status: 400 });
@@ -149,6 +149,14 @@ export async function PUT(req: Request) {
       
       const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
 
+      let nextContent = doc.content;
+      if (doc.type === "ID_CARD" && theme) {
+        nextContent = {
+          ...(doc.content as any),
+          theme: theme
+        };
+      }
+
       const updatedDoc = await db.$transaction(async (tx) => {
         const docRecord = await tx.generatedDocument.update({
           where: { id: documentId },
@@ -158,6 +166,7 @@ export async function PUT(req: Request) {
             approvedAt,
             signature: signatureStamp,
             notes: notes || "Document approved and digitally signed.",
+            content: nextContent as any,
           },
         });
 
