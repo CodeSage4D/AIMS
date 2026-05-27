@@ -595,6 +595,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                 employmentType={intern.employmentType}
                 linkedIn={customProfile?.linkedIn}
                 gitHub={customProfile?.gitHub}
+                viewOnly={true}
               />
             </CardContent>
           </Card>
