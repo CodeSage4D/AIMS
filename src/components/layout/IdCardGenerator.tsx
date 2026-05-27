@@ -433,23 +433,23 @@ export default function IdCardGenerator({
 
     // Brand Header
     if (logoImg) {
-      ctx.drawImage(logoImg, width / 2 - 18, 22, 36, 36);
+      ctx.drawImage(logoImg, width / 2 - 24, 20, 48, 48);
     }
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 18px sans-serif";
-    ctx.fillText("AURXON", width / 2, 74);
+    ctx.fillText("AURXON", width / 2, 82);
 
     ctx.font = "bold 8px sans-serif";
     ctx.fillStyle = isSmart ? (badgeColor || design.secondaryColor) : design.secondaryColor;
-    ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, 88);
+    ctx.fillText("OFFICIAL WORKFORCE CREDENTIAL", width / 2, 94);
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-    ctx.fillRect(30, 96, width - 60, 1);
+    ctx.fillRect(30, 102, width - 60, 1);
 
     // Portrait Photo
     const cx = width / 2;
-    const cy = 175;
+    const cy = 182;
     const radius = 54;
 
     ctx.beginPath();
@@ -773,7 +773,7 @@ export default function IdCardGenerator({
 
     // Logo image top right
     if (logoImg) {
-      ctx.drawImage(logoImg, width - 50, 12, 30, 30);
+      ctx.drawImage(logoImg, width - 60, 10, 42, 42);
     }
 
     // Details Text
