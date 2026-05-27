@@ -341,6 +341,7 @@ export async function PATCH(req: Request) {
     if (
       body.linkedIn !== undefined ||
       body.gitHub !== undefined ||
+      body.instagram !== undefined ||
       body.bloodGroup !== undefined ||
       body.pinCode !== undefined ||
       body.bankName !== undefined ||
@@ -379,6 +380,7 @@ export async function PATCH(req: Request) {
         !body.paymentPreference &&
         !body.linkedIn &&
         !body.gitHub &&
+        !body.instagram &&
         !body.bloodGroup &&
         !body.pinCode;
 
@@ -428,6 +430,12 @@ export async function PATCH(req: Request) {
           return NextResponse.json({ error: "Validation failed. GitHub link must be a valid https://github.com URL." }, { status: 400 });
         }
       }
+      if (body.instagram) {
+        const ig = body.instagram.trim();
+        if (!ig.startsWith("https://") || !ig.includes("instagram.com/")) {
+          return NextResponse.json({ error: "Validation failed. Instagram link must be a valid https://instagram.com URL." }, { status: 400 });
+        }
+      }
 
       // Pincode validation: 6 digits
       if (body.pinCode !== undefined) {
@@ -453,6 +461,7 @@ export async function PATCH(req: Request) {
 
       const nextLinkedIn = body.linkedIn !== undefined ? body.linkedIn : existingCustom.linkedIn;
       const nextGitHub = body.gitHub !== undefined ? body.gitHub : existingCustom.gitHub;
+      const nextInstagram = body.instagram !== undefined ? body.instagram : existingCustom.instagram;
       const nextBloodGroup = body.bloodGroup !== undefined ? body.bloodGroup : existingCustom.bloodGroup;
       const nextAccountHolder = body.accountHolderName !== undefined ? body.accountHolderName : existingCustom.accountHolderName;
       const nextPaymentPref = body.paymentPreference !== undefined ? body.paymentPreference : existingCustom.paymentPreference;
@@ -462,6 +471,7 @@ export async function PATCH(req: Request) {
       dataToUpdate.notes = serializeInternNotes({
         linkedIn: nextLinkedIn || "",
         gitHub: nextGitHub || "",
+        instagram: nextInstagram || "",
         bloodGroup: nextBloodGroup || "",
         accountHolderName: nextAccountHolder || "",
         paymentPreference: nextPaymentPref || "",
