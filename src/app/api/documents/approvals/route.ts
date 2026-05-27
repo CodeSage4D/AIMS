@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { documentId, action, notes, content, theme } = body;
+    const { documentId, action, notes, content, theme, cardType, badgeColor, themeColor, verificationStatus, verificationBadgeStyle } = body;
 
     if (!documentId) {
       return NextResponse.json({ error: "Missing parameter: documentId" }, { status: 400 });
@@ -150,10 +150,17 @@ export async function PUT(req: Request) {
       const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
 
       let nextContent = doc.content;
-      if (doc.type === "ID_CARD" && theme) {
+      if (doc.type === "ID_CARD") {
         nextContent = {
           ...(doc.content as any),
-          theme: theme
+          cardType: cardType || (doc.content as any).cardType || "standard",
+          theme: theme || (doc.content as any).theme || "orange",
+          badgeColor: badgeColor || (doc.content as any).badgeColor || "#ea580c",
+          themeColor: themeColor || (doc.content as any).themeColor || "#ea580c",
+          verificationStatus: verificationStatus || "Authorized & Verified",
+          verificationBadgeStyle: verificationBadgeStyle || "gold",
+          verifiedAt: approvedAt.toISOString(),
+          verifiedBy: `${userRole} (${userName})`,
         };
       }
 
