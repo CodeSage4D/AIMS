@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Role, InternStatus, UserStatus } from "@prisma/client";
+import { InternStatus, UserStatus } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { getSafeUserId } from "@/lib/safeUser";
@@ -57,11 +58,11 @@ export async function POST(req: Request) {
     }
 
     // Role validation
-    const targetRole = (role as Role) || Role.INTERN;
-    if (targetRole === Role.FOUNDER) {
+    const targetRole = (role as Role) || "INTERN";
+    if (targetRole === "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Cannot designate another user as Founder." }, { status: 403 });
     }
-    if (targetRole === Role.SUPER_ADMIN && currentUser.role !== Role.FOUNDER) {
+    if (targetRole === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Only the Founder can promote to Super Admin." }, { status: 403 });
     }
 
@@ -154,10 +155,10 @@ export async function POST(req: Request) {
           attendanceAccess: true,
           taskAccess: true,
           documentAccess: true,
-          approvalAccess: targetRole === Role.SUPER_ADMIN || targetRole === Role.HR,
-          settingsAccess: targetRole === Role.SUPER_ADMIN,
-          analyticsAccess: targetRole !== Role.INTERN,
-          onboardingAccess: targetRole === Role.SUPER_ADMIN || targetRole === Role.HR,
+          approvalAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
+          settingsAccess: targetRole === "SUPER_ADMIN",
+          analyticsAccess: targetRole !== "INTERN",
+          onboardingAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
         };
 
         await tx.userPermission.upsert({

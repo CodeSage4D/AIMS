@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
     // 1. Announcements General Board Lock
     if (!receiverId && !taskId && !groupId) {
       const userRole = (session?.user as any)?.role;
-      if (userRole === Role.INTERN || userRole === Role.TEAM_LEAD) {
+      if (userRole === "INTERN" || userRole === "TEAM_LEAD") {
         return NextResponse.json({ error: "Forbidden. Only Founders and Admins can publish announcements to the General Board." }, { status: 403 });
       }
     }

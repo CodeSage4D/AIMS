@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 /**
  * Checks if a given user has permission to perform a specific action category.
@@ -23,7 +23,7 @@ export async function hasPermission(
   if (!userId) return false;
 
   // 1. Founder is the supreme authority - unrestricted access
-  if (role === Role.FOUNDER) {
+  if (role === "FOUNDER") {
     return true;
   }
 
@@ -60,17 +60,17 @@ export async function hasPermission(
 
   // 4. Fallback to structural defaults based on high-level user role
   switch (role) {
-    case Role.SUPER_ADMIN:
+    case "SUPER_ADMIN":
       // Super admin gets everything by default
       return true;
 
-    case Role.ADMIN:
-    case Role.TEAM_LEAD:
-    case Role.HR:
+    case "ADMIN":
+    case "TEAM_LEAD":
+    case "HR":
       // Admins, Team Leads, and HR get everything except Settings access by default
       return permission !== "settingsAccess";
 
-    case Role.INTERN:
+    case "INTERN":
       // Interns/Employees get minimal access (Dashboard, checking standard attendance/tasks/own documents)
       return (
         permission === "dashboardAccess" ||

@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 /**
  * GET /api/messages/groups
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     // Restriction: Only Founder, Super Admin, Admin, and HR can create groups
-    if (role === Role.INTERN || role === Role.TEAM_LEAD) {
+    if (role === "INTERN" || role === "TEAM_LEAD") {
       return NextResponse.json({ error: "Forbidden. Interns and Supervisors cannot create official groups." }, { status: 403 });
     }
 

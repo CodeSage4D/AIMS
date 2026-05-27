@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getSafeUserId } from "@/lib/safeUser";
 
 import { validatePassword } from "@/lib/passwordValidator";
+
+const VALID_ROLES = ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR", "TEAM_LEAD", "INTERN"];
 
 // Helper to authenticate and check roles dynamically
 async function getAdminUser() {
@@ -108,26 +110,26 @@ export async function POST(req: Request) {
 
     // Role restrictions
     const targetRole = role as Role;
-    if (!Object.values(Role).includes(targetRole)) {
+    if (!VALID_ROLES.includes(targetRole)) {
       return NextResponse.json({ error: "Validation failed. Invalid role value." }, { status: 400 });
     }
 
-    if (targetRole === Role.FOUNDER) {
+    if (targetRole === "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Cannot create multiple Founder accounts." }, { status: 403 });
     }
 
     // Only Founder can create Super Admins
-    if (targetRole === Role.SUPER_ADMIN && currentUser.role !== Role.FOUNDER) {
+    if (targetRole === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Only the Founder can create Super Admin accounts." }, { status: 403 });
     }
 
     // HR cannot create administrative accounts
-    if (currentUser.role === Role.HR && ([Role.SUPER_ADMIN, Role.ADMIN, Role.HR] as Role[]).includes(targetRole)) {
+    if (currentUser.role === "HR" && (["SUPER_ADMIN", "ADMIN", "HR"] as string[]).includes(targetRole)) {
       return NextResponse.json({ error: "Forbidden. HR cannot create administrative accounts." }, { status: 403 });
     }
 
     // Admin cannot create Super Admin or Founder or Admin accounts
-    if (currentUser.role === Role.ADMIN && ([Role.SUPER_ADMIN, Role.ADMIN, Role.FOUNDER] as Role[]).includes(targetRole)) {
+    if (currentUser.role === "ADMIN" && (["SUPER_ADMIN", "ADMIN", "FOUNDER"] as string[]).includes(targetRole)) {
       return NextResponse.json({ error: "Forbidden. Insufficient privileges to create this role." }, { status: 403 });
     }
 
@@ -156,13 +158,13 @@ export async function POST(req: Request) {
       // Default permissions based on role if none provided
       const defaultPerms = permissions || {
         dashboardAccess: true,
-        attendanceAccess: targetRole !== Role.INTERN,
-        taskAccess: targetRole !== Role.INTERN,
-        documentAccess: targetRole !== Role.INTERN,
-        approvalAccess: targetRole === Role.SUPER_ADMIN || targetRole === Role.HR,
-        settingsAccess: targetRole === Role.SUPER_ADMIN,
-        analyticsAccess: targetRole !== Role.INTERN,
-        onboardingAccess: targetRole === Role.SUPER_ADMIN || targetRole === Role.HR,
+        attendanceAccess: targetRole !== "INTERN",
+        taskAccess: targetRole !== "INTERN",
+        documentAccess: targetRole !== "INTERN",
+        approvalAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
+        settingsAccess: targetRole === "SUPER_ADMIN",
+        analyticsAccess: targetRole !== "INTERN",
+        onboardingAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
       };
 
       await tx.userPermission.create({
@@ -219,18 +221,18 @@ export async function PUT(req: Request) {
     }
 
     // 🔒 FOUNDER PROTECTION: Never modify founder profile
-    if (targetUser.role === Role.FOUNDER) {
+    if (targetUser.role === "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. The Founder account is supreme and its roles or permissions cannot be modified." }, { status: 403 });
     }
 
     // Only Founder can promote to SUPER_ADMIN or modify SUPER_ADMIN users
-    if ((role === Role.SUPER_ADMIN || targetUser.role === Role.SUPER_ADMIN) && currentUser.role !== Role.FOUNDER) {
+    if ((role === "SUPER_ADMIN" || targetUser.role === "SUPER_ADMIN") && currentUser.role !== "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Only the Founder can manage Super Admin roles and permissions." }, { status: 403 });
     }
 
     // HR can only modify INTERN and TEAM_LEAD permissions — not other admins
-    const hrRestrictedRoles: string[] = [Role.ADMIN, Role.HR, Role.SUPER_ADMIN, Role.FOUNDER];
-    if (currentUser.role === Role.HR && hrRestrictedRoles.includes(targetUser.role)) {
+    const hrRestrictedRoles: string[] = ["ADMIN", "HR", "SUPER_ADMIN", "FOUNDER"];
+    if (currentUser.role === "HR" && hrRestrictedRoles.includes(targetUser.role)) {
       return NextResponse.json({
         error: "Forbidden. HR can only manage permissions for Interns and Team Leads.",
       }, { status: 403 });
@@ -240,11 +242,11 @@ export async function PUT(req: Request) {
     if (role) {
       const nextRole = role as Role;
       // HR cannot promote anyone to Founder, Super Admin, Admin, or HR
-      if (currentUser.role === Role.HR && ([Role.FOUNDER, Role.SUPER_ADMIN, Role.ADMIN, Role.HR] as Role[]).includes(nextRole)) {
+      if (currentUser.role === "HR" && (["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR"] as string[]).includes(nextRole)) {
         return NextResponse.json({ error: "Forbidden. HR cannot assign administrative roles." }, { status: 403 });
       }
       // Admin cannot promote anyone to Founder, Super Admin, or Admin
-      if (currentUser.role === Role.ADMIN && ([Role.FOUNDER, Role.SUPER_ADMIN, Role.ADMIN] as Role[]).includes(nextRole)) {
+      if (currentUser.role === "ADMIN" && (["FOUNDER", "SUPER_ADMIN", "ADMIN"] as string[]).includes(nextRole)) {
         return NextResponse.json({ error: "Forbidden. Insufficient privileges to assign this role." }, { status: 403 });
       }
     }
@@ -287,7 +289,7 @@ export async function PUT(req: Request) {
 
       // Update role if supplied
       let nextRole = targetUser.role;
-      if (role && Object.values(Role).includes(role as Role)) {
+      if (role && VALID_ROLES.includes(role as string)) {
         nextRole = role as Role;
         await tx.user.update({
           where: { id: userId },
@@ -380,7 +382,7 @@ export async function DELETE(req: Request) {
     }
 
     // 🔒 FOUNDER PROTECTION: Never delete founder
-    if (targetUser.role === Role.FOUNDER) {
+    if (targetUser.role === "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. The Founder account is supreme and cannot be deleted from the system." }, { status: 403 });
     }
 
@@ -390,7 +392,7 @@ export async function DELETE(req: Request) {
     }
 
     // Only Founder can delete Super Admin
-    if (targetUser.role === Role.SUPER_ADMIN && currentUser.role !== Role.FOUNDER) {
+    if (targetUser.role === "SUPER_ADMIN" && currentUser.role !== "FOUNDER") {
       return NextResponse.json({ error: "Forbidden. Only the Founder can delete Super Admin accounts." }, { status: 403 });
     }
 
