@@ -1067,12 +1067,21 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   // Helper: check document status inside enrollee record
   const getDocStatus = (intern: InternRecord, type: string) => {
     const doc = intern.documents.find((d) => d.type === type);
-    if (!doc) return { status: "missing", element: null };
+    if (!doc) {
+      return {
+        status: "missing",
+        element: (
+          <div className="flex items-center space-x-1 text-rose-400 select-none bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/25 shrink-0 text-[10px] font-bold">
+            <span>Missing</span>
+          </div>
+        )
+      };
+    }
     if (doc.verified) {
       return {
         status: "verified",
         element: (
-          <div className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 select-none bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/25 shrink-0 text-[10px]">
+          <div className="flex items-center space-x-1 text-emerald-400 select-none bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/25 shrink-0 text-[10px] font-bold">
             <CheckCircle className="h-3 w-3 shrink-0" />
             <span>Verified</span>
           </div>
@@ -1082,7 +1091,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     return {
       status: "pending",
       element: (
-        <div className="flex items-center space-x-1 text-amber-600 dark:text-amber-400 select-none bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25 shrink-0 text-[10px]">
+        <div className="flex items-center space-x-1 text-amber-400 select-none bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25 shrink-0 text-[10px] font-bold">
           <Clock className="h-3 w-3 shrink-0 animate-pulse" />
           <span>Review</span>
         </div>
@@ -1288,24 +1297,18 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                                 key={docType.type}
                                 title={`${docType.label}: ${state.status.toUpperCase()}`}
                                 className={cn(
-                                  "flex flex-col items-center space-y-1.5 p-2 bg-secondary/5 border rounded-lg select-none shrink-0 min-w-16 transition-all duration-200 hover:bg-secondary/10 hover:border-border",
+                                  "flex flex-col items-center space-y-1.5 p-2 rounded-lg select-none shrink-0 min-w-16 transition-all duration-200 hover:scale-105",
                                   state.status === "verified"
-                                    ? "border-emerald-500/20"
+                                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
                                     : state.status === "pending"
-                                    ? "border-amber-500/20"
-                                    : "border-border/40"
+                                    ? "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                                    : "bg-rose-500/5 border border-rose-500/20 text-rose-450"
                                 )}
                               >
                                 <span className="text-[8px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
                                   {docType.type.split("_")[0]}
                                 </span>
-                                {state.element ? (
-                                  state.element
-                                ) : (
-                                  <div className="text-[9px] text-muted-foreground font-bold bg-secondary/20 px-2 py-0.5 rounded border border-border/10">
-                                    Missing
-                                  </div>
-                                )}
+                                {state.element}
                               </div>
                             );
                           })}
@@ -1381,10 +1384,10 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                             className={cn(
                               "flex flex-col items-center justify-between p-1.5 rounded-lg border bg-secondary/5 min-h-12 justify-center",
                               state.status === "verified"
-                                ? "border-emerald-500/20"
+                                ? "bg-emerald-500/10 border-emerald-500/30"
                                 : state.status === "pending"
-                                ? "border-amber-500/20"
-                                : "border-border/20"
+                                ? "bg-amber-500/10 border-amber-500/30"
+                                : "bg-rose-500/5 border-rose-500/20"
                             )}
                           >
                             <span className="text-[7.5px] font-bold text-muted-foreground uppercase tracking-wide">
@@ -2692,10 +2695,10 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                             onChange={(e) => setSelectedVerificationBadgeStyle(e.target.value)}
                             className="flex h-7 w-full rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                           >
-                            <option value="gold" className="bg-card text-foreground">Imperial Gold</option>
-                            <option value="neon" className="bg-card text-foreground">Cyber Neon</option>
-                            <option value="emerald" className="bg-card text-foreground">Vibrant Emerald</option>
-                            <option value="royal" className="bg-card text-foreground">Royal Blue</option>
+                            <option value="gold" className="bg-card text-foreground">Executive Level</option>
+                            <option value="neon" className="bg-card text-foreground">Standard Level</option>
+                            <option value="emerald" className="bg-card text-foreground">Associate Level</option>
+                            <option value="royal" className="bg-card text-foreground">Specialist Level</option>
                           </select>
                         </div>
                       </div>
