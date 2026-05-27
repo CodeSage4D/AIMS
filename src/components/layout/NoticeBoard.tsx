@@ -135,7 +135,7 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start sm:items-center justify-between gap-2">
-                        <h4 className="text-xs font-extrabold text-white whitespace-normal break-words flex-1 leading-normal">
+                        <h4 className="text-xs font-extrabold text-foreground dark:text-white whitespace-normal break-words flex-1 leading-normal">
                           {notice.title}
                         </h4>
                         <span className="text-[9px] text-muted-foreground font-semibold flex items-center space-x-1 shrink-0 mt-0.5 sm:mt-0">
@@ -144,7 +144,7 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
                         </span>
                       </div>
                       {notice.description && (
-                        <p className="text-xs text-gray-300 font-medium mt-1 leading-relaxed">
+                        <p className="text-xs text-muted-foreground dark:text-gray-300 font-medium mt-1 leading-relaxed">
                           {notice.description}
                         </p>
                       )}
@@ -196,7 +196,7 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
                     )}
                     
                     <div>
-                      <h4 className="text-xs font-extrabold text-white">{anniv.fullName}</h4>
+                      <h4 className="text-xs font-extrabold text-foreground dark:text-white">{anniv.fullName}</h4>
                       <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{anniv.roleDomain}</p>
                     </div>
                     
@@ -221,64 +221,64 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
       {/* Modal Dialog */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#0b0f19] border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative animate-fadeIn text-white">
+          <div className="bg-card border border-border dark:border-white/10 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative animate-fadeIn text-foreground">
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="space-y-1">
-              <h3 className="text-md font-heading font-extrabold text-white flex items-center gap-2">
-                <Megaphone className="h-5 w-5 text-indigo-400" />
+              <h3 className="text-md font-heading font-extrabold text-foreground dark:text-white flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
                 <span>Post New Announcement</span>
               </h3>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-[10px] text-muted-foreground dark:text-gray-400">
                 Broadcast an official system event or reminder notice instantly to the notice board.
               </p>
             </div>
 
             {error && (
-              <div className="p-2.5 bg-red-550/10 border border-red-550/20 text-red-400 text-xs font-semibold rounded-lg">
+              <div className="p-2.5 bg-red-550/10 border border-red-550/20 text-red-500 dark:text-red-400 text-xs font-semibold rounded-lg">
                 {error}
               </div>
             )}
 
             <form onSubmit={handlePostNotice} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase">Notice Title</label>
+                <label className="block text-[10px] font-bold text-muted-foreground dark:text-gray-400 uppercase">Notice Title</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Q2 Performance Reviews Schedule"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#121826] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-secondary/40 dark:bg-[#121826] border border-border dark:border-white/10 rounded-lg p-2.5 text-foreground dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-muted-foreground dark:placeholder-gray-500"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase">Notice Type</label>
+                <label className="block text-[10px] font-bold text-muted-foreground dark:text-gray-400 uppercase">Notice Type</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full bg-[#121826] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-secondary/40 dark:bg-[#121826] border border-border dark:border-white/10 rounded-lg p-2.5 text-foreground dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                 >
-                  <option value="EVENT">Event Banner</option>
-                  <option value="REMINDER">Reminder Alert</option>
+                  <option value="EVENT" className="bg-card text-foreground">Event Banner</option>
+                  <option value="REMINDER" className="bg-card text-foreground">Reminder Alert</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase">Description / Details</label>
+                <label className="block text-[10px] font-bold text-muted-foreground dark:text-gray-400 uppercase">Description / Details</label>
                 <textarea
                   required
                   rows={3}
                   placeholder="Write a clear and comprehensive notice description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-[#121826] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-secondary/40 dark:bg-[#121826] border border-border dark:border-white/10 rounded-lg p-2.5 text-foreground dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-muted-foreground dark:placeholder-gray-500"
                 />
               </div>
 
@@ -286,7 +286,7 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-secondary/80 dark:bg-white/5 hover:bg-secondary dark:hover:bg-white/10 text-foreground/80 dark:text-gray-300 font-semibold cursor-pointer border border-border dark:border-white/5"
                 >
                   Cancel
                 </button>

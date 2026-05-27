@@ -1,0 +1,53 @@
+# SOFTWARE PROPRIETARY LICENSE AND EULA
+## Aurxon Internal Management System (AIMS)
+
+### PREAMBLE & JURISDICTIONAL STATEMENT
+This Software Proprietary License and End-User License Agreement ("License" or "Agreement") is a legally binding contract drafted in accordance with international intellectual property conventions, bilateral treaties, and national laws governing software protection, trade secrets, and corporate proprietary rights. 
+
+This Agreement is executed with legal reference to the principles of equity, commercial prudence, and standard enterprise protective covenants. The software licensed hereunder, including all source code, compiled binaries, documentation, UI/UX designs, stylesheets, and schema definitions, constitutes the highly confidential and proprietary trade secret of **AURXON**.
+
+---
+
+### SECTION 1: DEFINITIONS AND INTERPRETATION
+1. **"Licensor"** or **"Owner"** shall mean **AURXON**, its subsidiaries, affiliates, and its designated founders and officers.
+2. **"Software"** shall mean the Aurxon Internal Management System (AIMS), including all components, databases, configurations, updates, and associated documentation.
+3. **"Authorized User"** shall mean an employee, intern, contractor, or officer of the Licensor who has been granted authorized credentials to access the Software.
+
+---
+
+### SECTION 2: PROPRIETARY RIGHTS & OWNERSHIP
+1. **Title & Ownership:** The Licensor retains exclusive, absolute, and unencumbered title, ownership, and all intellectual property rights in the Software. This License does not constitute a sale, assignment, or transfer of any intellectual property rights to the User.
+2. **Trade Secrets:** The source code structure, database schemas, cryptographic configurations, and proprietary workflows of the Software are protected under international trade secret doctrines. Any unauthorized retrieval, inspection, or extraction of code is strictly prohibited.
+
+---
+
+### SECTION 3: LICENSE GRANT AND RESTRICTIONS
+1. **Grant of License:** The Licensor grants to Authorized Users a non-exclusive, non-transferable, revocable, limited license to access and use the Software solely for internal administrative and onboarding purposes.
+2. **Strict Prohibitions:** Except as expressly authorized by the Licensor, the User shall not:
+   - Copy, modify, adapt, translate, or create derivative works of the Software.
+   - Decompile, decrypt, disassemble, reverse engineer, or attempt to reconstruct the source code.
+   - Sub-license, lease, rent, distribute, host, or commercially exploit the Software.
+   - Remove or alter any proprietary notices, trademarks, or copyrights embedded within the Software interface or source code.
+   - Bypass, circumvent, or disable any security features, license keys, role guards, or access controls.
+
+---
+
+### SECTION 4: CONFIDENTIALITY AND SECURITY
+1. **Non-Disclosure:** Every user of this Software is bound by strict confidentiality rules. No portion of the Software's interface, codebase, or stored records may be disclosed to any third party.
+2. **Credential Security:** Access credentials (including tokens, session cookies, and passwords) are non-shareable. Unauthorized credential sharing is a material breach of this Agreement and may lead to immediate revocation of access and disciplinary or legal action.
+
+---
+
+### SECTION 5: DISCLAIMER OF WARRANTIES AND LIMITATION OF LIABILITY
+1. **"As-Is" Provision:** The Software is provided on an "As-Is" and "As-Available" basis. The Licensor makes no warranties, express or implied, regarding performance, merchantability, or fitness for a particular purpose.
+2. **Limitation of Liability:** In no event shall the Licensor, its officers, or founders be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this Software.
+
+---
+
+### SECTION 6: TERM, TERMINATION, AND JURISDICTION
+1. **Term:** This Agreement remains in effect until terminated.
+2. **Termination:** The Licensor reserves the right, in its sole discretion, to terminate access to the Software or revoke this License at any time, with or without notice.
+3. **Governing Law & Dispute Resolution:** This Agreement shall be governed by and construed in accordance with international commercial law and applicable local regulations. Any dispute, controversy, or claim arising out of or relating to this License shall be subject to the exclusive jurisdiction of the competent courts of law designated by **AURXON**.
+
+---
+**Copyright © 2026 AURXON. All Rights Reserved.**

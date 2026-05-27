@@ -424,7 +424,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-4">
-                {["OFFER_LETTER", "NDA", "ID_CARD", "EXPERIENCE_LETTER"].map((type) => {
+                {["OFFER_LETTER", "NDA", "AGREEMENT", "ID_CARD", "EXPERIENCE_LETTER"].map((type) => {
 
 
                   const existing = (myRecord.generatedDocuments || []).find((d) => d.type === type);
@@ -569,7 +569,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                         {doc ? (
                           <span className="text-[9px] text-muted-foreground block truncate">{doc.fileName.substring(0, 20)}...</span>
                         ) : (
-                          <span className="text-[9px] text-amber-500 font-bold block">Missing Document File</span>
+                          <span className="text-[9px] text-muted-foreground font-medium block">Not Uploaded</span>
                         )}
                       </div>
 
@@ -1069,10 +1069,10 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     const doc = intern.documents.find((d) => d.type === type);
     if (!doc) {
       return {
-        status: "missing",
+        status: "not_uploaded",
         element: (
-          <div className="flex items-center space-x-1 text-rose-400 select-none bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/25 shrink-0 text-[10px] font-bold">
-            <span>Missing</span>
+          <div className="flex items-center space-x-1 text-slate-400 dark:text-slate-400 select-none bg-slate-500/10 px-1.5 py-0.5 rounded border border-slate-500/20 shrink-0 text-[10px] font-bold">
+            <span>Not Uploaded</span>
           </div>
         )
       };
@@ -1302,7 +1302,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                                     ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
                                     : state.status === "pending"
                                     ? "bg-amber-500/10 border border-amber-500/30 text-amber-400"
-                                    : "bg-rose-500/5 border border-rose-500/20 text-rose-450"
+                                    : "bg-slate-500/5 border border-slate-500/20 text-slate-400 dark:text-slate-400"
                                 )}
                               >
                                 <span className="text-[8px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
@@ -1387,7 +1387,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                                 ? "bg-emerald-500/10 border-emerald-500/30"
                                 : state.status === "pending"
                                 ? "bg-amber-500/10 border-amber-500/30"
-                                : "bg-rose-500/5 border-rose-500/20"
+                                : "bg-slate-500/5 border-slate-500/20"
                             )}
                           >
                             <span className="text-[7.5px] font-bold text-muted-foreground uppercase tracking-wide">
@@ -1399,7 +1399,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                               ) : state.status === "pending" ? (
                                 <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
                               ) : (
-                                <span className="text-[7.5px] text-muted-foreground/60 font-bold block uppercase">Missing</span>
+                                <span className="text-[7.5px] text-muted-foreground/60 font-bold block uppercase">Not Uploaded</span>
                               )}
                             </div>
                           </div>
@@ -2602,106 +2602,114 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 {/* 1. Real-time Design Parameter Customization Suite */}
                 {isIdCard && (
                   <div className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-3">
-                    <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
-                      Badge Design Options
-                    </span>
-                    
-                    {/* Card Layout Type Selector */}
-                    <div className="space-y-1.5">
-                      <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Layout Type</label>
-                      <div className="grid grid-cols-3 gap-1">
-                        {(["standard", "banner", "smart"] as const).map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => setSelectedCardType(type)}
-                            className={cn(
-                              "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
-                              selectedCardType === type
-                                ? "bg-primary border-primary text-white"
-                                : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
-                            )}
-                          >
-                            {type}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Card Theme Style Selector */}
-                    <div className="space-y-1.5">
-                      <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Theme Style</label>
-                      <div className="grid grid-cols-5 gap-1">
-                        {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => setSelectedCardTheme(t)}
-                            className={cn(
-                              "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
-                              selectedCardTheme === t
-                                ? "bg-primary border-primary text-white"
-                                : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
-                            )}
-                            title={t}
-                          >
-                            {t[0].toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Smart Card settings */}
-                    {selectedCardType === "smart" && (
-                      <div className="space-y-2.5 pt-2 border-t border-border/20">
-                        {/* Premium Preset Selector */}
+                    {isFounder ? (
+                      <>
+                        <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
+                          Badge Design Options
+                        </span>
+                        
+                        {/* Card Layout Type Selector */}
                         <div className="space-y-1.5">
-                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Premium Color Preset</label>
-                          <div className="grid grid-cols-5 gap-1">
-                            {[
-                              { name: "Glacial", badge: "#06b6d4", theme: "#3b82f6", bg: "bg-cyan-500" },
-                              { name: "Gold", badge: "#fbbf24", theme: "#f59e0b", bg: "bg-yellow-500" },
-                              { name: "Matrix", badge: "#34d399", theme: "#10b981", bg: "bg-emerald-500" },
-                              { name: "Cyber", badge: "#e879f9", theme: "#a855f7", bg: "bg-purple-500" },
-                              { name: "Orange", badge: "#fb923c", theme: "#ea580c", bg: "bg-orange-500" }
-                            ].map((preset) => (
+                          <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Layout Type</label>
+                          <div className="grid grid-cols-3 gap-1">
+                            {(["standard", "banner", "smart"] as const).map((type) => (
                               <button
-                                key={preset.name}
+                                key={type}
                                 type="button"
-                                onClick={() => {
-                                  setSelectedBadgeColor(preset.badge);
-                                  setSelectedThemeColor(preset.theme);
-                                }}
+                                onClick={() => setSelectedCardType(type)}
                                 className={cn(
-                                  "h-8 rounded-md text-[7px] font-bold uppercase transition-all border flex flex-col items-center justify-center p-0.5",
-                                  selectedBadgeColor === preset.badge && selectedThemeColor === preset.theme
-                                    ? "border-primary bg-primary/20 text-white scale-105"
-                                    : "border-border bg-card hover:bg-secondary/15 text-muted-foreground"
+                                  "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
+                                  selectedCardType === type
+                                    ? "bg-primary border-primary text-white"
+                                    : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
                                 )}
-                                title={preset.name}
                               >
-                                <span className={cn("w-1.5 h-1.5 rounded-full mb-0.5", preset.bg)} />
-                                <span>{preset.name[0]}</span>
+                                {type}
                               </button>
                             ))}
                           </div>
                         </div>
 
-                        {/* Verification Badge Style (e.g. Gold, Neon, Emerald) */}
-                        <div className="space-y-1">
-                          <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Verification Style</label>
-                          <select
-                            value={selectedVerificationBadgeStyle}
-                            onChange={(e) => setSelectedVerificationBadgeStyle(e.target.value)}
-                            className="flex h-7 w-full rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                          >
-                            <option value="gold" className="bg-card text-foreground">Executive Level</option>
-                            <option value="neon" className="bg-card text-foreground">Standard Level</option>
-                            <option value="emerald" className="bg-card text-foreground">Associate Level</option>
-                            <option value="royal" className="bg-card text-foreground">Specialist Level</option>
-                          </select>
+                        {/* Card Theme Style Selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-[8px] text-muted-foreground font-bold uppercase block">Card Theme Style</label>
+                          <div className="grid grid-cols-5 gap-1">
+                            {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setSelectedCardTheme(t)}
+                                className={cn(
+                                  "h-6.5 rounded-md text-[8.5px] font-bold uppercase transition-all border flex items-center justify-center",
+                                  selectedCardTheme === t
+                                    ? "bg-primary border-primary text-white"
+                                    : "bg-card border-border hover:bg-secondary/15 text-muted-foreground"
+                                )}
+                                title={t}
+                              >
+                                {t[0].toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+
+                        {/* Smart Card settings */}
+                        {selectedCardType === "smart" && (
+                          <div className="space-y-2.5 pt-2 border-t border-border/20">
+                            {/* Premium Preset Selector */}
+                            <div className="space-y-1.5">
+                              <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Premium Color Preset</label>
+                              <div className="grid grid-cols-5 gap-1">
+                                {[
+                                  { name: "Glacial", badge: "#06b6d4", theme: "#3b82f6", bg: "bg-cyan-500" },
+                                  { name: "Gold", badge: "#fbbf24", theme: "#f59e0b", bg: "bg-yellow-500" },
+                                  { name: "Matrix", badge: "#34d399", theme: "#10b981", bg: "bg-emerald-500" },
+                                  { name: "Cyber", badge: "#e879f9", theme: "#a855f7", bg: "bg-purple-500" },
+                                  { name: "Orange", badge: "#fb923c", theme: "#ea580c", bg: "bg-orange-500" }
+                                ].map((preset) => (
+                                  <button
+                                    key={preset.name}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedBadgeColor(preset.badge);
+                                      setSelectedThemeColor(preset.theme);
+                                    }}
+                                    className={cn(
+                                      "h-8 rounded-md text-[7px] font-bold uppercase transition-all border flex flex-col items-center justify-center p-0.5",
+                                      selectedBadgeColor === preset.badge && selectedThemeColor === preset.theme
+                                        ? "border-primary bg-primary/20 text-white scale-105"
+                                        : "border-border bg-card hover:bg-secondary/15 text-muted-foreground"
+                                    )}
+                                    title={preset.name}
+                                  >
+                                    <span className={cn("w-1.5 h-1.5 rounded-full mb-0.5", preset.bg)} />
+                                    <span>{preset.name[0]}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Verification Badge Style (e.g. Gold, Neon, Emerald) */}
+                            <div className="space-y-1">
+                              <label className="text-[7.5px] text-muted-foreground font-bold uppercase block">Verification Style</label>
+                              <select
+                                value={selectedVerificationBadgeStyle}
+                                onChange={(e) => setSelectedVerificationBadgeStyle(e.target.value)}
+                                className="flex h-7 w-full rounded-md border border-border bg-background px-2 py-0.5 text-[9px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                              >
+                                <option value="gold" className="bg-card text-foreground">Executive Level</option>
+                                <option value="neon" className="bg-card text-foreground">Standard Level</option>
+                                <option value="emerald" className="bg-card text-foreground">Associate Level</option>
+                                <option value="royal" className="bg-card text-foreground">Specialist Level</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[9px] font-heading font-bold text-primary uppercase tracking-wider block">
+                        Badge View Options
+                      </span>
                     )}
                     
                     <div className="flex items-center justify-between border-t border-border/20 pt-2.5 mt-1">

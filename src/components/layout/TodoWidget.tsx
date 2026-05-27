@@ -119,7 +119,7 @@ export default function TodoWidget() {
     <div className="border border-border/60 bg-card/60 backdrop-blur-md rounded-2xl p-5 shadow-xl select-none flex flex-col h-[350px]">
       <div className="flex items-center justify-between border-b border-border/40 pb-3 mb-4 shrink-0">
         <div>
-          <h4 className="text-sm font-heading font-extrabold text-white flex items-center space-x-1.5">
+          <h4 className="text-sm font-heading font-extrabold text-foreground dark:text-white flex items-center space-x-1.5">
             <CheckSquare className="h-4.5 w-4.5 text-indigo-400" />
             <span>My Personal Planner</span>
           </h4>
@@ -139,7 +139,7 @@ export default function TodoWidget() {
           onChange={(e) => setNewTodoTitle(e.target.value)}
           placeholder="New plan task..."
           disabled={adding}
-          className="bg-white/5 border-white/10 text-white rounded-xl h-9 text-xs focus:ring-1 focus:ring-indigo-500/50"
+          className="bg-secondary/45 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white rounded-xl h-9 text-xs focus:ring-1 focus:ring-indigo-500/50 focus:outline-none placeholder-muted-foreground dark:placeholder-gray-500"
         />
         <Button
           type="submit"
@@ -179,7 +179,7 @@ export default function TodoWidget() {
                   type="checkbox"
                   checked={todo.completed}
                   onChange={() => handleToggleTodo(todo.id, todo.completed)}
-                  className="h-4 w-4 rounded border-white/10 bg-white/5 text-indigo-600 focus:ring-0 cursor-pointer shrink-0"
+                  className="h-4 w-4 rounded border-border dark:border-white/10 bg-secondary/45 dark:bg-white/5 text-indigo-600 focus:ring-0 cursor-pointer shrink-0"
                 />
                 <span
                   className={cn(

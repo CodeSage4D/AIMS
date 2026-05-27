@@ -185,9 +185,38 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
       return;
     }
 
-    const offerSigned = signedDocs["OFFER_LETTER"] || intern.generatedDocuments.find((d: any) => d.type === "OFFER_LETTER")?.content?.candidateSignature;
-    const ndaSigned = signedDocs["NDA"] || intern.generatedDocuments.find((d: any) => d.type === "NDA")?.content?.candidateSignature;
-    const agreementSigned = signedDocs["AGREEMENT"] || intern.generatedDocuments.find((d: any) => d.type === "AGREEMENT")?.content?.candidateSignature;
+    let offerSigned = signedDocs["OFFER_LETTER"] || intern.generatedDocuments.find((d: any) => d.type === "OFFER_LETTER")?.content?.candidateSignature;
+    let ndaSigned = signedDocs["NDA"] || intern.generatedDocuments.find((d: any) => d.type === "NDA")?.content?.candidateSignature;
+    let agreementSigned = signedDocs["AGREEMENT"] || intern.generatedDocuments.find((d: any) => d.type === "AGREEMENT")?.content?.candidateSignature;
+
+    const inputEl = document.getElementById("signAllName") as HTMLInputElement;
+    const nameToSign = inputEl?.value?.trim();
+
+    if ((!offerSigned || !ndaSigned || !agreementSigned) && nameToSign) {
+      try {
+        const unsignedDocs = intern.generatedDocuments
+          .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
+          .filter((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature);
+
+        for (const doc of unsignedDocs) {
+          const res = await fetch("/api/documents/sign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ documentId: doc.id, signatureName: nameToSign }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `Failed to sign ${doc.type}.`);
+          setSignedDocs((prev) => ({ ...prev, [doc.type]: nameToSign }));
+        }
+        offerSigned = nameToSign;
+        ndaSigned = nameToSign;
+        agreementSigned = nameToSign;
+      } catch (err: any) {
+        setError(err.message || "Failed to auto-sign documents.");
+        setLoading(false);
+        return;
+      }
+    }
 
     if (!offerSigned || !ndaSigned || !agreementSigned) {
       setError("Please sign all three onboarding documents (Offer Letter, NDA, and Internship Agreement).");
