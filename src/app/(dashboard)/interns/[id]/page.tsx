@@ -714,8 +714,8 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                       <thead>
                         <tr className="border-b border-border/40 text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
                           <th className="pb-2.5 font-bold">Date</th>
-                          <th className="pb-2.5 font-bold">Check-In</th>
-                          <th className="pb-2.5 font-bold">Check-Out</th>
+                          <th className="pb-2.5 font-bold">Check-In Info</th>
+                          <th className="pb-2.5 font-bold">Check-Out Info</th>
                           <th className="pb-2.5 font-bold text-center">Status</th>
                         </tr>
                       </thead>
@@ -728,11 +728,25 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                           return (
                             <tr key={record.id} className="hover:bg-secondary/5">
                               <td className="py-3 font-semibold text-foreground">{formatDate(record.date)}</td>
-                              <td className="py-3 font-mono font-bold text-muted-foreground">
-                                {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                              <td className="py-3 text-left">
+                                <div className="font-mono font-bold text-muted-foreground">
+                                  {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                                </div>
+                                {record.checkInAddress && (
+                                  <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkInAddress}>
+                                    📍 {record.checkInAddress}
+                                  </div>
+                                )}
                               </td>
-                              <td className="py-3 font-mono font-bold text-muted-foreground">
-                                {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                              <td className="py-3 text-left">
+                                <div className="font-mono font-bold text-muted-foreground">
+                                  {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
+                                </div>
+                                {record.checkOutAddress && (
+                                  <div className="text-[9px] text-cyan-400 font-medium truncate max-w-[200px]" title={record.checkOutAddress}>
+                                    📍 {record.checkOutAddress}
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 text-center">
                                 <span
