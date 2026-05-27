@@ -804,19 +804,40 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
         {/* Footer Navigation */}
         <div className="border-t border-white/[0.08] p-5 bg-secondary/5 flex items-center justify-between shrink-0 select-none">
-          {currentStep > 1 ? (
+          <div className="flex space-x-2">
+            {currentStep > 1 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBackStep}
+                disabled={loading}
+                className="h-9 font-semibold text-xs text-white"
+              >
+                Back Step
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
-              onClick={handleBackStep}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const res = await fetch("/api/onboarding/skip", { method: "POST" });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed to skip onboarding.");
+                  window.location.reload();
+                } catch (err: any) {
+                  setError(err.message || "Failed to skip onboarding.");
+                } finally {
+                  setLoading(false);
+                }
+              }}
               disabled={loading}
-              className="h-9 font-semibold text-xs text-white"
+              className="h-9 font-semibold text-xs border border-white/10 hover:bg-white/5 text-white"
             >
-              Back Step
+              Skip & Complete Later
             </Button>
-          ) : (
-            <div />
-          )}
+          </div>
 
           {currentStep < 3 ? (
             <Button
