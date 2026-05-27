@@ -68,6 +68,7 @@ enum DocType {
   APPOINTMENT_LETTER
   JOINING_DOCUMENTS
   OTHER_FILES
+  ID_CARD
 }
 
 model User {
