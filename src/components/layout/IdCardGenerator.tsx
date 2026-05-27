@@ -695,13 +695,35 @@ export default function IdCardGenerator({
 
     // Draw cursive vector signature path
     ctx.strokeStyle = design.secondaryColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(35, 348);
-    ctx.bezierCurveTo(45, 335, 55, 335, 65, 350);
-    ctx.bezierCurveTo(75, 362, 85, 320, 95, 345);
-    ctx.bezierCurveTo(105, 355, 115, 340, 125, 348);
+    // Karan Mishra cursive tracing
+    ctx.moveTo(25, 345);
+    ctx.bezierCurveTo(35, 325, 38, 325, 36, 346); // K
+    ctx.bezierCurveTo(40, 332, 45, 332, 44, 342); // a
+    ctx.bezierCurveTo(46, 335, 51, 335, 50, 342); // r
+    ctx.bezierCurveTo(52, 335, 57, 335, 56, 342); // a
+    ctx.bezierCurveTo(58, 338, 60, 338, 62, 340); // n
+    ctx.moveTo(68, 332);
+    ctx.bezierCurveTo(72, 346, 76, 346, 78, 335); // M
+    ctx.bezierCurveTo(81, 342, 85, 342, 86, 336); // i
+    ctx.bezierCurveTo(88, 340, 92, 340, 93, 336); // s
+    ctx.bezierCurveTo(95, 340, 99, 340, 100, 336); // h
+    ctx.bezierCurveTo(102, 338, 104, 338, 106, 336); // r
+    ctx.bezierCurveTo(108, 342, 112, 339, 118, 343); // a
     ctx.stroke();
+
+    // Swoosh underline
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(22, 350);
+    ctx.quadraticCurveTo(65, 355, 125, 347);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+    ctx.font = "italic 8px sans-serif";
+    ctx.fillText("Karan Mishra", 25, 356);
 
     // Biometric scanner mock
     ctx.fillStyle = "rgba(255, 255, 255, 0.02)";
@@ -1384,9 +1406,18 @@ export default function IdCardGenerator({
 
                   {/* Founder Signature cursive */}
                   <div className="flex justify-between items-end border-t border-white/[0.06] pt-2 pb-1 relative z-10">
-                    <div className="text-left">
+                    <div className="text-left space-y-0.5">
                       <span className="text-[5.5px] text-gray-500 block uppercase font-bold">Authorized signature</span>
-                      <span className="text-[8px] font-serif italic text-white/90">Karan Mishra</span>
+                      <div className="h-6 flex items-center">
+                        <svg className="w-20 h-5 text-indigo-400 opacity-90" viewBox="0 0 100 25" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                          {/* Beautifully traced cursive path representing "Karan" */}
+                          <path d="M 5,12 C 12,2 14,2 12,18 C 15,8 20,8 19,16 C 21,11 25,11 24,15 C 26,11 30,11 29,15 C 31,12 33,12 35,14" />
+                          {/* Beautifully traced cursive path representing "Mishra" */}
+                          <path d="M 42,8 C 45,18 48,18 50,10 C 53,16 56,16 57,11 C 59,14 62,14 63,11 C 65,14 68,14 70,11 C 72,13 74,13 76,11 C 77,14 80,12 85,15" />
+                          {/* Cross loops and swoosh */}
+                          <path d="M 3,18 Q 45,22 92,15 M 82,9 L 88,18" />
+                        </svg>
+                      </div>
                       <span className="text-[5px] text-gray-500 block uppercase">Founder & CEO</span>
                     </div>
                     <div className="text-right">
