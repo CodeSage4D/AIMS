@@ -70,6 +70,7 @@ interface InternProfile {
   status: string;
   startDate: string;
   endDate?: string | null;
+  notes?: string | null;
   supervisor?: { fullName: string; email: string } | null;
 }
 
@@ -101,6 +102,16 @@ export default function InternDashboard({
   anniversaries
 }: InternDashboardProps) {
   const router = useRouter();
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const onboardingSkipped = (() => {
+    try {
+      if (!internProfile.notes) return false;
+      const notesObj = JSON.parse(internProfile.notes);
+      return !!notesObj.onboardingSkipped;
+    } catch {
+      return false;
+    }
+  })();
 
   // Core Data States
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
@@ -717,13 +728,22 @@ export default function InternDashboard({
           <div className="relative z-10 space-y-5">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-1">
-                <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-amber-300">
-                    Personal Onboarding Roadmap
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-[10px] font-heading font-extrabold uppercase tracking-widest text-amber-300">
+                      Personal Onboarding Roadmap
+                    </span>
+                  </div>
+                  {onboardingSkipped && (
+                    <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                      <span className="text-[9px] font-heading font-bold uppercase tracking-wider">
+                        Setup Deferred
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-lg font-heading font-extrabold text-white">
+                <h3 className="text-lg font-heading font-extrabold text-white mt-1">
                   Welcome to AURXON! Let's get you set up.
                 </h3>
                 <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-2xl">
@@ -747,6 +767,37 @@ export default function InternDashboard({
                 </div>
               </div>
             </div>
+
+            {onboardingSkipped && (
+              <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/[0.03] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-rose-400">Onboarding Process Postponed</h4>
+                  <p className="text-[10px] text-gray-400 leading-normal max-w-xl">
+                    You chose to skip the onboarding wizard for now. Please complete the setup at your earliest convenience to sign agreements, verify compliance files, and issue your official active identity credential.
+                  </p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    setResumeLoading(true);
+                    try {
+                      const res = await fetch("/api/onboarding/skip", { method: "DELETE" });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || "Failed to resume onboarding.");
+                      window.location.reload();
+                    } catch (err: any) {
+                      setError(err.message || "Failed to resume onboarding.");
+                    } finally {
+                      setResumeLoading(false);
+                    }
+                  }}
+                  isLoading={resumeLoading}
+                  variant="primary"
+                  className="h-9 px-4 text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white rounded-xl shadow-md border-0 self-start sm:self-auto"
+                >
+                  Complete Onboarding Setup
+                </Button>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
               {milestones.map((m) => (
