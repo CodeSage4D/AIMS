@@ -93,6 +93,7 @@ export default function ProfileSettingsClient({
   // Form states for direct permitted updates
   const [directLinkedIn, setDirectLinkedIn] = useState(customProfile.linkedIn || "");
   const [directGitHub, setDirectGitHub] = useState(customProfile.gitHub || "");
+  const [directInstagram, setDirectInstagram] = useState(customProfile.instagram || "");
   const [directBloodGroup, setDirectBloodGroup] = useState(customProfile.bloodGroup || "");
   const [directPinCode, setDirectPinCode] = useState(internProfile?.pinCode || "");
   const [directPictureUrl, setDirectPictureUrl] = useState((customProfile as any).pictureUrl || user.pictureUrl || "");
@@ -309,6 +310,11 @@ export default function ProfileSettingsClient({
       setLoading(false);
       return;
     }
+    if (directInstagram && (!directInstagram.startsWith("https://") || !directInstagram.includes("instagram.com/"))) {
+      setError("Instagram link must be a valid https://instagram.com URL.");
+      setLoading(false);
+      return;
+    }
 
     if (directPinCode) {
       const clean = directPinCode.trim();
@@ -359,6 +365,7 @@ export default function ProfileSettingsClient({
         body: JSON.stringify({
           linkedIn: directLinkedIn.trim(),
           gitHub: directGitHub.trim(),
+          instagram: directInstagram.trim(),
           bloodGroup: directBloodGroup.trim(),
           pinCode: directPinCode.trim(),
           accountHolderName: directAccountHolder.trim(),
@@ -1187,6 +1194,13 @@ export default function ProfileSettingsClient({
                           className="bg-background border-border text-foreground rounded-xl"
                         />
                         <Input
+                          label="Instagram Profile URL"
+                          placeholder="https://instagram.com/username"
+                          value={directInstagram}
+                          onChange={(e) => setDirectInstagram(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                        <Input
                           label="Blood Group"
                           placeholder="e.g. O+, A-, B+, AB+"
                           value={directBloodGroup}
@@ -1510,6 +1524,7 @@ export default function ProfileSettingsClient({
                   defaultPhotoUrl={customProfile.pictureUrl}
                   linkedIn={customProfile.linkedIn}
                   gitHub={customProfile.gitHub}
+                  instagram={customProfile.instagram}
                 />
               </CardContent>
             </Card>
