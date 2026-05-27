@@ -1267,8 +1267,8 @@ export default function IdCardGenerator({
 
           {/* 3D Flipping Card for Standard */}
           {cardType === "standard" && (
-            <div className="w-[310px] h-[465px] shrink-0 relative select-none flip-card" style={{ transformStyle: "preserve-3d" }}>
-              <div className={cn("w-full h-full flip-card-inner transition-transform duration-500", isFlipped && "flipped")}>
+            <div className="w-[310px] h-[465px] shrink-0 relative select-none flip-card">
+              <div className={cn("w-full h-full flip-card-inner transition-transform duration-600", isFlipped && "flipped")}>
                 
                 {/* Standard FRONT */}
                 <div className="flip-card-front w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between transition-all duration-500 relative shadow-2xl overflow-hidden text-white"
@@ -1351,7 +1351,7 @@ export default function IdCardGenerator({
                     background: `linear-gradient(to bottom right, ${design.bgColorStart}, ${design.bgColorEnd})`,
                   }}
                 >
-                  <rect className="absolute y-10 left-0 right-0 h-10 bg-[#111116] w-full" />
+                  <div className="absolute top-10 left-0 right-0 h-10 bg-[#111116] w-full z-10" />
                   <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none" />
 
                   {/* Rules block */}
