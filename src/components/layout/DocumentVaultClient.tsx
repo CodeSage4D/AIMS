@@ -345,6 +345,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           status={myRecord.status}
                           dbInternId={myRecord.id}
                           employmentType={myRecord.employmentType}
+                          viewOnly={true}
                         />
                       </div>
                     );
@@ -852,10 +853,23 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     setActionLoading(docId);
 
     try {
+      const doc = initialInterns.flatMap(i => i.generatedDocuments || []).find(d => d.id === docId);
+      const isIdCard = doc?.type === "ID_CARD";
+      
+      const payload: any = {
+        documentId: docId,
+        action: "APPROVE",
+        notes: "Approved and digitally signed under Founder authority.",
+      };
+      
+      if (isIdCard) {
+        payload.theme = selectedCardTheme;
+      }
+
       const res = await fetch("/api/documents/approvals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: docId, action: "APPROVE", notes: "Approved and digitally signed under Founder authority." }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
