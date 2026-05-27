@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
  * Handles daily self-service check-in for authenticated interns.
  * POST /api/attendance/check-in
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
     // 1. Session verification
     const session = await auth();
@@ -38,6 +38,19 @@ export async function POST() {
     const minuteIST = nowIST.getUTCMinutes();
     const isLate = hourIST > 9 || (hourIST === 9 && minuteIST > 30);
     const status = isLate ? "LATE" : "PRESENT";
+
+    // Parse request body for geo-location details
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    let address: string | undefined;
+    try {
+      const body = await request.json();
+      if (body) {
+        latitude = body.latitude ? parseFloat(body.latitude) : undefined;
+        longitude = body.longitude ? parseFloat(body.longitude) : undefined;
+        address = body.address || undefined;
+      }
+    } catch {}
 
     // 4. Check for existing attendance record today
     let attendance = await db.attendance.findUnique({
@@ -77,6 +90,9 @@ export async function POST() {
         data: {
           checkIn: now,
           status: status,
+          checkInLatitude: latitude,
+          checkInLongitude: longitude,
+          checkInAddress: address,
           remarks: `Checked in via portal at ${hourIST.toString().padStart(2, "0")}:${minuteIST
             .toString()
             .padStart(2, "0")} IST. Overrode auto-absent.`,
@@ -90,6 +106,9 @@ export async function POST() {
           date: todayUTC,
           checkIn: now,
           status: status,
+          checkInLatitude: latitude,
+          checkInLongitude: longitude,
+          checkInAddress: address,
           remarks: `Logged self-service check-in at ${hourIST.toString().padStart(2, "0")}:${minuteIST
             .toString()
             .padStart(2, "0")} IST.${isLate ? " (Late Check-in)" : ""}`,
