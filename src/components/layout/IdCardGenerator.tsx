@@ -388,6 +388,8 @@ export default function IdCardGenerator({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to approve ID card.");
 
+      setCardStatus("APPROVED");
+      setVerificationStatus("Authorized & Verified");
       setPhotoSuccess("Successfully approved, cryptographically signed, and verified this ID Card!");
       await fetchSavedCard();
     } catch (err: any) {
