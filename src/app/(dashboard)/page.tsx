@@ -230,16 +230,34 @@ export default async function DashboardPage() {
     });
 
     if (!intern) {
+      // User logged in but profile not linked yet — show a clean welcome screen
       return (
-        <div className="flex items-center justify-center min-h-[60vh] text-center p-6 select-none">
-          <Card className="border-amber-500/20 bg-amber-500/5 max-w-md p-6 space-y-4">
-            <AlertTriangle className="h-10 w-10 text-amber-400 mx-auto animate-pulse" />
-            <h3 className="text-lg font-bold text-white">Intern Profile Link Missing</h3>
-            <p className="text-xs text-gray-400">
-              Your auth credentials exist, but you are not linked to any active enrollee record. 
-              Please contact the Founder or HR to establish your AIMS Profile.
-            </p>
-          </Card>
+        <div className="space-y-6 animate-fadeIn">
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-indigo-950/80 via-blue-950/70 to-slate-950/90 p-6 sm:p-10 shadow-2xl backdrop-blur-md text-center">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-[60px] pointer-events-none" />
+            <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-cyan-500/10 blur-[60px] pointer-events-none" />
+            <div className="relative z-10 space-y-4">
+              <div className="flex justify-center">
+                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <ShieldCheck className="h-10 w-10" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-heading font-extrabold text-white tracking-tight">
+                Welcome to AURXON AIMS! 🎉
+              </h2>
+              <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
+                Hi <strong className="text-white">{userName}</strong>! Your account is active. Your admin or HR team is setting up your profile. You will have full access shortly — please check back in a moment.
+              </p>
+              <div className="flex justify-center">
+                <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
+                  <Activity className="h-3.5 w-3.5 animate-pulse" />
+                  <span>Profile Setup Pending — Contact Admin</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <NoticeBoard announcements={announcements} anniversaries={anniversaries} userRole={userRole} />
         </div>
       );
     }
