@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { User, School, Heart, Sparkles, Check, AlertTriangle } from "lucide-react";
+import { User, School, Heart, Check, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLE_CODES } from "@/lib/roles";
+import { useSession } from "next-auth/react";
 
 const sortedRoles = Object.keys(ROLE_CODES).sort();
 
@@ -24,6 +25,9 @@ interface AddInternFormProps {
 
 export default function AddInternForm({ mentors }: AddInternFormProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const loggedInRole = (session?.user as any)?.role || "INTERN";
+  const isFounder = loggedInRole === "FOUNDER";
 
   // Active form section tab (1 = Personal, 2 = Academic/Internship, 3 = Emergency/Skills)
   const [activeTab, setActiveTab] = useState(1);
@@ -76,6 +80,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
       accountHolderName: "",
       paymentPreference: "BANK_TRANSFER",
       tempPassword: randomPass,
+      workMode: "Remote",
     };
   });
 
@@ -622,7 +627,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 />
               </div>
 
-              <div className="border-t border-border/40 pt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="border-t border-border/40 pt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Input
                   label="Stipend Amount (INR / Monthly)"
                   name="stipendAmount"
@@ -631,6 +636,22 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                   value={formData.stipendAmount}
                   onChange={handleChange}
                 />
+                <div className="flex flex-col space-y-1.5 w-full">
+                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                    Work Mode
+                  </label>
+                  <select
+                    name="workMode"
+                    value={formData.workMode}
+                    onChange={handleChange}
+                    disabled={!isFounder}
+                    className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer font-semibold"
+                  >
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Office Mode">Office Mode</option>
+                  </select>
+                </div>
                 <div className="flex flex-col space-y-1.5 w-full">
                   <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
                     Initial Payment Status
@@ -872,7 +893,6 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 className="font-semibold flex items-center space-x-1.5"
                 isLoading={loading}
               >
-                <Sparkles className="h-4 w-4 shrink-0" />
                 <span>
                   {formData.employmentType === "INTERN"
                     ? "Onboard Intern File"

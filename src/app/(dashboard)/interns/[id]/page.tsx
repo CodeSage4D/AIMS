@@ -216,6 +216,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
           intern={intern as any}
           mentors={mentors}
           isAdmin={isAdmin}
+          isFounder={isFounder}
         />
       </div>
 
@@ -305,6 +306,17 @@ export default async function InternWorkspacePage({ params }: PageProps) {
                     {formatDate(intern.startDate)}
                     {intern.endDate ? ` — ${formatDate(intern.endDate)}` : " — Present (Permanent)"}
                   </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Work Mode</span>
+                  <p className="text-xs font-semibold text-primary font-heading uppercase tracking-wider">{customProfile.workMode || "Remote"}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tenure Type</span>
+                  <p className="text-xs font-semibold text-foreground uppercase">{intern.employmentType || "INTERN"}</p>
                 </div>
               </div>
 

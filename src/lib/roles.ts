@@ -414,8 +414,8 @@ export interface CustomProfileFields {
   customNotes?: string;
   pictureUrl?: string;
   onboardingSkipped?: boolean;
+  workMode?: "Remote" | "Hybrid" | "Office Mode";
 }
-
 
 export function parseInternNotes(notesStr: string | null | undefined): CustomProfileFields {
   if (!notesStr) return {};
@@ -430,7 +430,13 @@ export function parseInternNotes(notesStr: string | null | undefined): CustomPro
   return { customNotes: notesStr };
 }
 
+export function getWorkMode(notesStr: string | null | undefined): "Remote" | "Hybrid" | "Office Mode" {
+  const fields = parseInternNotes(notesStr);
+  return fields.workMode || "Remote";
+}
+
 export function serializeInternNotes(data: CustomProfileFields): string {
   return JSON.stringify(data);
 }
+
 

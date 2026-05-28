@@ -67,6 +67,7 @@ interface ProfileSettingsClientProps {
     tasksAssignedCount: number;
   };
   allowBankUpdates?: boolean;
+  allActiveInterns?: any[];
 }
 
 export default function ProfileSettingsClient({
@@ -75,9 +76,11 @@ export default function ProfileSettingsClient({
   initialRequests,
   stats,
   allowBankUpdates = false,
+  allActiveInterns = [],
 }: ProfileSettingsClientProps) {
   const router = useRouter();
   const isIntern = user.role === "INTERN";
+  const [selectedPeerId, setSelectedPeerId] = useState<string>("");
   const roleMeta = internProfile ? getRoleMeta(internProfile.roleDomain) : null;
   const isManager = user.role === "FOUNDER" || user.role === "HR";
 
@@ -1500,36 +1503,70 @@ export default function ProfileSettingsClient({
         )}
 
         {/* TAB 4: DIGITAL ID CARD */}
-        {activeTab === "idcard" && internProfile && (
-          <div className="space-y-6 animate-fadeIn">
-            <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
-              <CardHeader className="p-0 pb-4 border-b border-border/40 mb-6">
-                <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
-                  <Contact className="h-4.5 w-4.5 text-primary" />
-                  <span>Official Corporate Digital ID Badge</span>
-                </CardTitle>
-                <CardDescription className="text-[10px] text-muted-foreground">
-                  Your certified digital badge with real-time themes and photo attachment.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <IdCardGenerator
-                  fullName={internProfile.fullName}
-                  internId={internProfile.internId || "AXN-REF-PENDING"}
-                  department={internProfile.department}
-                  roleDomain={internProfile.roleDomain}
-                  status={user.role === "INTERN" ? "INTERN" : "ACTIVE"}
-                  dbInternId={internProfile.id}
-                  employmentType={internProfile.employmentType}
-                  defaultPhotoUrl={customProfile.pictureUrl}
-                  linkedIn={customProfile.linkedIn}
-                  gitHub={customProfile.gitHub}
-                  instagram={customProfile.instagram}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {activeTab === "idcard" && internProfile && (() => {
+          const selectedPeer = selectedPeerId
+            ? allActiveInterns?.find((intern) => intern.id === selectedPeerId)
+            : null;
+          const peerCustomProfile = selectedPeer ? parseInternNotes(selectedPeer.notes) : {};
+
+          return (
+            <div className="space-y-6 animate-fadeIn">
+              <Card className="border-border/60 bg-card/65 backdrop-blur-md p-6 text-card-foreground">
+                <CardHeader className="p-0 pb-4 border-b border-border/40 mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-sm font-heading font-extrabold text-foreground flex items-center space-x-2">
+                        <Contact className="h-4.5 w-4.5 text-primary" />
+                        <span>Official Corporate Digital ID Badge</span>
+                      </CardTitle>
+                      <CardDescription className="text-[10px] text-muted-foreground">
+                        Your certified digital badge with real-time themes and photo attachment.
+                      </CardDescription>
+                    </div>
+                    {/* Peer Selection Dropdown */}
+                    {isIntern && allActiveInterns && allActiveInterns.length > 0 && (
+                      <div className="flex flex-col space-y-1 w-full sm:w-64">
+                        <label className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-wider">
+                          View Colleague's Badge
+                        </label>
+                        <select
+                          value={selectedPeerId}
+                          onChange={(e) => setSelectedPeerId(e.target.value)}
+                          className="flex h-8 w-full rounded-md border border-border bg-input px-2.5 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer font-semibold"
+                        >
+                          <option value="">My Card (Self)</option>
+                          {allActiveInterns
+                            .filter((intern) => intern.id !== internProfile.id)
+                            .map((intern) => (
+                              <option key={intern.id} value={intern.id}>
+                                {intern.fullName} ({intern.internId || "No ID"})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <IdCardGenerator
+                    fullName={selectedPeer ? selectedPeer.fullName : internProfile.fullName}
+                    internId={selectedPeer ? (selectedPeer.internId || "AXN-REF-PENDING") : (internProfile.internId || "AXN-REF-PENDING")}
+                    department={selectedPeer ? selectedPeer.department : internProfile.department}
+                    roleDomain={selectedPeer ? selectedPeer.roleDomain : internProfile.roleDomain}
+                    status={selectedPeer ? (selectedPeer.employmentType === "INTERN" ? "INTERN" : "ACTIVE") : (user.role === "INTERN" ? "INTERN" : "ACTIVE")}
+                    dbInternId={selectedPeer ? selectedPeer.id : internProfile.id}
+                    employmentType={selectedPeer ? selectedPeer.employmentType : internProfile.employmentType}
+                    defaultPhotoUrl={selectedPeer ? peerCustomProfile.pictureUrl : customProfile.pictureUrl}
+                    linkedIn={selectedPeer ? peerCustomProfile.linkedIn : customProfile.linkedIn}
+                    gitHub={selectedPeer ? peerCustomProfile.gitHub : customProfile.gitHub}
+                    instagram={selectedPeer ? peerCustomProfile.instagram : customProfile.instagram}
+                    viewOnly={!!selectedPeer}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
 
         {/* TAB: SYSTEM CONTROLS (FOUNDER/HR ONLY) */}
         {activeTab === "syscontrols" && (user.role === "FOUNDER" || user.role === "HR") && (

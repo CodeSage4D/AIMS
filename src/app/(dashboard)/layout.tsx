@@ -77,6 +77,7 @@ export default async function DashboardLayoutWrapper({ children }: LayoutProps) 
       emergencyContactName: intern.emergencyContactName,
       emergencyContactNumber: intern.emergencyContactNumber,
       skills: intern.skills,
+      stipendAmount: Number(intern.stipendAmount),
       bankName: intern.bankName,
       accountNumber: intern.accountNumber,
       ifscCode: intern.ifscCode,

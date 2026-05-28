@@ -14,7 +14,6 @@ import {
   Clock,
   Trash2,
   AlertTriangle,
-  Sparkles,
   Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -485,7 +484,6 @@ export default function CalendarPage() {
                 size="sm"
                 className="h-10 text-xs font-bold bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl px-4 text-white flex items-center space-x-1.5"
               >
-                <Sparkles className="h-4.5 w-4.5 text-amber-400" />
                 <span>Declare Holiday</span>
               </Button>
             </div>
@@ -714,7 +712,6 @@ export default function CalendarPage() {
             <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-base flex items-center space-x-2">
-                  <Sparkles className="h-5 w-5 text-indigo-400" />
                   <span>Personal Planner List</span>
                 </CardTitle>
                 <CardDescription className="text-[11px]">Manage personal todos & reminders.</CardDescription>

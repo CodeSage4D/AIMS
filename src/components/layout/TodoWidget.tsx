@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { CheckSquare, Plus, Trash2, Loader2, Sparkles } from "lucide-react";
+import { CheckSquare, Plus, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -126,7 +126,6 @@ export default function TodoWidget() {
           <span className="text-[10px] text-muted-foreground font-semibold">Today: {todayStr}</span>
         </div>
         <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-bold uppercase tracking-wider">
-          <Sparkles className="h-3 w-3 shrink-0" />
           <span>Active Plan</span>
         </div>
       </div>

@@ -7,8 +7,12 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limiter = rateLimit(ip, 5, 15 * 60 * 1000);
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
+    const isLocal = ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || ip.endsWith("127.0.0.1");
+    const limit = isLocal ? 1000 : 5;
+    
+    const limiter = rateLimit(ip, limit, 15 * 60 * 1000);
     if (!limiter.success) {
       return NextResponse.json(
         { error: "Too many registration attempts. Please try again later." },

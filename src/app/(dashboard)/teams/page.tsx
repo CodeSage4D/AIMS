@@ -18,7 +18,6 @@ import {
   Briefcase,
   MapPin,
   Clock,
-  Sparkles,
   ExternalLink
 } from "lucide-react";
 import Link from "next/link";

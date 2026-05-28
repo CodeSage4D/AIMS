@@ -17,9 +17,9 @@ import {
   HelpCircle,
   Fingerprint,
   RotateCw,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AdvancedLocationSelector from "@/components/ui/AdvancedLocationSelector";
 
 interface OnboardingFlowProps {
   user: {
@@ -265,7 +265,8 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
       }
     } else if (currentStep === 2) {
       // Validate Step 2 fields
-      if (!formData.bankName || !formData.accountNumber || !formData.ifscCode || !formData.panCard) {
+      const isPanRequired = Number(intern.stipendAmount || 0) > 50000;
+      if (!formData.bankName || !formData.accountNumber || !formData.ifscCode || (isPanRequired && !formData.panCard)) {
         setError("Please complete all banking and compliance details.");
         return;
       }
@@ -380,26 +381,12 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Primary Phone Number *"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  placeholder="+91 XXXXX XXXXX"
-                  required
-                />
-                <Input
                   label="Citizenship *"
                   name="citizenship"
                   value={formData.citizenship}
                   onChange={handleChange}
                   required
                 />
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <h4 className="text-[10px] font-heading font-extrabold text-muted-foreground uppercase tracking-widest">
-                  Residency Address
-                </h4>
                 <Input
                   label="Street Address *"
                   name="address"
@@ -407,12 +394,35 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                   onChange={handleChange}
                   required
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <Input label="City *" name="city" value={formData.city} onChange={handleChange} required />
-                  <Input label="State *" name="state" value={formData.state} onChange={handleChange} required />
-                  <Input label="Country *" name="country" value={formData.country} onChange={handleChange} required />
-                  <Input label="PIN Code *" name="pinCode" value={formData.pinCode} onChange={handleChange} required />
-                </div>
+              </div>
+
+              {/* Advanced Location Selector */}
+              <div className="space-y-3 pt-2 border-t border-white/[0.04]">
+                <h4 className="text-[10px] font-heading font-extrabold text-muted-foreground uppercase tracking-widest">
+                  Location & Contact Details
+                </h4>
+                <AdvancedLocationSelector
+                  country={formData.country}
+                  state={formData.state}
+                  city={formData.city}
+                  region={formData.region}
+                  phoneNumber={formData.phoneNumber}
+                  onCountryChange={(val) => setFormData((prev) => ({ ...prev, country: val }))}
+                  onStateChange={(val) => setFormData((prev) => ({ ...prev, state: val }))}
+                  onCityChange={(val) => setFormData((prev) => ({ ...prev, city: val }))}
+                  onRegionChange={(val) => setFormData((prev) => ({ ...prev, region: val }))}
+                  onPhoneNumberChange={(val) => setFormData((prev) => ({ ...prev, phoneNumber: val }))}
+                  currentTheme="dark"
+                  disabled={loading}
+                  required={true}
+                />
+                <Input
+                  label="PIN Code *"
+                  name="pinCode"
+                  value={formData.pinCode}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div className="space-y-3 pt-2 border-t border-white/[0.04]">
@@ -467,12 +477,12 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                   required
                 />
                 <Input
-                  label="Permanent Account Number (PAN Card) *"
+                  label={Number(intern.stipendAmount || 0) > 50000 ? "Permanent Account Number (PAN Card) *" : "Permanent Account Number (PAN Card) (Optional)"}
                   name="panCard"
                   value={formData.panCard}
                   onChange={handleChange}
                   placeholder="ABCDE1234F"
-                  required
+                  required={Number(intern.stipendAmount || 0) > 50000}
                 />
               </div>
 
@@ -606,7 +616,6 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                 <div className="border border-indigo-500/30 bg-indigo-500/5 p-5 rounded-2xl space-y-4">
                   <div className="space-y-1">
                     <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-indigo-400" />
                       <span>One-Click Digital Signature</span>
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
@@ -885,7 +894,6 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
               isLoading={loading}
               className="h-9 font-extrabold text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/10 border-0"
             >
-              <Sparkles className="h-4 w-4 text-white shrink-0 mr-1.5 animate-spin" style={{ animationDuration: "4s" }} />
               Submit Onboarding Profile
             </Button>
           )}

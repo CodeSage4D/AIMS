@@ -187,6 +187,30 @@ export default async function ProfilePage() {
       }
     : null;
 
+  // ── Fetch All Active Interns for Peer Card Selection (Intern role only) ──
+  let allActiveInterns: any[] = [];
+  try {
+    allActiveInterns = await db.intern.findMany({
+      where: {
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+        internId: true,
+        fullName: true,
+        department: true,
+        roleDomain: true,
+        notes: true,
+        employmentType: true,
+      },
+      orderBy: {
+        fullName: "asc",
+      },
+    });
+  } catch (err) {
+    console.error("[Profile] Failed to fetch active interns:", err);
+  }
+
   return (
     <ProfileSettingsClient
       user={serializedUser}
@@ -194,6 +218,7 @@ export default async function ProfilePage() {
       initialRequests={serializedRequests}
       stats={stats}
       allowBankUpdates={allowBankUpdates}
+      allActiveInterns={allActiveInterns}
     />
   );
 }

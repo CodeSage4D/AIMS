@@ -37,7 +37,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     ...(user.role === "FOUNDER" ? [{ label: "Founder Panel", href: "/founder", icon: ClipboardList }] : []),
-    ...(user.role !== "INTERN" ? [{ label: "Intern Directory", href: "/interns", icon: Users }] : []),
+    ...(user.role !== "INTERN" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
     { label: "Task Queue", href: "/tasks", icon: CheckSquare },
     { label: "Daily Logs", href: "/daily-logs", icon: ClipboardList },

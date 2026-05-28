@@ -62,6 +62,7 @@ export async function POST(req: Request) {
     } = body;
 
     // Required fields check
+    const isPanRequired = Number(intern.stipendAmount) > 50000;
     if (
       !gender ||
       !dateOfBirth ||
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       !bankName ||
       !accountNumber ||
       !ifscCode ||
-      !panCard
+      (isPanRequired && !panCard)
     ) {
       return NextResponse.json({ error: "Please fill in all required profile, address, and banking fields." }, { status: 400 });
     }

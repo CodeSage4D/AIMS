@@ -265,6 +265,7 @@ export async function POST(req: Request) {
             paymentPreference: body.paymentPreference || "",
             customNotes: notes || "",
             pictureUrl: body.pictureUrl || "",
+            workMode: userRole === "FOUNDER" ? (body.workMode || "Remote") : "Remote",
           });
 
 
@@ -681,6 +682,20 @@ export async function PUT(req: Request) {
       );
     }
 
+    // Only Founder can change work mode, user status, or intern status
+    const { parseInternNotes } = await import("@/lib/roles");
+    const existingCustomNotesObj = parseInternNotes(existing.notes);
+    const isChangingStatus = updateData.status !== undefined && updateData.status !== existing.status;
+    const isChangingUserStatus = updateData.userStatus !== undefined && updateData.userStatus !== existing.user?.status;
+    const isChangingWorkMode = updateData.workMode !== undefined && updateData.workMode !== existingCustomNotesObj.workMode;
+
+    if ((isChangingStatus || isChangingUserStatus || isChangingWorkMode) && userRole !== "FOUNDER") {
+      return NextResponse.json(
+        { error: "Access Denied. Only the Founder can change the work mode or user status settings." },
+        { status: 403 }
+      );
+    }
+
     // HR cannot modify Founder accounts
     if (existing.user?.role === "FOUNDER" && userRole !== "FOUNDER") {
       return NextResponse.json(
@@ -843,7 +858,7 @@ export async function PUT(req: Request) {
     }
 
     // Handle Notes & Serialized Custom properties
-    const { parseInternNotes, serializeInternNotes } = await import("@/lib/roles");
+    const { serializeInternNotes } = await import("@/lib/roles");
     const existingCustom = parseInternNotes(existing.notes);
     const nextCustomNotes = updateData.notes !== undefined ? updateData.notes : existingCustom.customNotes;
     const nextLinkedIn = updateData.linkedIn !== undefined ? updateData.linkedIn : existingCustom.linkedIn;
@@ -852,6 +867,7 @@ export async function PUT(req: Request) {
     const nextAccountHolder = updateData.accountHolderName !== undefined ? updateData.accountHolderName : existingCustom.accountHolderName;
     const nextPaymentPref = updateData.paymentPreference !== undefined ? updateData.paymentPreference : existingCustom.paymentPreference;
     const nextPictureUrl = updateData.pictureUrl !== undefined ? updateData.pictureUrl : (existingCustom as any).pictureUrl;
+    const nextWorkMode = updateData.workMode !== undefined ? updateData.workMode : existingCustom.workMode;
 
     dataToUpdate.notes = serializeInternNotes({
       linkedIn: nextLinkedIn || "",
@@ -861,6 +877,7 @@ export async function PUT(req: Request) {
       paymentPreference: nextPaymentPref || "",
       customNotes: nextCustomNotes || "",
       pictureUrl: nextPictureUrl || "",
+      workMode: nextWorkMode || "Remote",
     } as any);
 
 

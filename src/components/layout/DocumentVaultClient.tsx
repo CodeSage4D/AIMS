@@ -27,7 +27,6 @@ import {
   Fingerprint,
   Edit,
   Printer,
-  Sparkles,
   Barcode,
   RotateCw,
 } from "lucide-react";
@@ -526,7 +525,6 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                               className="h-9 px-4 text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 border border-white/5 rounded-xl transition-all shadow-md select-none"
                               isLoading={internActionLoading === type}
                             >
-                              <Sparkles className="h-3.5 w-3.5 mr-1.5 shrink-0" />
                               <span>{existing ? "Recompile Draft" : "Compile Draft"}</span>
                             </Button>
                           </div>
@@ -1258,7 +1256,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <th className="py-4 px-6 w-[260px] min-w-[260px]">Enrollee Profile</th>
                   <th className="py-4 px-6 w-[220px] min-w-[220px]">Department / Supervisor</th>
                   <th className="py-4 px-6 text-center min-w-[740px]">Compliance Roster</th>
-                  <th className="py-4 px-6 w-[130px] min-w-[130px] text-center">Actions</th>
+                  <th className="py-4 px-6 w-[130px] min-w-[130px] text-center sticky right-0 bg-[#0d1225] dark:bg-[#0c1220] z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30 text-xs font-medium text-muted-foreground">
@@ -1273,7 +1271,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   </tr>
                 ) : (
                   filteredInterns.map((intern) => (
-                    <tr key={intern.id} className="hover:bg-secondary/10 hover:text-foreground transition-colors duration-150">
+                    <tr key={intern.id} className="group hover:bg-secondary/10 hover:text-foreground transition-colors duration-150">
                       <td className="py-4 px-6 w-[260px] min-w-[260px]">
                         <div className="flex flex-col">
                           <span className="font-bold text-foreground text-sm">{intern.fullName}</span>
@@ -1314,7 +1312,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                           })}
                         </div>
                       </td>
-                      <td className="py-4 px-6 w-[130px] min-w-[130px] text-center">
+                      <td className="py-4 px-6 w-[130px] min-w-[130px] text-center sticky right-0 bg-[#0d1225] dark:bg-[#0c1220] group-hover:bg-[#161c2f] dark:group-hover:bg-[#151c2f] z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.2)] border-l border-border/20 transition-colors duration-150">
                         <Button
                           onClick={() => {
                             setSelectedIntern(intern);
@@ -1441,132 +1439,171 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 Verify terms, customize legal contents, and apply Founder-level digital SHA256 signatures to authorize credentials.
               </CardDescription>
             </CardHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-6">
               {allGeneratedDocuments.length === 0 ? (
-                <div className="py-12 text-center col-span-full text-sm font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2">
+                <div className="py-12 text-center text-sm font-semibold text-muted-foreground flex flex-col items-center justify-center space-y-2">
                   <FolderOpen className="h-10 w-10 text-muted-foreground/35 animate-bounce" />
                   <span>No dynamic document drafts generated inside the system yet.</span>
                 </div>
-              ) : (
-                allGeneratedDocuments.map((doc) => {
-                  const isApproved = doc.status === "APPROVED";
-                  const isRejected = doc.status === "REJECTED";
+              ) : (() => {
+                const groups: { [monthYear: string]: { [internKey: string]: any[] } } = {};
+                
+                const sorted = [...allGeneratedDocuments].sort((a, b) => {
+                  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return dateB - dateA;
+                });
+
+                sorted.forEach((doc) => {
+                  const date = doc.createdAt ? new Date(doc.createdAt) : new Date();
+                  const monthYear = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+                  const internKey = `${doc.intern?.internId || doc.intern?.id || "Unlinked"} - ${doc.intern?.fullName || "Unknown Intern"}`;
                   
-                  return (
-                    <Card
-                      key={`card-${doc.id}`}
-                      className={cn(
-                        "border-border/40 bg-card/70 transition-all rounded-xl p-5 flex flex-col justify-between hover:shadow-lg relative overflow-hidden",
-                        isApproved ? "border-emerald-500/25 bg-emerald-500/[0.01]" : isRejected ? "border-rose-500/20 bg-rose-500/[0.01]" : "hover:border-primary/30"
-                      )}
-                    >
-                      {/* Ribbon / Status block */}
-                      <div className="absolute top-0 right-0">
-                        <span className={cn(
-                          "text-[8px] font-heading font-extrabold uppercase tracking-widest px-2.5 py-1 block rounded-bl-lg shadow-sm border-l border-b",
-                          isApproved
-                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                            : isRejected
-                            ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                            : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                        )}>
-                          {doc.status}
-                        </span>
-                      </div>
+                  if (!groups[monthYear]) {
+                    groups[monthYear] = {};
+                  }
+                  if (!groups[monthYear][internKey]) {
+                    groups[monthYear][internKey] = [];
+                  }
+                  groups[monthYear][internKey].push(doc);
+                });
 
-                      <div className="space-y-4 w-full">
-                        <div>
-                          <span className="text-[9px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest block mb-1">
-                            {doc.type.replace(/_/g, " ")}
-                          </span>
-                          <h4 className="text-sm font-extrabold text-foreground leading-tight">
-                            {doc.intern?.fullName || "Unlinked Intern"}
-                          </h4>
-                          <span className="text-[10px] font-mono text-muted-foreground block mt-0.5">
-                            {doc.intern?.internId || doc.intern?.id}
-                          </span>
+                return Object.entries(groups).map(([monthYear, internsMap]) => (
+                  <div key={monthYear} className="space-y-4 border-b border-border/20 pb-6 last:border-0 last:pb-0">
+                    <h3 className="text-xs font-heading font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest px-1">
+                      {monthYear}
+                    </h3>
+                    <div className="space-y-6 pl-2">
+                      {Object.entries(internsMap).map(([internKey, docs]) => (
+                        <div key={internKey} className="space-y-3">
+                          <p className="text-xs font-bold text-slate-400 pl-2 border-l-2 border-sky-500/50">
+                            {internKey}
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {docs.map((doc) => {
+                              const isApproved = doc.status === "APPROVED";
+                              const isRejected = doc.status === "REJECTED";
+                              
+                              return (
+                                <Card
+                                  key={`card-${doc.id}`}
+                                  className={cn(
+                                    "border-border/40 bg-card/70 transition-all rounded-xl p-5 flex flex-col justify-between hover:shadow-lg relative overflow-hidden",
+                                    isApproved ? "border-emerald-500/25 bg-emerald-500/[0.01]" : isRejected ? "border-rose-500/20 bg-rose-500/[0.01]" : "hover:border-primary/30"
+                                  )}
+                                >
+                                  {/* Ribbon / Status block */}
+                                  <div className="absolute top-0 right-0">
+                                    <span className={cn(
+                                      "text-[8px] font-heading font-extrabold uppercase tracking-widest px-2.5 py-1 block rounded-bl-lg shadow-sm border-l border-b",
+                                      isApproved
+                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                        : isRejected
+                                        ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                                        : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                                    )}>
+                                      {doc.status}
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-4 w-full">
+                                    <div>
+                                      <span className="text-[9px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest block mb-1">
+                                        {doc.type.replace(/_/g, " ")}
+                                      </span>
+                                      <h4 className="text-sm font-extrabold text-foreground leading-tight">
+                                        {doc.intern?.fullName || "Unlinked Intern"}
+                                      </h4>
+                                      <span className="text-[10px] font-mono text-muted-foreground block mt-0.5">
+                                        {doc.intern?.internId || doc.intern?.id}
+                                      </span>
+                                    </div>
+
+                                    {/* Audit Details */}
+                                    <div className="bg-secondary/10 border border-border/10 rounded-xl p-3 space-y-1.5 text-[10px]">
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground font-semibold">Department:</span>
+                                        <span className="font-bold text-foreground">{doc.intern?.department}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground font-semibold">Created On:</span>
+                                        <span>{formatDate(doc.createdAt)}</span>
+                                      </div>
+                                      {doc.signature && (
+                                        <div className="pt-1.5 border-t border-border/30">
+                                          <span className="text-[7.5px] font-mono text-emerald-600 dark:text-emerald-400 break-all leading-tight block">
+                                            {doc.signature}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center space-x-2.5 pt-4 mt-4 border-t border-border/30 w-full select-none">
+                                    <Button
+                                      onClick={() => setSelectedGeneratedDoc(doc)}
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 h-8 text-[9px] font-bold"
+                                    >
+                                      <Eye className="h-3 w-3 mr-1 text-cyan-500" />
+                                      <span>Preview</span>
+                                    </Button>
+                                    
+                                    {!isApproved && (
+                                      <Button
+                                        onClick={() => startEditingDraft(doc)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                        title="Edit Parameters"
+                                      >
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+
+                                    {!isApproved && (
+                                      <div className="flex items-center space-x-1 shrink-0">
+                                        {isFounder ? (
+                                          <Button
+                                            onClick={() => handleSignDocument(doc.id)}
+                                            variant="primary"
+                                            size="sm"
+                                            className="h-8 text-[9px] font-bold bg-gradient-to-r from-blue-600 to-indigo-600 border-none px-3"
+                                            isLoading={actionLoading === doc.id}
+                                          >
+                                            Sign & Certify
+                                          </Button>
+                                        ) : (
+                                          <div className="text-[8px] bg-secondary border border-border/40 px-2 py-1.5 rounded-lg text-muted-foreground font-semibold uppercase tracking-wide">
+                                            Lock Signature
+                                          </div>
+                                        )}
+
+                                        <Button
+                                          onClick={() => handleRejectDocument(doc.id)}
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-rose-500 border-rose-500/25 hover:bg-rose-500/5 hover:border-rose-500/40"
+                                          isLoading={actionLoading === doc.id}
+                                          title="Reject Draft"
+                                        >
+                                          <XCircle className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </Card>
+                              );
+                            })}
+                          </div>
                         </div>
-
-                        {/* Audit Details */}
-                        <div className="bg-secondary/10 border border-border/10 rounded-xl p-3 space-y-1.5 text-[10px]">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground font-semibold">Department:</span>
-                            <span className="font-bold text-foreground">{doc.intern?.department}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground font-semibold">Created On:</span>
-                            <span>{formatDate(doc.createdAt)}</span>
-                          </div>
-                          {doc.signature && (
-                            <div className="pt-1.5 border-t border-border/30">
-                              <span className="text-[7.5px] font-mono text-emerald-600 dark:text-emerald-400 break-all leading-tight block">
-                                {doc.signature}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center space-x-2.5 pt-4 mt-4 border-t border-border/30 w-full select-none">
-                        <Button
-                          onClick={() => setSelectedGeneratedDoc(doc)}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-8 text-[9px] font-bold"
-                        >
-                          <Eye className="h-3 w-3 mr-1 text-cyan-500" />
-                          <span>Preview</span>
-                        </Button>
-                        
-                        {!isApproved && (
-                          <Button
-                            onClick={() => startEditingDraft(doc)}
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                            title="Edit Parameters"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-
-                        {!isApproved && (
-                          <div className="flex items-center space-x-1 shrink-0">
-                            {isFounder ? (
-                              <Button
-                                onClick={() => handleSignDocument(doc.id)}
-                                variant="primary"
-                                size="sm"
-                                className="h-8 text-[9px] font-bold bg-gradient-to-r from-blue-600 to-indigo-600 border-none px-3"
-                                isLoading={actionLoading === doc.id}
-                              >
-                                Sign & Certify
-                              </Button>
-                            ) : (
-                              <div className="text-[8px] bg-secondary border border-border/40 px-2 py-1.5 rounded-lg text-muted-foreground font-semibold uppercase tracking-wide">
-                                Lock Signature
-                              </div>
-                            )}
-
-                            <Button
-                              onClick={() => handleRejectDocument(doc.id)}
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-rose-500 border-rose-500/25 hover:bg-rose-500/5 hover:border-rose-500/40"
-                              isLoading={actionLoading === doc.id}
-                              title="Reject Draft"
-                            >
-                              <XCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}</div>
           </Card>
         </div>
       )}
@@ -2212,7 +2249,6 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
                   <span>Certificate Copy</span>
                 </button>
               </div>
@@ -2828,7 +2864,6 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       className="flex-1 h-10 rounded-xl text-xs font-bold font-heading bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-white/5 text-white"
                       isLoading={actionLoading === doc.id}
                     >
-                      <Sparkles className="h-4 w-4 mr-1.5" />
                       <span>Sign & Approve</span>
                     </Button>
                   ) : (

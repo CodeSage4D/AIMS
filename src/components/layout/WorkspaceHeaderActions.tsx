@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, Edit, AlertTriangle, Sparkles, User, School, Heart } from "lucide-react";
+import { PlusCircle, Trash2, Edit, AlertTriangle, User, School, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ROLE_CODES, parseInternNotes } from "@/lib/roles";
@@ -70,9 +70,10 @@ interface WorkspaceHeaderActionsProps {
   intern: InternData;
   mentors: MentorOption[];
   isAdmin: boolean;
+  isFounder: boolean;
 }
 
-export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: WorkspaceHeaderActionsProps) {
+export default function WorkspaceHeaderActions({ intern, mentors, isAdmin, isFounder }: WorkspaceHeaderActionsProps) {
   const router = useRouter();
   
   // Modals state control
@@ -85,6 +86,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
   const [formData, setFormData] = useState(() => {
     const customFields = parseInternNotes(intern.notes);
     return {
+      workMode: customFields.workMode || "Remote",
       id: intern.id,
       fullName: intern.fullName,
       gender: intern.gender,
@@ -445,7 +447,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                 </div>
               )}
 
-              <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <form id="update-profile-form" onSubmit={handleUpdateSubmit} className="space-y-4">
                 {/* TAB 1: Personal details */}
                 {activeTab === 1 && (
                   <div className="space-y-4 animate-fadeIn">
@@ -691,16 +693,17 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border/40 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border/40 pt-4">
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-                          Intern Status
+                          Intern/Worker Status
                         </label>
                         <select
                           name="status"
                           value={formData.status}
                           onChange={handleChange}
-                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                          disabled={!isFounder}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="ONBOARDING">ONBOARDING</option>
                           <option value="ACTIVE">ACTIVE</option>
@@ -713,14 +716,31 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
 
                       <div className="flex flex-col space-y-1.5">
                         <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+                          Work Mode
+                        </label>
+                        <select
+                          name="workMode"
+                          value={formData.workMode}
+                          onChange={handleChange}
+                          disabled={!isFounder}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <option value="Remote">Remote</option>
+                          <option value="Hybrid">Hybrid</option>
+                          <option value="Office Mode">Office Mode</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
                           User Access Role
                         </label>
                         <select
                           name="role"
                           value={formData.role}
                           onChange={handleChange}
-                          disabled={!isAdmin}
-                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                          disabled={!isFounder}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="INTERN">INTERN</option>
                           <option value="TEAM_LEAD">TEAM_LEAD</option>
@@ -739,8 +759,8 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                           name="userStatus"
                           value={formData.userStatus}
                           onChange={handleChange}
-                          disabled={!isAdmin}
-                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold"
+                          disabled={!isFounder}
+                          className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="APPROVED">APPROVED (Active)</option>
                           <option value="PENDING">PENDING (Inactive/Review)</option>
@@ -999,14 +1019,13 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin }: Wor
                 </Button>
               ) : (
                 <Button
-                  type="button"
+                  type="submit"
+                  form="update-profile-form"
                   variant="primary"
                   size="sm"
-                  onClick={handleUpdateSubmit}
                   isLoading={loading}
-                  className="h-9 font-semibold flex items-center space-x-1.5"
+                  className="h-9 font-semibold"
                 >
-                  <Sparkles className="h-4 w-4 text-primary-foreground shrink-0 animate-spin" style={{ animationDuration: "3s" }} />
                   <span>Save Profile Updates</span>
                 </Button>
               )}

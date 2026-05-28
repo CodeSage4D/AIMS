@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark, Copy } from "lucide-react";
+import AdvancedLocationSelector from "@/components/ui/AdvancedLocationSelector";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -20,8 +21,10 @@ export default function SignupPage() {
   const [requestedPosition, setRequestedPosition] = useState("");
   const [pinCode, setPinCode] = useState("");
   const [country, setCountry] = useState("India");
+  const [state, setState] = useState("Maharashtra");
+  const [city, setCity] = useState("Mumbai");
   const [citizenship, setCitizenship] = useState("");
-  const [region, setRegion] = useState("");
+  const [region, setRegion] = useState("Asia");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [ifscCode, setIfscCode] = useState("");
@@ -208,6 +211,8 @@ export default function SignupPage() {
           requestedPosition,
           pinCode,
           country,
+          state,
+          city,
           citizenship,
           region,
           bankName,
@@ -233,8 +238,10 @@ export default function SignupPage() {
         setRequestedPosition("");
         setPinCode("");
         setCountry("India");
+        setState("Maharashtra");
+        setCity("Mumbai");
         setCitizenship("");
-        setRegion("");
+        setRegion("Asia");
         setBankName("");
         setAccountNumber("");
         setIfscCode("");
@@ -467,101 +474,70 @@ export default function SignupPage() {
                   />
                 </div>
 
-                {/* Phone & Username Row */}
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div className="relative group flex flex-col">
-                    <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
-                      currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
-                    }`}>
-                      <Phone className="h-4 w-4" />
-                    </div>
-                    <Input
-                      label="Phone Number"
-                      type="tel"
-                      placeholder={country.toLowerCase() === "india" ? "9876543210" : "+1 555..."}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
-                        currentTheme === "dark"
-                          ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
-                          : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
-                      }`}
-                      disabled={loading}
-                      required
-                    />
-                    {!isPhoneValid() && (
-                      <span className="text-[9px] text-red-500 font-semibold mt-1 block">
-                        {country.toLowerCase() === "india" 
-                          ? "Must be 10 digits starting with 6-9." 
-                          : "Must start with + and have 7-15 digits."}
-                      </span>
-                    )}
+                {/* Standalone Username Input */}
+                <div className="relative group flex flex-col">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                  }`}>
+                    <User className="h-4 w-4" />
                   </div>
+                  <Input
+                    label="Username"
+                    type="text"
+                    placeholder="e.g. aarav12"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setUsernameAvailable(null);
+                    }}
+                    className={`pl-11 pr-16 h-11 text-xs rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
+                    disabled={loading}
+                    required
+                  />
+                  
+                  {/* Status Badge Indicators */}
+                  {usernameChecking && (
+                    <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-indigo-400 animate-pulse bg-indigo-500/10 px-1.5 py-0.5 rounded">Checking...</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === true && (
+                    <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Available</span>
+                  )}
+                  {!usernameChecking && usernameAvailable === false && (
+                    <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Taken</span>
+                  )}
 
-                  <div className="relative group flex flex-col">
-                    <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
-                      currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
-                    }`}>
-                      <User className="h-4 w-4" />
-                    </div>
-                    <Input
-                      label="Username"
-                      type="text"
-                      placeholder="e.g. aarav12"
-                      value={username}
-                      onChange={(e) => {
-                        setUsername(e.target.value);
-                        setUsernameAvailable(null);
-                      }}
-                      className={`pl-11 pr-16 h-11 text-xs rounded-xl transition-all duration-200 ${
-                        currentTheme === "dark"
-                          ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
-                          : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
-                      }`}
-                      disabled={loading}
-                      required
-                    />
-                    
-                    {/* Status Badge Indicators */}
-                    {usernameChecking && (
-                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-indigo-400 animate-pulse bg-indigo-500/10 px-1.5 py-0.5 rounded">Checking...</span>
-                    )}
-                    {!usernameChecking && usernameAvailable === true && (
-                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Available</span>
-                    )}
-                    {!usernameChecking && usernameAvailable === false && (
-                      <span className="absolute right-3 top-[37px] text-[9px] font-semibold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Taken</span>
-                    )}
+                  {usernameError && (
+                    <span className="text-[9px] text-red-500 font-semibold mt-1 block leading-tight">{usernameError}</span>
+                  )}
 
-                    {usernameError && (
-                      <span className="text-[9px] text-red-500 font-semibold mt-1 block leading-tight">{usernameError}</span>
-                    )}
-
-                    {!usernameChecking && usernameAvailable === false && usernameSuggestions.length > 0 && (
-                      <div className="mt-1.5 space-y-1">
-                        <span className="text-[9px] text-gray-400 font-semibold block">Suggestions:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {usernameSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion}
-                              type="button"
-                              onClick={() => {
-                                setUsername(suggestion);
-                                setUsernameAvailable(null);
-                              }}
-                              className={`px-1.5 py-0.5 text-[9px] font-mono font-medium rounded border transition-all duration-200 cursor-pointer ${
-                                currentTheme === "dark"
-                                  ? "bg-white/5 border-white/10 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-indigo-300 hover:text-white"
-                                  : "bg-slate-100 border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-indigo-600"
-                              }`}
-                            >
-                              {suggestion}
-                            </button>
-                          ))}
-                        </div>
+                  {!usernameChecking && usernameAvailable === false && usernameSuggestions.length > 0 && (
+                    <div className="mt-1.5 space-y-1">
+                      <span className="text-[9px] text-gray-400 font-semibold block">Suggestions:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {usernameSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => {
+                              setUsername(suggestion);
+                              setUsernameAvailable(null);
+                            }}
+                            className={`px-1.5 py-0.5 text-[9px] font-mono font-medium rounded border transition-all duration-200 cursor-pointer ${
+                              currentTheme === "dark"
+                                ? "bg-white/5 border-white/10 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-indigo-300 hover:text-white"
+                                : "bg-slate-100 border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-indigo-600"
+                            }`}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Department Dropdown */}
@@ -621,40 +597,34 @@ export default function SignupPage() {
                   />
                 </div>
 
-                {/* Country of Residence Dropdown */}
-                <div className="relative flex flex-col">
-                  <label className={`text-xs font-semibold mb-1.5 transition-colors ${
-                    currentTheme === "dark" ? "text-gray-300" : "text-slate-700"
+                {/* Advanced Location Selector Integration */}
+                <div className="space-y-4 pt-2 border-t border-white/5">
+                  <span className={`text-[10px] font-heading font-extrabold uppercase tracking-widest block mb-1 ${
+                    currentTheme === "dark" ? "text-indigo-400" : "text-indigo-600"
                   }`}>
-                    Country of Residence
-                  </label>
-                  <select
-                    value={country}
-                    onChange={(e) => {
-                      setCountry(e.target.value);
+                    Residence & Contact Details
+                  </span>
+                  <AdvancedLocationSelector
+                    country={country}
+                    state={state}
+                    city={city}
+                    region={region}
+                    phoneNumber={phone}
+                    onCountryChange={setCountry}
+                    onStateChange={setState}
+                    onCityChange={setCity}
+                    onRegionChange={setRegion}
+                    onPhoneNumberChange={(val) => {
+                      setPhone(val);
                       setError(null);
                     }}
-                    className={`px-4 h-11 w-full text-xs rounded-xl border appearance-none transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                      currentTheme === "dark"
-                        ? "bg-[#0f172a] border-white/10 text-white hover:border-white/20"
-                        : "bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300"
-                    }`}
+                    currentTheme={currentTheme}
                     disabled={loading}
-                    required
-                  >
-                    <option value="India">India</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Canada">Canada</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Germany">Germany</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="United Arab Emirates">United Arab Emirates</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    required={true}
+                  />
                 </div>
 
-                {/* Citizenship & Region Row */}
+                {/* Citizenship & PIN Code fields */}
                 <div className="grid grid-cols-2 gap-3.5">
                   <div className="relative group flex flex-col">
                     <Input
@@ -674,13 +644,18 @@ export default function SignupPage() {
                   </div>
 
                   <div className="relative group flex flex-col">
+                    <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                      currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                    }`}>
+                      <MapPin className="h-4 w-4" />
+                    </div>
                     <Input
-                      label="Region / State"
+                      label="Mailing PIN / Postal Code"
                       type="text"
-                      placeholder="e.g. Delhi"
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                      className={`h-11 text-xs rounded-xl transition-all duration-200 ${
+                      placeholder={country.toLowerCase() === "india" ? "110001" : "90210"}
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
                         currentTheme === "dark"
                           ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
                           : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
@@ -690,36 +665,13 @@ export default function SignupPage() {
                     />
                   </div>
                 </div>
-
-                {/* Mailing PIN Code */}
-                <div className="relative group flex flex-col">
-                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
-                    currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
-                  }`}>
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <Input
-                    label="Mailing PIN / Postal Code"
-                    type="text"
-                    placeholder={country.toLowerCase() === "india" ? "110001" : "90210"}
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
-                      currentTheme === "dark"
-                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
-                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
-                    }`}
-                    disabled={loading}
-                    required
-                  />
-                  {!isPinValid() && (
-                    <span className="text-[9px] text-red-500 font-semibold mt-1 block">
-                      {country.toLowerCase() === "india" 
-                        ? "PIN code must be exactly 6 digits." 
-                        : "Postal code must be alphanumeric (3-10 chars)."}
-                    </span>
-                  )}
-                </div>
+                {!isPinValid() && (
+                  <span className="text-[9px] text-red-500 font-semibold mt-1 block">
+                    {country.toLowerCase() === "india" 
+                      ? "PIN code must be exactly 6 digits." 
+                      : "Postal code must be alphanumeric (3-10 chars)."}
+                  </span>
+                )}
 
                 {/* Disbursement Bank Details */}
                 <div className="border-t border-white/5 pt-4 my-2">

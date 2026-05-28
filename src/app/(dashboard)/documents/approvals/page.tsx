@@ -228,6 +228,29 @@ export default function ApprovalsPage() {
     return typeMatch && statusMatch;
   });
 
+  const getGroupedDocs = () => {
+    const groups: { [monthYear: string]: { [internKey: string]: DocumentDetail[] } } = {};
+    
+    // Sort documents desc by createdAt so latest groups are first
+    const sorted = [...filteredDocs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    sorted.forEach((doc) => {
+      const date = new Date(doc.createdAt);
+      const monthYear = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+      const internKey = `${doc.intern.internId} - ${doc.intern.fullName}`;
+      
+      if (!groups[monthYear]) {
+        groups[monthYear] = {};
+      }
+      if (!groups[monthYear][internKey]) {
+        groups[monthYear][internKey] = [];
+      }
+      groups[monthYear][internKey].push(doc);
+    });
+    
+    return groups;
+  };
+
   return (
     <div className="space-y-6 select-none print:p-0 print:m-0">
       {/* Page Header (Hidden in Print) */}
@@ -305,48 +328,64 @@ export default function ApprovalsPage() {
             ) : filteredDocs.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">No matching generated documents found.</div>
             ) : (
-              filteredDocs.map((doc) => (
-                <button
-                   key={doc.id}
-                   onClick={() => handleSelectDoc(doc)}
-                   className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
-                    selectedDoc?.id === doc.id
-                      ? "border-sky-500 bg-sky-50/40 dark:bg-sky-500/5 text-slate-900 dark:text-white"
-                      : "border-slate-100 dark:border-white/5 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300"
-                  }`}
-                >
-                  <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs font-bold truncate">{doc.intern.fullName}</p>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5 truncate flex items-center gap-1">
-                      <FileText className="h-3 w-3 shrink-0 text-sky-500" />
-                      {doc.type.replace("_", " ")}
-                    </p>
+              <div className="space-y-4">
+                {Object.entries(getGroupedDocs()).map(([monthYear, internsMap]) => (
+                  <div key={monthYear} className="space-y-2 border-b border-slate-100/5 dark:border-white/[0.04] pb-3">
+                    <h4 className="text-[10px] font-heading font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest px-1">
+                      {monthYear}
+                    </h4>
+                    <div className="pl-2 space-y-3">
+                      {Object.entries(internsMap).map(([internKey, docs]) => (
+                        <div key={internKey} className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 truncate pl-1.5 border-l-2 border-sky-500/50">
+                            {internKey}
+                          </p>
+                          <div className="pl-1 space-y-1">
+                            {docs.map((doc) => (
+                              <button
+                                key={doc.id}
+                                onClick={() => handleSelectDoc(doc)}
+                                className={`w-full text-left p-2 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
+                                  selectedDoc?.id === doc.id
+                                    ? "border-sky-500 bg-sky-50/40 dark:bg-sky-500/5 text-slate-900 dark:text-white"
+                                    : "border-slate-100 dark:border-white/5 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300"
+                                }`}
+                              >
+                                <span className="text-[10px] font-medium flex items-center gap-1.5 truncate">
+                                  <FileText className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+                                  {doc.type.replace("_", " ")}
+                                </span>
+                                <span className="shrink-0 scale-90">
+                                  {doc.status === "PENDING" && (
+                                    <span className="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-amber-500/10 text-amber-500">
+                                      Pending
+                                    </span>
+                                  )}
+                                  {doc.status === "APPROVED" && (
+                                    <span className="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-500">
+                                      Signed
+                                    </span>
+                                  )}
+                                  {doc.status === "REJECTED" && (
+                                    <span className="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-red-500/10 text-red-500">
+                                      Rejected
+                                    </span>
+                                  )}
+                                  {doc.status === "DEACTIVATED" && (
+                                    <span className="text-[8px] font-extrabold uppercase px-1 py-0.5 rounded bg-rose-950/20 text-rose-500 border border-rose-500/20">
+                                      Deactivated
+                                    </span>
+                                  )}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {doc.status === "PENDING" && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">
-                        Pending
-                      </span>
-                    )}
-                    {doc.status === "APPROVED" && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">
-                        Signed
-                      </span>
-                    )}
-                    {doc.status === "REJECTED" && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">
-                        Rejected
-                      </span>
-                    )}
-                    {doc.status === "DEACTIVATED" && (
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-950/20 text-rose-500 border border-rose-500/20">
-                        Deactivated
-                      </span>
-                    )}
-                  </div>
-                </button>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>

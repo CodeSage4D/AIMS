@@ -183,7 +183,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
     if (path === "/") return "Overview Dashboard";
     if (path.startsWith("/interns/add")) return "Onboard New Intern";
     if (path.startsWith("/interns/")) return "Intern Profile File";
-    if (path.startsWith("/interns")) return "Intern Directory";
+    if (path.startsWith("/interns")) return "Internal Directory";
     if (path.startsWith("/attendance")) return "Daily Attendance Roll";
     if (path.startsWith("/tasks")) return "Task Queue Board";
     if (path.startsWith("/documents")) return "Document Compliance Center";
@@ -326,7 +326,7 @@ export default function Header({ user, onMenuToggle }: HeaderProps) {
               : user.role === "TEAM_LEAD"
               ? "TEAM LEAD CONSOLE"
               : user.role === "INTERN"
-              ? "INTERN PORTAL"
+              ? "EMPLOYEE PLATFORM"
               : `${user.role || "USER"} WORKSPACE`}
           </span>
         </div>

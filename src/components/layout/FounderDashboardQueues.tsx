@@ -18,7 +18,6 @@ import {
   RotateCcw, 
   Edit3,
   Layers,
-  Sparkles,
   Inbox,
   UserCheck,
   Loader2,
@@ -1159,7 +1158,6 @@ export default function FounderDashboardQueues() {
                   variant="primary"
                   className="h-10 text-xs font-extrabold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white cursor-pointer px-5 flex items-center space-x-2 shadow-md hover:shadow-lg transition-all"
                 >
-                  <Sparkles className="h-4 w-4 animate-pulse text-cyan-300" />
                   <span>Generate ID & Approve</span>
                 </Button>
               </div>

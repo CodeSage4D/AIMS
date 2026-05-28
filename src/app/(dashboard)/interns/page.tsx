@@ -26,7 +26,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
   
   const hasAccess = await hasPermission(userId, userRole, "onboardingAccess");
   if (!hasAccess) {
-    return <AccessDeniedShield requiredRole="Intern Directory" currentRole={userRole} />;
+    return <AccessDeniedShield requiredRole="Internal Directory" currentRole={userRole} />;
   }
 
   const isSuperUser = userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "HR";

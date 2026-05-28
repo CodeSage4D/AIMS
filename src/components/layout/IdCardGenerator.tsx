@@ -8,7 +8,6 @@ import {
   AlertTriangle, 
   ShieldCheck, 
   Download, 
-  Sparkles, 
   RefreshCw, 
   Eye, 
   Printer, 
@@ -1040,7 +1039,6 @@ export default function IdCardGenerator({
           <div className="lg:col-span-5 p-5 sm:p-6 border border-slate-250 dark:border-white/[0.08] bg-white/60 dark:bg-[#0b0f19]/70 backdrop-blur-md rounded-2xl shadow-xl space-y-5">
             <div className="space-y-1 border-b border-slate-200 dark:border-white/[0.06] pb-3">
               <h3 className="text-sm font-heading font-extrabold flex items-center space-x-2">
-                <Sparkles className="h-4.5 w-4.5 text-indigo-500" />
                 <span>Sleek ID Card Customizer</span>
               </h3>
               <p className="text-[10px] text-slate-400 dark:text-gray-400">
@@ -1063,28 +1061,30 @@ export default function IdCardGenerator({
             )}
 
             {/* 1. Layout Type Choice */}
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
-                ID Card Layout Format
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["standard", "banner", "smart"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setCardType(t)}
-                    className={cn(
-                      "h-8 rounded-lg text-[9px] font-bold uppercase transition-all border flex items-center justify-center space-x-1",
-                      cardType === t
-                        ? "bg-indigo-500 border-indigo-500 text-white"
-                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400"
-                    )}
-                  >
-                    <span>{t === "standard" ? "Standard (2-Sided)" : t === "banner" ? "Digital Banner" : "Smart (Chip)"}</span>
-                  </button>
-                ))}
+            {isAdminActor && (
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
+                  ID Card Layout Format
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["standard", "banner", "smart"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setCardType(t)}
+                      className={cn(
+                        "h-8 rounded-lg text-[9px] font-bold uppercase transition-all border flex items-center justify-center space-x-1",
+                        cardType === t
+                          ? "bg-indigo-50 border-indigo-500 text-white"
+                          : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400"
+                      )}
+                    >
+                      <span>{t === "standard" ? "Standard (2-Sided)" : t === "banner" ? "Digital Banner" : "Smart (Chip)"}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 2. Photo Upload */}
             <div className="space-y-1.5">
@@ -1105,33 +1105,34 @@ export default function IdCardGenerator({
                 />
               </div>
             </div>
-
-            {/* 3. Theme styles */}
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
-                Corporate Theme Color
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setSelectedTheme(t)}
-                    className={cn(
-                      "h-7 rounded-md text-[8px] font-bold uppercase transition-all border flex items-center justify-center",
-                      (selectedTheme || savedTheme || "glacial") === t
-                        ? "bg-indigo-500 border-indigo-500 text-white"
-                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400"
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
+                    {/* 3. Theme styles */}
+            {isAdminActor && (
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-heading font-extrabold text-slate-500 dark:text-gray-450 uppercase tracking-widest block">
+                  Corporate Theme Color
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {(["glacial", "gold", "matrix", "cyber", "orange"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setSelectedTheme(t)}
+                      className={cn(
+                        "h-7 rounded-md text-[8px] font-bold uppercase transition-all border flex items-center justify-center",
+                        (selectedTheme || savedTheme || "glacial") === t
+                          ? "bg-indigo-500 border-indigo-500 text-white"
+                          : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 4. Smart Chip Card customizations (Only for smart type + Admin) */}
-            {cardType === "smart" && (
+            {cardType === "smart" && isAdminActor && (
               <div className="p-3.5 rounded-xl border border-indigo-500/10 bg-indigo-500/[0.02] space-y-3.5">
                 <span className="text-[9px] font-heading font-bold text-indigo-400 uppercase tracking-widest block flex items-center gap-1">
                   <Settings className="h-3 w-3" />
@@ -1235,8 +1236,7 @@ export default function IdCardGenerator({
                 className="w-full h-10 text-xs font-bold font-heading border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-500 dark:text-indigo-400 rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
                 isLoading={isSaving}
               >
-                <Sparkles className="h-4 w-4" />
-                <span>Compile & Save Configuration</span>
+                <span>{isAdminActor ? "Compile & Save Configuration" : "Save Profile Picture & Compile"}</span>
               </Button>
 
               <div className="space-y-2">

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,11 +9,15 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", label, error, ...props }, ref) => {
+    const cleanLabel = label ? label.replace(/\s*\*$/, "").replace(/\s*\(Required\)$/i, "") : "";
     return (
       <div className="flex flex-col space-y-1.5 w-full">
         {label && (
-          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider select-none">
-            {label}
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider select-none flex items-center gap-1.5">
+            <span>{cleanLabel}</span>
+            {props.required && (
+              <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />
+            )}
           </label>
         )}
         <input

@@ -18,7 +18,6 @@ import {
   UserCheck,
   Search,
   MessageSquare,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -733,7 +732,6 @@ export default function PortfolioClient({
                       className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center space-x-1"
                       isLoading={loading}
                     >
-                      <Sparkles className="h-4 w-4" />
                       <span>{editingProjectId ? "Update Record" : "Log Contribution"}</span>
                     </Button>
                   </div>
