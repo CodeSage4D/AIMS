@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     let internId = "";
 
-    if (userRole === "INTERN") {
+    if (userRole === "INTERN" || userRole === "EMPLOYEE") {
       const intern = await db.intern.findUnique({
         where: { userId }
       });
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role || "INTERN";
 
-    if (userRole !== "INTERN") {
+    if (userRole !== "INTERN" && userRole !== "EMPLOYEE") {
       return NextResponse.json({ error: "Access Denied. Only enrollees can modify portfolios." }, { status: 403 });
     }
 
@@ -125,7 +125,7 @@ export async function PATCH(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role || "INTERN";
 
-    if (userRole !== "INTERN") {
+    if (userRole !== "INTERN" && userRole !== "EMPLOYEE") {
       return NextResponse.json({ error: "Access Denied. Only enrollees can modify portfolios." }, { status: 403 });
     }
 
@@ -200,7 +200,7 @@ export async function PUT(req: Request) {
     const userRole = (session.user as any).role || "INTERN";
 
     // Validate permission (must not be INTERN)
-    if (userRole === "INTERN") {
+    if (userRole === "INTERN" || userRole === "EMPLOYEE") {
       return NextResponse.json({ error: "Access Denied. Administrative access required." }, { status: 403 });
     }
 
@@ -290,7 +290,7 @@ export async function DELETE(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role || "INTERN";
 
-    if (userRole !== "INTERN") {
+    if (userRole !== "INTERN" && userRole !== "EMPLOYEE") {
       return NextResponse.json({ error: "Access Denied. Only enrollees can modify portfolios." }, { status: 403 });
     }
 
