@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     const user = session.user as any;
     const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
 
-    if (user.role === "INTERN") {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       if (document.intern.userId !== user.id || !hasDocAccess) {
         return new Response("Forbidden. You do not have permission to view this document.", { status: 403 });
       }
