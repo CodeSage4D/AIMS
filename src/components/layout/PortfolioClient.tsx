@@ -60,7 +60,7 @@ export default function PortfolioClient({
   initialInterns,
   initialProjects,
 }: PortfolioClientProps) {
-  const isIntern = user.role === "INTERN";
+  const isIntern = user.role === "INTERN" || user.role === "EMPLOYEE";
   const isAdmin = !isIntern;
 
   // States
