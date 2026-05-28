@@ -56,7 +56,7 @@ export default async function ProfilePage() {
   // If user not found in DB (stale session after DB recovery), show minimal profile
   const isStaleSession = !user;
 
-  const isIntern = userRole === "INTERN";
+  const isIntern = userRole === "INTERN" || userRole === "EMPLOYEE";
   const internProfile = user?.internProfile || null;
 
   // ── Stats ────────────────────────────────────────────────────────────────
