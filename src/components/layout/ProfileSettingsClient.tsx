@@ -1508,6 +1508,7 @@ export default function ProfileSettingsClient({
             ? allActiveInterns?.find((intern) => intern.id === selectedPeerId)
             : null;
           const peerCustomProfile = selectedPeer ? parseInternNotes(selectedPeer.notes) : {};
+          const customProfile = internProfile ? parseInternNotes(internProfile.notes) : {};
 
           return (
             <div className="space-y-6 animate-fadeIn">
