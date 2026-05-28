@@ -59,7 +59,7 @@ export async function GET(req: Request) {
         },
         orderBy: { createdAt: "desc" },
       });
-    } else if (user.role === "INTERN") {
+    } else if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       const internProfile = await db.intern.findUnique({
         where: { userId: user.id },
       });
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     }
     const { user } = authResult;
 
-    if (user.role !== "INTERN") {
+    if (user.role !== "INTERN" && user.role !== "EMPLOYEE") {
       return NextResponse.json({ error: "Forbidden. Only interns/employees can submit daily activity logs." }, { status: 403 });
     }
 
