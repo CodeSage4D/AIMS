@@ -99,7 +99,7 @@ export async function POST(req: Request) {
 
     // Role-based document access controls
     const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
-    if (user.role === "INTERN") {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       if (intern.userId !== user.id) {
         return NextResponse.json({ error: "Forbidden. You can only upload compliance files for your own profile." }, { status: 403 });
       }
@@ -183,7 +183,7 @@ export async function PATCH(req: Request) {
 
     // Check permission
     const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");
-    if (user.role === "INTERN" || !hasDocAccess) {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE" || !hasDocAccess) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to audit/verify documents." }, { status: 403 });
     }
 
