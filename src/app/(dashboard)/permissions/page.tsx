@@ -58,6 +58,7 @@ interface User {
     roleDomain: string;
     department: string;
     phoneNumber: string;
+    employmentType?: string;
   } | null;
 }
 
@@ -391,7 +392,8 @@ export default function PermissionsPage() {
 
   const handleOpenReviewModal = (user: User) => {
     setReviewUser(user);
-    setReviewRole("INTERN");
+    const isInternType = user.internProfile?.employmentType === "INTERN";
+    setReviewRole(isInternType ? "INTERN" : "EMPLOYEE");
     setActivationCode(null);
     setReviewError("");
     setReviewCopied(false);
@@ -590,6 +592,7 @@ export default function PermissionsPage() {
               { role: "ADMIN", label: "Admin Manager" },
               { role: "TEAM_LEAD", label: "Supervisor" },
               { role: "INTERN", label: "Active Intern" },
+              { role: "EMPLOYEE", label: "Employee" },
             ].map((btn) => (
               <button
                 key={btn.role}
@@ -874,7 +877,8 @@ export default function PermissionsPage() {
                     disabled={actionLoading === `${selectedUser.id}-role`}
                     className="w-full h-10 px-3 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] focus:border-indigo-500/40 rounded-lg text-xs font-semibold focus:outline-none cursor-pointer text-slate-800 dark:text-white"
                   >
-                    <option value="INTERN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Intern / Employee</option>
+                    <option value="INTERN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Intern</option>
+                    <option value="EMPLOYEE" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Employee</option>
                     <option value="TEAM_LEAD" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Team Lead / supervisor</option>
                     <option value="ADMIN" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">Admin Manager</option>
                     <option value="HR" className="bg-white dark:bg-[#0b0f19] text-slate-800 dark:text-white">HR Administrator</option>
@@ -1282,7 +1286,8 @@ export default function PermissionsPage() {
                       disabled={reviewLoading}
                       className="w-full h-10 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] focus:outline-none focus:border-indigo-500/40 rounded-lg text-xs font-semibold cursor-pointer text-slate-800 dark:text-white"
                     >
-                      <option value="INTERN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Intern / Employee</option>
+                      <option value="INTERN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Intern</option>
+                      <option value="EMPLOYEE" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Employee</option>
                       <option value="TEAM_LEAD" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Team Lead / Supervisor</option>
                       <option value="ADMIN" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">Admin Manager</option>
                       <option value="HR" className="bg-white dark:bg-[#0c1220] text-slate-800 dark:text-white">HR Administrator</option>
