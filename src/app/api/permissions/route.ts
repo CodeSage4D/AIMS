@@ -7,7 +7,7 @@ import { getSafeUserId } from "@/lib/safeUser";
 
 import { validatePassword } from "@/lib/passwordValidator";
 
-const VALID_ROLES = ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR", "TEAM_LEAD", "INTERN"];
+const VALID_ROLES = ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR", "TEAM_LEAD", "INTERN", "EMPLOYEE"];
 
 // Helper to authenticate and check roles dynamically
 async function getAdminUser() {
@@ -62,6 +62,7 @@ export async function GET(req: Request) {
             roleDomain: true,
             department: true,
             phoneNumber: true,
+            employmentType: true,
           },
         },
       },
@@ -158,12 +159,12 @@ export async function POST(req: Request) {
       // Default permissions based on role if none provided
       const defaultPerms = permissions || {
         dashboardAccess: true,
-        attendanceAccess: targetRole !== "INTERN",
-        taskAccess: targetRole !== "INTERN",
-        documentAccess: targetRole !== "INTERN",
+        attendanceAccess: targetRole !== "INTERN" && targetRole !== "EMPLOYEE",
+        taskAccess: targetRole !== "INTERN" && targetRole !== "EMPLOYEE",
+        documentAccess: targetRole !== "INTERN" && targetRole !== "EMPLOYEE",
         approvalAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
         settingsAccess: targetRole === "SUPER_ADMIN",
-        analyticsAccess: targetRole !== "INTERN",
+        analyticsAccess: targetRole !== "INTERN" && targetRole !== "EMPLOYEE",
         onboardingAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
       };
 
