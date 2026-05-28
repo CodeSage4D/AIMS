@@ -12,7 +12,7 @@ export default async function PortfolioPage() {
 
   const userId = (session.user as any).id;
   const userRole = (session.user as any).role || "INTERN";
-  const isOwner = userRole === "INTERN";
+  const isOwner = userRole === "INTERN" || userRole === "EMPLOYEE";
 
   let currentIntern = null;
   let internsList: any[] = [];
