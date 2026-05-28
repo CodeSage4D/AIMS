@@ -157,7 +157,7 @@ export async function POST(req: Request) {
           documentAccess: true,
           approvalAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
           settingsAccess: targetRole === "SUPER_ADMIN",
-          analyticsAccess: targetRole !== "INTERN",
+          analyticsAccess: targetRole !== "INTERN" && targetRole !== "EMPLOYEE",
           onboardingAccess: targetRole === "SUPER_ADMIN" || targetRole === "HR",
         };
 
