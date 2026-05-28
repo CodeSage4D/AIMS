@@ -204,7 +204,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   }, [selectedGeneratedDoc]);
 
   // Custom high-fidelity workspace for regular enrollee Interns
-  if (role === "INTERN") {
+  if (role === "INTERN" || role === "EMPLOYEE") {
     const myRecord = initialInterns[0];
     if (!myRecord) {
       return (
