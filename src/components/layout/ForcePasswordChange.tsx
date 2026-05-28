@@ -65,17 +65,21 @@ export default function ForcePasswordChange() {
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPassword }),
+        // skipTokenInvalidation=true keeps the JWT session alive so user goes
+        // directly to the dashboard without having to log in again.
+        body: JSON.stringify({ newPassword, skipTokenInvalidation: true }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to update password.");
       } else {
-        setSuccess("Password updated successfully! Redirecting to login...");
+        setSuccess("Password set! Taking you to your dashboard...");
+        // Hard navigate to force server-side session re-read (clears changePasswordRequired)
         setTimeout(() => {
-          signOut({ callbackUrl: "/login" });
-        }, 1500);
+          router.push("/");
+          router.refresh();
+        }, 1200);
       }
     } catch (err) {
       setError("An unexpected error occurred during password update.");
