@@ -9,8 +9,8 @@ export async function POST(req: Request) {
   try {
     const forwardedFor = req.headers.get("x-forwarded-for");
     const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
-    const isLocal = ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || ip.endsWith("127.0.0.1");
-    const limit = isLocal ? 1000 : 5;
+    const isLocal = ip === "127.0.0.1" || ip === "::1" || ip === "localhost" || ip.endsWith("127.0.0.1") || ip.startsWith("192.168") || ip.startsWith("10.");
+    const limit = isLocal ? 1000 : 50;
     
     const limiter = rateLimit(ip, limit, 15 * 60 * 1000);
     if (!limiter.success) {
@@ -40,7 +40,8 @@ export async function POST(req: Request) {
       ifscCode,
       branchName,
       upiId,
-      notes
+      notes,
+      employmentType
     } = body;
 
     // 1. Basic required fields checking
@@ -225,6 +226,7 @@ export async function POST(req: Request) {
           startDate: new Date(),
           status: "PENDING_VERIFICATION",
           userId: newUser.id,
+          employmentType: employmentType || "INTERN",
           notes: notes?.trim() || null,
         },
       });

@@ -1,122 +1,171 @@
+export interface City {
+  name: string;
+}
+
+export interface State {
+  name: string;
+  cities: City[];
+}
+
 export interface Country {
   name: string;
   code: string;
   dialCode: string;
   region: string;
-  timezone: string;
-  states: {
-    [stateName: string]: string[];
-  };
+  states: State[];
 }
 
-export const countryData: Country[] = [
+export const COUNTRIES: Country[] = [
   {
     name: "India",
     code: "IN",
     dialCode: "+91",
     region: "Asia",
-    timezone: "Asia/Kolkata",
-    states: {
-      "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik"],
-      "Karnataka": ["Bengaluru", "Mysore", "Hubli", "Mangaluru"],
-      "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Trichy"],
-      "Delhi": ["New Delhi", "Noida", "Gurugram"],
-      "Telangana": ["Hyderabad", "Warangal", "Nizamabad"],
-      "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
-      "West Bengal": ["Kolkata", "Howrah", "Darjeeling"],
-      "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi"],
-      "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"]
-    }
+    states: [
+      {
+        name: "Maharashtra",
+        cities: [{ name: "Mumbai" }, { name: "Pune" }, { name: "Nagpur" }],
+      },
+      {
+        name: "Delhi",
+        cities: [{ name: "New Delhi" }, { name: "Delhi" }],
+      },
+      {
+        name: "Karnataka",
+        cities: [{ name: "Bengaluru" }, { name: "Mysuru" }],
+      },
+      {
+        name: "Tamil Nadu",
+        cities: [{ name: "Chennai" }, { name: "Coimbatore" }],
+      },
+      {
+        name: "Telangana",
+        cities: [{ name: "Hyderabad" }, { name: "Warangal" }],
+      }
+    ],
   },
   {
     name: "United States",
     code: "US",
     dialCode: "+1",
     region: "North America",
-    timezone: "America/New_York",
-    states: {
-      "California": ["Los Angeles", "San Francisco", "San Jose", "San Diego", "Sacramento"],
-      "New York": ["New York City", "Buffalo", "Rochester", "Albany"],
-      "Texas": ["Houston", "Austin", "Dallas", "San Antonio", "Fort Worth"],
-      "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville"],
-      "Illinois": ["Chicago", "Springfield", "Peoria"]
-    }
+    states: [
+      {
+        name: "California",
+        cities: [{ name: "Los Angeles" }, { name: "San Francisco" }, { name: "San Diego" }],
+      },
+      {
+        name: "New York",
+        cities: [{ name: "New York City" }, { name: "Buffalo" }],
+      },
+      {
+        name: "Texas",
+        cities: [{ name: "Houston" }, { name: "Austin" }, { name: "Dallas" }],
+      }
+    ],
   },
   {
     name: "United Kingdom",
     code: "GB",
     dialCode: "+44",
-    region: "EU",
-    timezone: "Europe/London",
-    states: {
-      "England": ["London", "Manchester", "Birmingham", "Leeds", "Liverpool"],
-      "Scotland": ["Edinburgh", "Glasgow", "Aberdeen", "Dundee"],
-      "Wales": ["Cardiff", "Swansea", "Newport"],
-      "Northern Ireland": ["Belfast", "Derry"]
-    }
-  },
-  {
-    name: "Germany",
-    code: "DE",
-    dialCode: "+49",
-    region: "EU",
-    timezone: "Europe/Berlin",
-    states: {
-      "Bavaria": ["Munich", "Nuremberg", "Augsburg"],
-      "Berlin": ["Berlin"],
-      "Hamburg": ["Hamburg"],
-      "North Rhine-Westphalia": ["Cologne", "Düsseldorf", "Dortmund", "Essen"]
-    }
+    region: "Europe",
+    states: [
+      {
+        name: "England",
+        cities: [{ name: "London" }, { name: "Manchester" }, { name: "Birmingham" }],
+      },
+      {
+        name: "Scotland",
+        cities: [{ name: "Edinburgh" }, { name: "Glasgow" }],
+      }
+    ],
   },
   {
     name: "Australia",
     code: "AU",
     dialCode: "+61",
-    region: "Asia-Pacific",
-    timezone: "Australia/Sydney",
-    states: {
-      "New South Wales": ["Sydney", "Newcastle", "Wollongong"],
-      "Victoria": ["Melbourne", "Geelong", "Ballarat"],
-      "Queensland": ["Brisbane", "Gold Coast", "Cairns"],
-      "Western Australia": ["Perth"]
-    }
-  },
-  {
-    name: "Singapore",
-    code: "SG",
-    dialCode: "+65",
-    region: "Asia-Pacific",
-    timezone: "Asia/Singapore",
-    states: {
-      "Central Region": ["Singapore"],
-      "East Region": ["Singapore"],
-      "North Region": ["Singapore"]
-    }
+    region: "Asia Pacific",
+    states: [
+      {
+        name: "New South Wales",
+        cities: [{ name: "Sydney" }, { name: "Newcastle" }],
+      },
+      {
+        name: "Victoria",
+        cities: [{ name: "Melbourne" }, { name: "Geelong" }],
+      }
+    ],
   },
   {
     name: "Canada",
     code: "CA",
     dialCode: "+1",
     region: "North America",
-    timezone: "America/Toronto",
-    states: {
-      "Ontario": ["Toronto", "Ottawa", "Mississauga", "Hamilton"],
-      "British Columbia": ["Vancouver", "Victoria", "Burnaby", "Surrey"],
-      "Quebec": ["Montreal", "Quebec City", "Laval"],
-      "Alberta": ["Calgary", "Edmonton"]
-    }
+    states: [
+      {
+        name: "Ontario",
+        cities: [{ name: "Toronto" }, { name: "Ottawa" }],
+      },
+      {
+        name: "British Columbia",
+        cities: [{ name: "Vancouver" }, { name: "Victoria" }],
+      }
+    ],
   },
   {
-    name: "Japan",
-    code: "JP",
-    dialCode: "+81",
-    region: "Asia-Pacific",
-    timezone: "Asia/Tokyo",
-    states: {
-      "Tokyo": ["Tokyo", "Hachioji"],
-      "Osaka": ["Osaka", "Sakai"],
-      "Kyoto": ["Kyoto"],
-      "Kanagawa": ["Yokohama", "Kawasaki"]
-    }
+    name: "Germany",
+    code: "DE",
+    dialCode: "+49",
+    region: "Europe",
+    states: [
+      {
+        name: "Bavaria",
+        cities: [{ name: "Munich" }, { name: "Nuremberg" }],
+      },
+      {
+        name: "Berlin",
+        cities: [{ name: "Berlin" }],
+      }
+    ],
+  },
+  {
+    name: "Singapore",
+    code: "SG",
+    dialCode: "+65",
+    region: "Asia Pacific",
+    states: [
+      {
+        name: "Singapore",
+        cities: [{ name: "Singapore" }],
+      }
+    ]
+  },
+  {
+    name: "United Arab Emirates",
+    code: "AE",
+    dialCode: "+971",
+    region: "Middle East",
+    states: [
+      {
+        name: "Dubai",
+        cities: [{ name: "Dubai" }],
+      },
+      {
+        name: "Abu Dhabi",
+        cities: [{ name: "Abu Dhabi" }],
+      }
+    ]
   }
 ];
+
+// Fallback timezones based on country code
+export const TIMEZONES: Record<string, string> = {
+  "IN": "Asia/Kolkata",
+  "US": "America/New_York",
+  "GB": "Europe/London",
+  "AU": "Australia/Sydney",
+  "CA": "America/Toronto",
+  "DE": "Europe/Berlin",
+  "SG": "Asia/Singapore",
+  "AE": "Asia/Dubai"
+};

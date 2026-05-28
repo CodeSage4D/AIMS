@@ -48,17 +48,22 @@ export default async function DashboardPage() {
 
   // Check Dashboard Access Permission
   const { hasPermission } = await import("@/lib/permissions");
-  const canAccessDashboard = await hasPermission(userId, userRole, "dashboardAccess");
+  let canAccessDashboard = await hasPermission(userId, userRole, "dashboardAccess");
+
+  // Safe fallback: Any recognized intern/employee role should never be suspended from their own basic dashboard
+  if (userRole === "INTERN" || userRole === "EMPLOYEE") {
+    canAccessDashboard = true;
+  }
 
   if (!canAccessDashboard) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center px-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center px-4 select-none">
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-400">
           <AlertTriangle className="h-12 w-12" />
         </div>
         <h2 className="text-xl font-heading font-extrabold text-white">Dashboard Access Suspended</h2>
         <p className="text-sm text-gray-400 max-w-md leading-relaxed font-medium">
-          Your administrative or intern account currently does not have active dashboard access privileges. Please contact your AIMS System Founder or Super Admin to restore access.
+          Your account currently does not have active dashboard access privileges. Please contact your AIMS System Founder or Super Admin to restore access.
         </p>
       </div>
     );

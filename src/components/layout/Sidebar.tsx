@@ -17,7 +17,8 @@ import {
   Layers,
   ClipboardList,
   Fingerprint,
-  ShieldCheck
+  ShieldCheck,
+  User,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -36,13 +37,14 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   // Dynamic Navigation Links Schema based on roles
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
+    { label: "View Profile", href: "/profile", icon: User },
     ...(user.role === "FOUNDER" ? [{ label: "Founder Panel", href: "/founder", icon: ClipboardList }] : []),
     ...(user.role !== "INTERN" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
-    ...(user.role !== "INTERN" ? [{ label: "Attendance Roll", href: "/attendance", icon: Calendar }] : []),
-    { label: "Task Queue", href: "/tasks", icon: CheckSquare },
+    { label: "Attendance", href: "/attendance", icon: Calendar },
+    { label: "Task Logs", href: "/tasks", icon: CheckSquare },
     { label: "Daily Logs", href: "/daily-logs", icon: ClipboardList },
     { label: "Teams & Members", href: "/teams", icon: Layers },
-    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Document Vault", href: "/documents", icon: FileText }] : []),
+    { label: "Documents", href: "/documents", icon: FileText },
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Administration", href: "/administration", icon: ShieldCheck }] : []),
   ];

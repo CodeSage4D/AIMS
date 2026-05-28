@@ -6,8 +6,11 @@ import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark, Copy } from "lucide-react";
+import { Lock, Mail, AlertTriangle, User, Phone, Briefcase, Layers, ChevronLeft, CheckCircle, Sun, Moon, MapPin, CreditCard, Building2, Landmark, Copy, Users } from "lucide-react";
 import AdvancedLocationSelector from "@/components/ui/AdvancedLocationSelector";
+import { ROLE_CODES } from "@/lib/roles";
+
+const sortedRoles = Object.keys(ROLE_CODES).sort();
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,7 +21,8 @@ export default function SignupPage() {
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
   const [department, setDepartment] = useState("Software Engineering");
-  const [requestedPosition, setRequestedPosition] = useState("");
+  const [requestedPosition, setRequestedPosition] = useState("Software Engineer");
+  const [employmentType, setEmploymentType] = useState("INTERN");
   const [pinCode, setPinCode] = useState("");
   const [country, setCountry] = useState("India");
   const [state, setState] = useState("Maharashtra");
@@ -221,6 +225,7 @@ export default function SignupPage() {
           branchName,
           upiId,
           notes, // Submit plain text candidate notes
+          employmentType,
         }),
       });
 
@@ -574,27 +579,66 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                {/* Requested Position Entry */}
-                <div className="relative group flex flex-col">
-                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
-                    currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                {/* Employment Type Dropdown */}
+                <div className="relative flex flex-col">
+                  <label className={`text-xs font-semibold mb-1.5 transition-colors ${
+                    currentTheme === "dark" ? "text-gray-300" : "text-slate-700"
                   }`}>
-                    <Briefcase className="h-4 w-4" />
+                    Employment Type
+                  </label>
+                  <div className="relative">
+                    <div className={`absolute left-4 top-3.5 transition-colors duration-300 pointer-events-none z-10 ${
+                      currentTheme === "dark" ? "text-gray-400" : "text-slate-400"
+                    }`}>
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <select
+                      value={employmentType}
+                      onChange={(e) => setEmploymentType(e.target.value)}
+                      className={`pl-11 pr-4 h-11 w-full text-xs rounded-xl border appearance-none transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                        currentTheme === "dark"
+                          ? "bg-[#0f172a] border-white/10 text-white hover:border-white/20"
+                          : "bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300"
+                      }`}
+                      disabled={loading}
+                      required
+                    >
+                      <option value="INTERN">Intern</option>
+                      <option value="PERMANENT">Employee (Permanent)</option>
+                      <option value="CONTRACT">Contractual / Freelance</option>
+                    </select>
                   </div>
-                  <Input
-                    label="Requested Workspace Role Domain"
-                    type="text"
-                    placeholder="e.g. Software Engineer Intern"
-                    value={requestedPosition}
-                    onChange={(e) => setRequestedPosition(e.target.value)}
-                    className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
-                      currentTheme === "dark"
-                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
-                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
-                    }`}
-                    disabled={loading}
-                    required
-                  />
+                </div>
+
+                {/* Requested Position Entry (Select) */}
+                <div className="relative flex flex-col">
+                  <label className={`text-xs font-semibold mb-1.5 transition-colors ${
+                    currentTheme === "dark" ? "text-gray-300" : "text-slate-700"
+                  }`}>
+                    Requested Workspace Role Domain
+                  </label>
+                  <div className="relative">
+                    <div className={`absolute left-4 top-3.5 transition-colors duration-300 pointer-events-none z-10 ${
+                      currentTheme === "dark" ? "text-gray-400" : "text-slate-400"
+                    }`}>
+                      <Briefcase className="h-4 w-4" />
+                    </div>
+                    <select
+                      value={requestedPosition}
+                      onChange={(e) => setRequestedPosition(e.target.value)}
+                      className={`pl-11 pr-4 h-11 w-full text-xs rounded-xl border appearance-none transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                        currentTheme === "dark"
+                          ? "bg-[#0f172a] border-white/10 text-white hover:border-white/20"
+                          : "bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300"
+                      }`}
+                      disabled={loading}
+                      required
+                    >
+                      {sortedRoles.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Advanced Location Selector Integration */}

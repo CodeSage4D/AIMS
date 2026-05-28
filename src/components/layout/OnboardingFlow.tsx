@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Fingerprint,
   RotateCw,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AdvancedLocationSelector from "@/components/ui/AdvancedLocationSelector";
@@ -355,8 +356,9 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <label className="text-[10px] font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-                    Gender *
+                  <label className="text-[10px] font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <span>Gender</span>
+                    <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />
                   </label>
                   <select
                     name="gender"
@@ -500,7 +502,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
               <div className="space-y-3 pt-4 border-t border-white/[0.04]">
                 <h4 className="text-[10px] font-heading font-extrabold text-muted-foreground uppercase tracking-widest text-primary flex items-center space-x-1.5">
                   <UploadCloud className="h-4 w-4 shrink-0" />
-                  <span>Resume Compliance Upload *</span>
+                  <span className="flex items-center gap-1">Resume Compliance Upload <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" /></span>
                 </h4>
                 
                 <div className="p-5 rounded-2xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.02] flex flex-col items-center justify-center text-center space-y-3 transition-colors relative">

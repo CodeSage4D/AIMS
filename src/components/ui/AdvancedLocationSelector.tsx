@@ -1,24 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { countryData } from "@/lib/countryData";
-import { Input } from "./Input";
-import { Clock, MapPin, Globe, Phone, Sparkles } from "lucide-react";
+import { COUNTRIES, TIMEZONES } from "@/lib/countryData";
+import { Clock, Globe, MapPin, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AdvancedLocationSelectorProps {
   country: string;
   state: string;
   city: string;
   region: string;
-  phoneNumber: string;
-  onCountryChange: (val: string) => void;
-  onStateChange: (val: string) => void;
-  onCityChange: (val: string) => void;
-  onRegionChange: (val: string) => void;
-  onPhoneNumberChange: (val: string) => void;
-  currentTheme?: "light" | "dark";
+  phoneNumber: string; // The full string, or we split it? Let's just manage full string inside or pass it.
+  onChange: (fields: { country: string; state: string; city: string; region: string; phoneNumber: string }) => void;
   disabled?: boolean;
-  required?: boolean;
 }
 
 export default function AdvancedLocationSelector({
@@ -27,363 +21,223 @@ export default function AdvancedLocationSelector({
   city,
   region,
   phoneNumber,
-  onCountryChange,
-  onStateChange,
-  onCityChange,
-  onRegionChange,
-  onPhoneNumberChange,
-  currentTheme = "dark",
+  onChange,
   disabled = false,
-  required = true,
 }: AdvancedLocationSelectorProps) {
-  // Local state to manage the split dial code and phone number suffix
-  const [selectedDialCode, setSelectedDialCode] = useState("+91");
-  const [phoneSuffix, setPhoneSuffix] = useState("");
-  const [timeState, setTimeState] = useState({ ist: "", local: "", localZoneName: "" });
+  // Extract dial code and actual number from phoneNumber if possible
+  const [dialCode, setDialCode] = useState("+91");
+  const [localNumber, setLocalNumber] = useState("");
 
-  // Sync / Parse phoneNumber from parent
+  const [currentTimeIST, setCurrentTimeIST] = useState("");
+  const [currentLocalTime, setCurrentLocalTime] = useState("");
+
+  const selectedCountryObj = COUNTRIES.find((c) => c.name === country) || COUNTRIES[0];
+  const states = selectedCountryObj?.states || [];
+  const selectedStateObj = states.find((s) => s.name === state) || states[0];
+  const cities = selectedStateObj?.cities || [];
+
+  // Parse initial phone number once
   useEffect(() => {
-    if (!phoneNumber) {
-      setPhoneSuffix("");
-      return;
-    }
-    // Try to find if phoneNumber starts with any dialCode in countryData
-    const sortedCountries = [...countryData].sort((a, b) => b.dialCode.length - a.dialCode.length);
-    const matched = sortedCountries.find((c) => phoneNumber.startsWith(c.dialCode));
-    if (matched) {
-      setSelectedDialCode(matched.dialCode);
-      setPhoneSuffix(phoneNumber.slice(matched.dialCode.length).trim());
-    } else {
-      // Default fallback if no match
-      setPhoneSuffix(phoneNumber);
-    }
-  }, [phoneNumber]);
-
-  // When selected country changes, auto-populate region and dialing code
-  const handleCountrySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = e.target.value;
-    onCountryChange(selectedName);
-
-    const countryObj = countryData.find((c) => c.name === selectedName);
-    if (countryObj) {
-      onRegionChange(countryObj.region);
-      setSelectedDialCode(countryObj.dialCode);
-      // Auto trigger state / city reset if predefined
-      const availableStates = Object.keys(countryObj.states);
-      if (availableStates.length > 0) {
-        onStateChange(availableStates[0]);
-        const cities = countryObj.states[availableStates[0]];
-        if (cities && cities.length > 0) {
-          onCityChange(cities[0]);
-        } else {
-          onCityChange("");
-        }
+    if (phoneNumber) {
+      const match = COUNTRIES.find((c) => phoneNumber.startsWith(c.dialCode));
+      if (match) {
+        setDialCode(match.dialCode);
+        setLocalNumber(phoneNumber.slice(match.dialCode.length).trim());
       } else {
-        onStateChange("");
-        onCityChange("");
-      }
-
-      // Propagate new phone with new dialCode
-      onPhoneNumberChange(countryObj.dialCode + phoneSuffix);
-    }
-  };
-
-  const handleStateSelect = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    const selectedState = e.target.value;
-    onStateChange(selectedState);
-
-    const countryObj = countryData.find((c) => c.name === country);
-    if (countryObj && countryObj.states[selectedState]) {
-      const cities = countryObj.states[selectedState];
-      if (cities && cities.length > 0) {
-        onCityChange(cities[0]);
-      } else {
-        onCityChange("");
+        setLocalNumber(phoneNumber);
       }
     }
-  };
+  }, []);
 
-  const handlePhoneSuffixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.replace(/[^0-9]/g, ""); // allow only digits
-    setPhoneSuffix(rawVal);
-    onPhoneNumberChange(selectedDialCode + rawVal);
-  };
-
-  const handleDialCodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCode = e.target.value;
-    setSelectedDialCode(newCode);
-    onPhoneNumberChange(newCode + phoneSuffix);
-  };
-
-  // Live clock tick
+  // Time station effect
   useEffect(() => {
-    const updateClocks = () => {
+    const timer = setInterval(() => {
       const now = new Date();
-      // IST Clock formatting
-      const istOptions: Intl.DateTimeFormatOptions = {
-        timeZone: "Asia/Kolkata",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      };
-      const istStr = now.toLocaleTimeString("en-US", istOptions);
-
-      // Selected country local clock formatting
-      const countryObj = countryData.find((c) => c.name === country);
-      let localStr = "";
-      let localZoneName = "";
-
-      if (countryObj && countryObj.timezone) {
-        localZoneName = countryObj.timezone;
+      // IST
+      const istOptions: Intl.DateTimeFormatOptions = { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      setCurrentTimeIST(now.toLocaleTimeString("en-US", istOptions));
+      
+      // Local time if not India
+      if (selectedCountryObj && selectedCountryObj.code !== "IN") {
+        const tz = TIMEZONES[selectedCountryObj.code] || "UTC";
         try {
-          const localOptions: Intl.DateTimeFormatOptions = {
-            timeZone: countryObj.timezone,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          };
-          localStr = now.toLocaleTimeString("en-US", localOptions);
+          const localOptions: Intl.DateTimeFormatOptions = { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+          setCurrentLocalTime(now.toLocaleTimeString("en-US", localOptions));
         } catch (e) {
-          localStr = istStr;
-          localZoneName = "Asia/Kolkata";
+          setCurrentLocalTime("");
         }
+      } else {
+        setCurrentLocalTime("");
       }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [selectedCountryObj]);
 
-      setTimeState({ ist: istStr, local: localStr, localZoneName });
-    };
+  const updateFields = (updates: any) => {
+    const newCountry = updates.country !== undefined ? updates.country : country;
+    const newState = updates.state !== undefined ? updates.state : state;
+    const newCity = updates.city !== undefined ? updates.city : city;
+    const newRegion = updates.region !== undefined ? updates.region : region;
+    const newDialCode = updates.dialCode !== undefined ? updates.dialCode : dialCode;
+    const newLocalNumber = updates.localNumber !== undefined ? updates.localNumber : localNumber;
+    
+    onChange({
+      country: newCountry,
+      state: newState,
+      city: newCity,
+      region: newRegion,
+      phoneNumber: `${newDialCode} ${newLocalNumber}`.trim(),
+    });
+  };
 
-    updateClocks();
-    const interval = setInterval(updateClocks, 1000);
-    return () => clearInterval(interval);
-  }, [country]);
-
-  const selectedCountryObj = countryData.find((c) => c.name === country);
-  const statesList = selectedCountryObj ? Object.keys(selectedCountryObj.states) : [];
-  const citiesList = (selectedCountryObj && state && selectedCountryObj.states[state])
-    ? selectedCountryObj.states[state]
-    : [];
-
-  const isDark = currentTheme === "dark";
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCountryName = e.target.value;
+    const cObj = COUNTRIES.find((c) => c.name === newCountryName);
+    if (cObj) {
+      setDialCode(cObj.dialCode);
+      updateFields({
+        country: cObj.name,
+        region: cObj.region,
+        state: "",
+        city: "",
+        dialCode: cObj.dialCode
+      });
+    }
+  };
 
   return (
-    <div className="space-y-4 w-full">
-      {/* Country Selection */}
-      <div className="relative flex flex-col space-y-1.5">
-        <label className={`text-xs font-heading font-semibold uppercase tracking-wider select-none flex items-center space-x-1.5 ${
-          isDark ? "text-gray-300" : "text-slate-700"
-        }`}>
-          <Globe className="h-3.5 w-3.5 text-primary" />
-          <span>Country of Residence</span>
-          {required && <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />}
-        </label>
-        <select
-          value={country}
-          onChange={handleCountrySelect}
-          disabled={disabled}
-          className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-            isDark
-              ? "border-white/10 bg-[#0f172a] text-white focus:border-primary"
-              : "border-slate-200 bg-white text-slate-900 focus:border-primary"
-          }`}
-        >
-          {countryData.map((c) => (
-            <option key={c.name} value={c.name}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-          <option value="Other">Other</option>
-        </select>
+    <div className="space-y-5 animate-fadeIn">
+      <div className="flex items-center space-x-2 text-cyan-600 dark:text-cyan-400 mb-2">
+        <Globe className="h-5 w-5" />
+        <h4 className="text-sm font-heading font-extrabold tracking-wide uppercase">Location & Contact Station</h4>
       </div>
 
-      {/* State & City & Region Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* State Selection */}
-        <div className="relative flex flex-col space-y-1.5">
-          <label className={`text-xs font-heading font-semibold uppercase tracking-wider select-none flex items-center space-x-1.5 ${
-            isDark ? "text-gray-300" : "text-slate-700"
-          }`}>
-            <MapPin className="h-3.5 w-3.5 text-indigo-400" />
-            <span>State / Territory</span>
-            {required && <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Country */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1">
+            <span>Country</span>
+            <Sparkles className="h-3 w-3 text-cyan-500" />
           </label>
-          {statesList.length > 0 ? (
-            <select
-              value={state}
-              onChange={handleStateSelect}
-              disabled={disabled}
-              className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                isDark
-                  ? "border-white/10 bg-[#0f172a] text-white focus:border-primary"
-                  : "border-slate-200 bg-white text-slate-900 focus:border-primary"
-              }`}
-            >
-              {statesList.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={state}
-              onChange={(e) => onStateChange(e.target.value)}
-              disabled={disabled}
-              placeholder="Enter State"
-              required={required}
-              className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                isDark
-                  ? "border-white/10 bg-[#0f172a] text-white placeholder-gray-500 focus:border-primary"
-                  : "border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-primary"
-              }`}
-            />
-          )}
+          <select
+            disabled={disabled}
+            value={country}
+            onChange={handleCountryChange}
+            className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
+          >
+            <option value="">Select Country</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.name}>{c.name}</option>
+            ))}
+          </select>
         </div>
 
-        {/* City Selection */}
-        <div className="relative flex flex-col space-y-1.5">
-          <label className={`text-xs font-heading font-semibold uppercase tracking-wider select-none flex items-center space-x-1.5 ${
-            isDark ? "text-gray-300" : "text-slate-700"
-          }`}>
-            <MapPin className="h-3.5 w-3.5 text-blue-400" />
+        {/* State */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1">
+            <span>State / Province</span>
+            <Sparkles className="h-3 w-3 text-cyan-500" />
+          </label>
+          <select
+            disabled={disabled || !country}
+            value={state}
+            onChange={(e) => updateFields({ state: e.target.value, city: "" })}
+            className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
+          >
+            <option value="">Select State</option>
+            {states.map((s) => (
+              <option key={s.name} value={s.name}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* City */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1">
             <span>City</span>
-            {required && <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />}
+            <Sparkles className="h-3 w-3 text-cyan-500" />
           </label>
-          {citiesList.length > 0 ? (
-            <select
-              value={city}
-              onChange={(e) => onCityChange(e.target.value)}
-              disabled={disabled}
-              className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                isDark
-                  ? "border-white/10 bg-[#0f172a] text-white focus:border-primary"
-                  : "border-slate-200 bg-white text-slate-900 focus:border-primary"
-              }`}
-            >
-              {citiesList.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => onCityChange(e.target.value)}
-              disabled={disabled}
-              placeholder="Enter City"
-              required={required}
-              className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                isDark
-                  ? "border-white/10 bg-[#0f172a] text-white placeholder-gray-500 focus:border-primary"
-                  : "border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-primary"
-              }`}
-            />
-          )}
+          <select
+            disabled={disabled || !state}
+            value={city}
+            onChange={(e) => updateFields({ city: e.target.value })}
+            className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
+          >
+            <option value="">Select City</option>
+            {cities.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Region (Read-only if predefined country, editable if Other) */}
-        <div className="relative flex flex-col space-y-1.5">
-          <label className={`text-xs font-heading font-semibold uppercase tracking-wider select-none ${
-            isDark ? "text-gray-300" : "text-slate-700"
-          }`}>
+        {/* Region */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
             Region
           </label>
-          <input
-            type="text"
-            value={region}
-            onChange={(e) => onRegionChange(e.target.value)}
-            readOnly={!!selectedCountryObj}
-            disabled={disabled}
-            placeholder="Region (e.g. Asia, EU)"
-            className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-              isDark
-                ? "border-white/10 bg-[#0f172a] text-white placeholder-gray-500 focus:border-primary"
-                : "border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-primary"
-            } ${selectedCountryObj ? "opacity-60 cursor-not-allowed" : ""}`}
-          />
-        </div>
-      </div>
-
-      {/* Phone Number Field */}
-      <div className="relative flex flex-col space-y-1.5">
-        <label className={`text-xs font-heading font-semibold uppercase tracking-wider select-none flex items-center space-x-1.5 ${
-          isDark ? "text-gray-300" : "text-slate-700"
-        }`}>
-          <Phone className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Mobile Phone Number</span>
-          {required && <Sparkles className="h-3 w-3 text-indigo-500 fill-indigo-500/20 shrink-0" />}
-        </label>
-        <div className="flex space-x-2">
-          {/* Dialing Code Selector */}
-          <select
-            value={selectedDialCode}
-            onChange={handleDialCodeChange}
-            disabled={disabled}
-            className={`flex h-11 w-28 rounded-md border px-2 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary shrink-0 ${
-              isDark
-                ? "border-white/10 bg-[#0f172a] text-white focus:border-primary"
-                : "border-slate-200 bg-white text-slate-900 focus:border-primary"
-            }`}
-          >
-            {countryData.map((c) => (
-              <option key={`${c.name}-dial`} value={c.dialCode}>
-                {c.dialCode} ({c.code})
-              </option>
-            ))}
-            <option value="+1">+1 (NA)</option>
-            <option value="+44">+44 (UK)</option>
-            <option value="+91">+91 (IN)</option>
-          </select>
-
-          {/* Suffix Number Input */}
-          <input
-            type="tel"
-            value={phoneSuffix}
-            onChange={handlePhoneSuffixChange}
-            disabled={disabled}
-            required={required}
-            placeholder={country.toLowerCase() === "india" ? "98765 43210" : "0123 4567"}
-            className={`flex h-11 w-full rounded-md border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-              isDark
-                ? "border-white/10 bg-[#0f172a] text-white placeholder-gray-500 focus:border-primary"
-                : "border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-primary"
-            }`}
-          />
-        </div>
-      </div>
-
-      {/* Live Clocks Station */}
-      <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2 ${
-        isDark
-          ? "bg-slate-900/40 border-white/[0.06] text-white"
-          : "bg-slate-50 border-slate-200 text-slate-800"
-      }`}>
-        <div className="flex items-center space-x-2 shrink-0">
-          <Clock className="h-4.5 w-4.5 text-primary shrink-0 animate-pulse" />
-          <span className="text-xs font-bold font-heading uppercase tracking-wide">
-            Live Global Clock Station
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
-          {/* India IST Clock */}
-          <div className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-            <span className="text-[10px] text-muted-foreground mr-1 uppercase">IST (India):</span>
-            <span>{timeState.ist || "--:--:--"}</span>
+          <div className="flex h-11 w-full items-center rounded-md border border-border bg-secondary/50 px-3.5 py-2 text-sm text-muted-foreground cursor-not-allowed font-medium">
+            <MapPin className="h-4 w-4 mr-2 opacity-50" />
+            {region || "Select a country"}
           </div>
+        </div>
+      </div>
 
-          {/* Selected Country local Clock (Only if outside India) */}
-          {country !== "India" && timeState.local && (
-            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 animate-fadeIn">
-              <span className="text-[10px] text-muted-foreground mr-1 uppercase">
-                Local ({country}):
-              </span>
-              <span>{timeState.local}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        {/* Phone Number */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center space-x-1">
+            <span>Contact Number</span>
+            <Sparkles className="h-3 w-3 text-cyan-500" />
+          </label>
+          <div className="flex">
+            <select
+              disabled={disabled}
+              value={dialCode}
+              onChange={(e) => {
+                setDialCode(e.target.value);
+                updateFields({ dialCode: e.target.value });
+              }}
+              className="flex h-11 w-24 rounded-l-md border border-r-0 border-border bg-secondary/30 px-2 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 font-mono font-bold"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.dialCode}>{c.code} ({c.dialCode})</option>
+              ))}
+            </select>
+            <input
+              disabled={disabled}
+              type="text"
+              placeholder="Phone number"
+              value={localNumber}
+              onChange={(e) => {
+                setLocalNumber(e.target.value);
+                updateFields({ localNumber: e.target.value });
+              }}
+              className="flex h-11 w-full rounded-r-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 font-mono"
+            />
+          </div>
+        </div>
+
+        {/* Dynamic Time Station */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
+            Time Station Sync
+          </label>
+          <div className="flex h-11 w-full items-center justify-between rounded-md border border-indigo-500/20 bg-indigo-500/5 px-3.5 py-2 text-sm shadow-sm overflow-hidden">
+            <div className="flex items-center space-x-2 w-1/2 border-r border-indigo-500/20">
+              <Clock className="h-4 w-4 text-indigo-400" />
+              <div className="flex flex-col leading-none justify-center">
+                <span className="text-[9px] font-bold text-indigo-400 uppercase">India (IST)</span>
+                <span className="font-mono font-semibold text-indigo-300 text-xs">{currentTimeIST || "--:--:--"}</span>
+              </div>
             </div>
-          )}
+            <div className="flex items-center space-x-2 pl-3 w-1/2">
+              <Clock className="h-4 w-4 text-emerald-400" />
+              <div className="flex flex-col leading-none justify-center">
+                <span className="text-[9px] font-bold text-emerald-400 uppercase">{selectedCountryObj.code !== "IN" ? selectedCountryObj.name : "Local"}</span>
+                <span className="font-mono font-semibold text-emerald-300 text-xs">{selectedCountryObj.code !== "IN" ? currentLocalTime || "--:--:--" : "Matches IST"}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
