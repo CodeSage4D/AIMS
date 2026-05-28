@@ -1626,7 +1626,17 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       ))}
                     </div>
                   </div>
-                ));
+                ))
+              )}
+                  </div>
+                );
+
+                return (
+                  <div className="space-y-8">
+                    {renderGroups(pendingGroups, "Pending Approval", "No documents are pending approval.", "text-amber-500")}
+                    {renderGroups(completedGroups, "Completed Documents", "No completed documents yet.", "text-emerald-500")}
+                  </div>
+                );
               })()}</div>
           </Card>
         </div>
