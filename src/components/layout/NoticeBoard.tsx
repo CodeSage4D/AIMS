@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Megaphone, Award, Gift, Calendar, Bell, Plus, X } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface NoticeItem {
   id: string;
@@ -140,7 +141,7 @@ export default function NoticeBoard({ announcements, anniversaries, userRole }: 
                         </h4>
                         <span className="text-[9px] text-muted-foreground font-semibold flex items-center space-x-1 shrink-0 mt-0.5 sm:mt-0">
                           <Calendar className="h-3 w-3" />
-                          <span>{new Date(notice.date).toLocaleDateString()}</span>
+                          <span>{formatDate(notice.date)}</span>
                         </span>
                       </div>
                       {notice.description && (
