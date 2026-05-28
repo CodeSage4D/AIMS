@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fix:permissions": "npx tsx prisma/fix-intern-permissions.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
