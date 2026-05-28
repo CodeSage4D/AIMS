@@ -205,7 +205,7 @@ export default async function DashboardPage() {
   // ----------------------------------------------------
   // INTERN DASHBOARD RENDER PATH
   // ----------------------------------------------------
-  if (userRole === "INTERN") {
+  if (userRole === "INTERN" || userRole === "EMPLOYEE") {
     if (!userId) {
       return (
         <div className="flex items-center justify-center min-h-[60vh] text-center p-6">
