@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
-    if (userRole === "INTERN" || !(await hasPermission(userId, userRole, "attendanceAccess"))) {
+    if (userRole === "INTERN" || userRole === "EMPLOYEE" || !(await hasPermission(userId, userRole, "attendanceAccess"))) {
       return NextResponse.json(
         { error: "Forbidden. Access restricted." },
         { status: 403 }
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
-    if (role === "INTERN" || !(await hasPermission(userId, role, "attendanceAccess"))) {
+    if (role === "INTERN" || role === "EMPLOYEE" || !(await hasPermission(userId, role, "attendanceAccess"))) {
       return NextResponse.json(
         { error: "Forbidden. Only authorized accounts with attendance write permissions can modify bulk attendance." },
         { status: 403 }
