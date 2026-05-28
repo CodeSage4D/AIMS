@@ -39,13 +39,13 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "View Profile", href: "/profile", icon: User },
     ...(user.role === "FOUNDER" ? [{ label: "Founder Panel", href: "/founder", icon: ClipboardList }] : []),
-    ...(user.role !== "INTERN" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
+    ...(user.role !== "INTERN" && user.role !== "EMPLOYEE" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
     { label: "Attendance", href: "/attendance", icon: Calendar },
     { label: "Task Logs", href: "/tasks", icon: CheckSquare },
     { label: "Daily Logs", href: "/daily-logs", icon: ClipboardList },
     { label: "Teams & Members", href: "/teams", icon: Layers },
     { label: "Documents", href: "/documents", icon: FileText },
-    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
+    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Roles & Permissions", href: "/permissions", icon: Fingerprint }] : []),
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Administration", href: "/administration", icon: ShieldCheck }] : []),
   ];
 
