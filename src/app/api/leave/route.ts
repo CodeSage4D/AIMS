@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const role = (session.user as any).role;
     const hasApprovalAccess = await hasPermission(userId, role, "approvalAccess");
 
-    if (role === "INTERN") {
+    if (role === "INTERN" || role === "EMPLOYEE") {
       // Find the corresponding intern profile
       const intern = await db.intern.findUnique({
         where: { userId },
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
 
-    if (role !== "INTERN") {
+    if (role !== "INTERN" && role !== "EMPLOYEE") {
       return NextResponse.json({ error: "Only interns can apply for leaves." }, { status: 403 });
     }
 
@@ -144,7 +144,7 @@ export async function PATCH(request: Request) {
 
     // Check approvalAccess permission
     const hasApprovalAccess = await hasPermission(userId, role, "approvalAccess");
-    if (role === "INTERN" || !hasApprovalAccess) {
+    if (role === "INTERN" || role === "EMPLOYEE" || !hasApprovalAccess) {
       return NextResponse.json({ error: "Forbidden. Only authorized managers can resolve leave requests." }, { status: 403 });
     }
 
