@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { newPassword } = await request.json();
+    const { newPassword, skipTokenInvalidation } = await request.json();
     if (!newPassword || !validatePassword(newPassword)) {
       return NextResponse.json(
         { error: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character." },
@@ -23,13 +23,21 @@ export async function POST(request: Request) {
     const userId = (session.user as any).id;
     const passwordHash = bcrypt.hashSync(newPassword, 10);
 
+    // When skipTokenInvalidation=true (force-first-login change), we don't bump
+    // tokenVersion so the user's current JWT session stays valid and they go
+    // directly to the dashboard without being forced to log in again.
+    const updateData: any = {
+      passwordHash,
+      changePasswordRequired: false,
+    };
+
+    if (!skipTokenInvalidation) {
+      updateData.tokenVersion = { increment: 1 };
+    }
+
     await db.user.update({
       where: { id: userId },
-      data: {
-        passwordHash,
-        changePasswordRequired: false,
-        tokenVersion: { increment: 1 },
-      },
+      data: updateData,
     });
 
     await db.activityLog.create({
