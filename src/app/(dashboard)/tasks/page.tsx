@@ -71,7 +71,7 @@ export default async function TasksPage() {
         },
         orderBy: { createdAt: "desc" },
       });
-    } else if (userRole === "INTERN") {
+    } else if (userRole === "INTERN" || userRole === "EMPLOYEE") {
       const internProfile = await db.intern.findUnique({
         where: { userId },
       });
