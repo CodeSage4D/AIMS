@@ -55,7 +55,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
 
   // Role validation helpers
   const isManager = userRole === "FOUNDER" || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || userRole === "HR" || userRole === "TEAM_LEAD";
-  const isIntern = userRole === "INTERN";
+  const isIntern = userRole === "INTERN" || userRole === "EMPLOYEE";
 
   // Modal open/close state
   const [isModalOpen, setIsModalOpen] = useState(false);
