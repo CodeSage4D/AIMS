@@ -138,7 +138,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.role = (user as any).role;
         token.id = user.id;
         token.changePasswordRequired = (user as any).changePasswordRequired;
-        token.tokenVersion = (user as any).tokenVersion;
+        token.tokenVersion = (user as any).tokenVersion ?? 0;
       } else if (token.id) {
         // Skip DB lookups in the Edge runtime (middleware) to prevent Prisma errors
         if (process.env.NEXT_RUNTIME !== "edge") {
@@ -148,17 +148,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               select: { role: true, changePasswordRequired: true, tokenVersion: true },
             });
             if (freshUser) {
-              if (token.tokenVersion !== freshUser.tokenVersion) {
+              // Treat missing tokenVersion in token as 0 (backward-compatible with old sessions)
+              const tokenVer = (token.tokenVersion as number) ?? 0;
+              const dbVer = freshUser.tokenVersion ?? 0;
+              if (tokenVer !== dbVer) {
                 return {} as any;
               }
               token.role = freshUser.role;
               token.changePasswordRequired = freshUser.changePasswordRequired;
-              token.tokenVersion = freshUser.tokenVersion;
+              token.tokenVersion = freshUser.tokenVersion ?? 0;
             } else {
               return {} as any;
             }
           } catch (err) {
-            console.warn("[AUTH JWT] Database lookup failed:", err);
+            // On DB error, keep existing token rather than killing the session
+            console.warn("[AUTH JWT] Database lookup failed, keeping existing token:", err);
           }
         }
       }
