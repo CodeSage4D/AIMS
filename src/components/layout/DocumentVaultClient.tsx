@@ -1256,7 +1256,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <th className="py-4 px-6 w-[260px] min-w-[260px]">Enrollee Profile</th>
                   <th className="py-4 px-6 w-[220px] min-w-[220px]">Department / Supervisor</th>
                   <th className="py-4 px-6 text-center min-w-[740px]">Compliance Roster</th>
-                  <th className="py-4 px-6 w-[130px] min-w-[130px] text-center sticky right-0 bg-[#0d1225] dark:bg-[#0c1220] z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">Actions</th>
+                  <th className="py-4 px-6 w-[130px] min-w-[130px] text-center bg-[#0d1225] dark:bg-[#0c1220]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30 text-xs font-medium text-muted-foreground">
@@ -1270,64 +1270,82 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     </td>
                   </tr>
                 ) : (
-                  filteredInterns.map((intern) => (
-                    <tr key={intern.id} className="group hover:bg-secondary/10 hover:text-foreground transition-colors duration-150">
-                      <td className="py-4 px-6 w-[260px] min-w-[260px]">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground text-sm">{intern.fullName}</span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">{intern.internId || intern.id} • {intern.email}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 w-[220px] min-w-[220px]">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground">{intern.department}</span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">
-                            Mentored by: {intern.supervisor?.fullName || "Unassigned"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 min-w-[740px]">
-                        <div className="flex items-center justify-start space-x-2.5">
-                          {REQUIRED_DOCS.map((docType) => {
-                            const state = getDocStatus(intern, docType.type);
-                            return (
-                              <div
-                                key={docType.type}
-                                title={`${docType.label}: ${state.status.toUpperCase()}`}
-                                className={cn(
-                                  "flex flex-col items-center space-y-1.5 p-2 rounded-lg select-none shrink-0 min-w-16 transition-all duration-200 hover:scale-105",
-                                  state.status === "verified"
-                                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
-                                    : state.status === "pending"
-                                    ? "bg-amber-500/10 border border-amber-500/30 text-amber-400"
-                                    : "bg-slate-500/5 border border-slate-500/20 text-slate-400 dark:text-slate-400"
-                                )}
-                              >
-                                <span className="text-[8px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                                  {docType.type.split("_")[0]}
-                                </span>
-                                {state.element}
+                  (() => {
+                    const grouped = filteredInterns.reduce((acc, intern) => {
+                      const dept = intern.department || "Unassigned";
+                      if (!acc[dept]) acc[dept] = [];
+                      acc[dept].push(intern);
+                      return acc;
+                    }, {} as Record<string, InternRecord[]>);
+
+                    return Object.entries(grouped).map(([dept, interns]) => (
+                      <React.Fragment key={dept}>
+                        <tr className="bg-primary/5 border-y border-primary/10">
+                          <td colSpan={4} className="py-2 px-6 font-extrabold text-primary uppercase tracking-widest text-[10px]">
+                            {dept} Division
+                          </td>
+                        </tr>
+                        {interns.map((intern) => (
+                          <tr key={intern.id} className="group hover:bg-secondary/10 hover:text-foreground transition-colors duration-150">
+                            <td className="py-4 px-6 w-[260px] min-w-[260px]">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-foreground text-sm">{intern.fullName}</span>
+                                <span className="text-[10px] text-muted-foreground mt-0.5">{intern.internId || intern.id} • {intern.email}</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 w-[130px] min-w-[130px] text-center sticky right-0 bg-[#0d1225] dark:bg-[#0c1220] group-hover:bg-[#161c2f] dark:group-hover:bg-[#151c2f] z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.2)] border-l border-border/20 transition-colors duration-150">
-                        <Button
-                          onClick={() => {
-                            setSelectedIntern(intern);
-                            setAdminModalTab("upload");
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="h-8.5 text-[10px] font-bold border-border/40 hover:bg-secondary/20"
-                        >
-                          <Eye className="h-3.5 w-3.5 shrink-0 mr-1.5 text-cyan-500" />
-                          <span>Manage Vault</span>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
+                            </td>
+                            <td className="py-4 px-6 w-[220px] min-w-[220px]">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-foreground">{intern.department}</span>
+                                <span className="text-[10px] text-muted-foreground mt-0.5">
+                                  Mentored by: {intern.supervisor?.fullName || "Unassigned"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 min-w-[740px]">
+                              <div className="flex items-center justify-start space-x-2.5">
+                                {REQUIRED_DOCS.map((docType) => {
+                                  const state = getDocStatus(intern, docType.type);
+                                  return (
+                                    <div
+                                      key={docType.type}
+                                      title={`${docType.label}: ${state.status.toUpperCase()}`}
+                                      className={cn(
+                                        "flex flex-col items-center space-y-1.5 p-2 rounded-lg select-none shrink-0 min-w-16 transition-all duration-200 hover:scale-105",
+                                        state.status === "verified"
+                                          ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                                          : state.status === "pending"
+                                          ? "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                                          : "bg-slate-500/5 border border-slate-500/20 text-slate-400 dark:text-slate-400"
+                                      )}
+                                    >
+                                      <span className="text-[8px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                                        {docType.type.split("_")[0]}
+                                      </span>
+                                      {state.element}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 w-[130px] min-w-[130px] text-center bg-[#0d1225] dark:bg-[#0c1220] group-hover:bg-[#161c2f] dark:group-hover:bg-[#151c2f] border-l border-border/20 transition-colors duration-150">
+                              <Button
+                                onClick={() => {
+                                  setSelectedIntern(intern);
+                                  setAdminModalTab("upload");
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="h-8.5 text-[10px] font-bold border-border/40 hover:bg-secondary/20"
+                              >
+                                <Eye className="h-3.5 w-3.5 shrink-0 mr-1.5 text-cyan-500" />
+                                <span>Manage Vault</span>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ));
+                  })()
                 )}
               </tbody>
             </table>
@@ -1446,40 +1464,46 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <span>No dynamic document drafts generated inside the system yet.</span>
                 </div>
               ) : (() => {
-                const groups: { [monthYear: string]: { [internKey: string]: any[] } } = {};
+                const pendingDocs = allGeneratedDocuments.filter(d => d.status === "PENDING" || !d.status);
+                const completedDocs = allGeneratedDocuments.filter(d => d.status === "APPROVED" || d.status === "REJECTED");
                 
-                const sorted = [...allGeneratedDocuments].sort((a, b) => {
-                  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return dateB - dateA;
-                });
+                const groupDocs = (docs: any[]) => {
+                  const groups: { [groupKey: string]: { [internKey: string]: any[] } } = {};
+                  docs.forEach((doc) => {
+                    const date = doc.createdAt ? new Date(doc.createdAt) : new Date();
+                    const monthYear = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+                    const internKey = `${doc.intern?.internId || doc.intern?.id || "Unlinked"} - ${doc.intern?.fullName || "Unknown Intern"}`;
+                    
+                    if (!groups[monthYear]) groups[monthYear] = {};
+                    if (!groups[monthYear][internKey]) groups[monthYear][internKey] = [];
+                    groups[monthYear][internKey].push(doc);
+                  });
+                  return groups;
+                };
 
-                sorted.forEach((doc) => {
-                  const date = doc.createdAt ? new Date(doc.createdAt) : new Date();
-                  const monthYear = date.toLocaleString("en-US", { month: "long", year: "numeric" });
-                  const internKey = `${doc.intern?.internId || doc.intern?.id || "Unlinked"} - ${doc.intern?.fullName || "Unknown Intern"}`;
-                  
-                  if (!groups[monthYear]) {
-                    groups[monthYear] = {};
-                  }
-                  if (!groups[monthYear][internKey]) {
-                    groups[monthYear][internKey] = [];
-                  }
-                  groups[monthYear][internKey].push(doc);
-                });
+                const pendingGroups = groupDocs(pendingDocs);
+                const completedGroups = groupDocs(completedDocs);
 
-                return Object.entries(groups).map(([monthYear, internsMap]) => (
-                  <div key={monthYear} className="space-y-4 border-b border-border/20 pb-6 last:border-0 last:pb-0">
-                    <h3 className="text-xs font-heading font-extrabold text-sky-500 dark:text-sky-400 uppercase tracking-widest px-1">
-                      {monthYear}
-                    </h3>
-                    <div className="space-y-6 pl-2">
-                      {Object.entries(internsMap).map(([internKey, docs]) => (
-                        <div key={internKey} className="space-y-3">
-                          <p className="text-xs font-bold text-slate-400 pl-2 border-l-2 border-sky-500/50">
-                            {internKey}
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                const renderGroups = (groups: any, title: string, emptyMsg: string, titleColor: string) => (
+                  <div className="mb-10">
+                    <h2 className={cn("text-lg font-heading font-extrabold uppercase tracking-widest mb-6 border-b border-border/40 pb-2", titleColor)}>
+                      {title}
+                    </h2>
+                    {Object.keys(groups).length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic px-2">{emptyMsg}</p>
+                    ) : (
+                      Object.entries(groups).map(([monthYear, internsMap]) => (
+                        <div key={monthYear} className="space-y-4 border-b border-border/10 pb-6 last:border-0 last:pb-0 mb-6">
+                          <h3 className="text-xs font-heading font-extrabold text-muted-foreground uppercase tracking-widest px-1">
+                            {monthYear}
+                          </h3>
+                          <div className="space-y-6 pl-2">
+                            {Object.entries(internsMap as Record<string, any[]>).map(([internKey, docs]) => (
+                              <div key={internKey} className="space-y-3">
+                                <p className="text-xs font-bold text-slate-400 pl-2 border-l-2 border-primary/50">
+                                  {internKey}
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {docs.map((doc) => {
                               const isApproved = doc.status === "APPROVED";
                               const isRejected = doc.status === "REJECTED";

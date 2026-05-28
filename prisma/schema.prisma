@@ -14,6 +14,7 @@ enum Role {
   HR
   TEAM_LEAD
   INTERN
+  EMPLOYEE
 }
 
 enum InternStatus {
@@ -35,6 +36,12 @@ enum EmploymentType {
   INTERN
   PERMANENT
   CONTRACT
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  OFFICE
 }
 
 
@@ -132,6 +139,7 @@ model Intern {
   startDate              DateTime         @map("start_date")
   endDate                DateTime?        @map("end_date")
   employmentType         EmploymentType   @default(INTERN) @map("employment_type")
+  workMode               WorkMode         @default(REMOTE) @map("work_mode")
   status                 InternStatus     @default(ONBOARDING)
   stipendAmount          Decimal          @default(0.00) @map("stipend_amount")
   paymentStatus          String           @default("UNPAID") @map("payment_status")

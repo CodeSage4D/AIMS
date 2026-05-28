@@ -654,17 +654,15 @@ export default function SignupPage() {
                     city={city}
                     region={region}
                     phoneNumber={phone}
-                    onCountryChange={setCountry}
-                    onStateChange={setState}
-                    onCityChange={setCity}
-                    onRegionChange={setRegion}
-                    onPhoneNumberChange={(val) => {
-                      setPhone(val);
+                    onChange={(fields) => {
+                      setCountry(fields.country);
+                      setState(fields.state);
+                      setCity(fields.city);
+                      setRegion(fields.region);
+                      setPhone(fields.phoneNumber);
                       setError(null);
                     }}
-                    currentTheme={currentTheme}
                     disabled={loading}
-                    required={true}
                   />
                 </div>
 

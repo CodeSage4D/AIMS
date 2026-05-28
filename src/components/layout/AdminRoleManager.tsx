@@ -35,6 +35,7 @@ const SYSTEM_ROLES = [
   { id: "ADMIN", label: "Admin", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", description: "Can manage interns, documents and daily operations." },
   { id: "HR", label: "HR Manager", color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20", description: "Manages people ops, corrections, and documents." },
   { id: "TEAM_LEAD", label: "Team Lead", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", description: "Supervises a team of interns with limited admin access." },
+  { id: "EMPLOYEE", label: "Employee", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", description: "Standard permanent employee with self-management access." },
   { id: "INTERN", label: "Intern", color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20", description: "Standard enrollee with read-only and self-management access." },
 ];
 
@@ -60,6 +61,7 @@ const DEFAULT_ROLE_ACCESS: Record<string, string[]> = {
   ADMIN: ["view_dashboard", "manage_interns", "manage_attendance", "manage_tasks", "manage_documents", "view_logs", "approve_registrations"],
   HR: ["view_dashboard", "manage_interns", "manage_attendance", "manage_documents", "manage_bank_details", "approve_registrations", "view_logs"],
   TEAM_LEAD: ["view_dashboard", "manage_attendance", "manage_tasks", "view_logs"],
+  EMPLOYEE: ["view_dashboard"],
   INTERN: ["view_dashboard"],
 };
 

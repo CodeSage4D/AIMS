@@ -312,7 +312,7 @@ export default async function InternWorkspacePage({ params }: PageProps) {
               <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-4">
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Work Mode</span>
-                  <p className="text-xs font-semibold text-primary font-heading uppercase tracking-wider">{customProfile.workMode || "Remote"}</p>
+                  <p className="text-xs font-semibold text-primary font-heading uppercase tracking-wider">{intern.workMode === "OFFICE" ? "Office Mode" : intern.workMode.charAt(0) + intern.workMode.slice(1).toLowerCase()}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Tenure Type</span>

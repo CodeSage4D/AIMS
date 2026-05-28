@@ -57,6 +57,7 @@ interface InternData {
   supervisorId: string | null;
   status: string;
   employmentType?: string;
+  workMode?: string;
   user?: {
     username: string | null;
     role?: string;
@@ -82,11 +83,16 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin, isFou
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State Values for Update Modal
   const [formData, setFormData] = useState(() => {
     const customFields = parseInternNotes(intern.notes);
+    
+    // Map from DB ENUM back to UI Strings
+    let mappedWorkMode = "Remote";
+    if (intern.workMode === "HYBRID") mappedWorkMode = "Hybrid";
+    if (intern.workMode === "OFFICE") mappedWorkMode = "Office Mode";
+
     return {
-      workMode: customFields.workMode || "Remote",
+      workMode: mappedWorkMode,
       id: intern.id,
       fullName: intern.fullName,
       gender: intern.gender,
@@ -743,6 +749,7 @@ export default function WorkspaceHeaderActions({ intern, mentors, isAdmin, isFou
                           className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm cursor-pointer font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="INTERN">INTERN</option>
+                          <option value="EMPLOYEE">EMPLOYEE</option>
                           <option value="TEAM_LEAD">TEAM_LEAD</option>
                           <option value="HR">HR</option>
                           <option value="ADMIN">ADMIN</option>

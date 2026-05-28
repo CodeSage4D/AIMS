@@ -31,7 +31,7 @@ export async function hasPermission(
   // This is a safety net: even if a UserPermission row is misconfigured,
   // interns should always have access to their own basic portal areas.
   const INTERN_CORE_PERMISSIONS = ["dashboardAccess", "attendanceAccess", "taskAccess", "documentAccess"];
-  const isInternCorePermission = role === "INTERN" && INTERN_CORE_PERMISSIONS.includes(permission);
+  const isInternCorePermission = (role === "INTERN" || role === "EMPLOYEE") && INTERN_CORE_PERMISSIONS.includes(permission);
 
   try {
     // 2. Query custom user permissions override from the database
@@ -83,6 +83,7 @@ export async function hasPermission(
       return permission !== "settingsAccess";
 
     case "INTERN":
+    case "EMPLOYEE":
       // Interns/Employees get minimal access (Dashboard, checking standard attendance/tasks/own documents)
       return (
         permission === "dashboardAccess" ||

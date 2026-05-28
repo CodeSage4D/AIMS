@@ -60,6 +60,7 @@ export async function POST(req: Request) {
       ssidn,
       employmentType,
       username,
+      workMode,
     } = body;
 
     const parsedEmploymentType = employmentType || "INTERN";
@@ -250,7 +251,7 @@ export async function POST(req: Request) {
               username: username?.trim() || computedId,
               passwordHash,
               fullName,
-              role: "INTERN",
+              role: parsedEmploymentType === "INTERN" ? "INTERN" : "EMPLOYEE",
               changePasswordRequired: true,
               status: isGated ? "PENDING" : "APPROVED",
             },
@@ -265,8 +266,12 @@ export async function POST(req: Request) {
             paymentPreference: body.paymentPreference || "",
             customNotes: notes || "",
             pictureUrl: body.pictureUrl || "",
-            workMode: userRole === "FOUNDER" ? (body.workMode || "Remote") : "Remote",
           });
+
+          // Map workMode to enum
+          const workModeEnum = userRole === "FOUNDER" && body.workMode
+            ? (body.workMode === "Office Mode" ? "OFFICE" : body.workMode.toUpperCase())
+            : "REMOTE";
 
 
           // Create corresponding Intern record
@@ -291,6 +296,7 @@ export async function POST(req: Request) {
               startDate: new Date(startDate),
               endDate: endDate ? new Date(endDate) : null,
               employmentType: parsedEmploymentType as any,
+              workMode: workModeEnum as any,
               stipendAmount: parsedStipend,
               paymentStatus: paymentStatus || "UNPAID",
               emergencyContactName,
@@ -842,6 +848,9 @@ export async function PUT(req: Request) {
     if (updateData.startDate !== undefined) dataToUpdate.startDate = new Date(updateData.startDate);
     if (updateData.endDate !== undefined) dataToUpdate.endDate = updateData.endDate ? new Date(updateData.endDate) : null;
     if (updateData.employmentType !== undefined) dataToUpdate.employmentType = updateData.employmentType;
+    if (updateData.workMode !== undefined && userRole === "FOUNDER") {
+      dataToUpdate.workMode = updateData.workMode === "Office Mode" ? "OFFICE" : updateData.workMode.toUpperCase();
+    }
     if (updateData.stipendAmount !== undefined) dataToUpdate.stipendAmount = Number(updateData.stipendAmount);
     if (updateData.paymentStatus !== undefined) dataToUpdate.paymentStatus = updateData.paymentStatus;
     if (updateData.emergencyContactName !== undefined) dataToUpdate.emergencyContactName = updateData.emergencyContactName;
@@ -867,8 +876,6 @@ export async function PUT(req: Request) {
     const nextAccountHolder = updateData.accountHolderName !== undefined ? updateData.accountHolderName : existingCustom.accountHolderName;
     const nextPaymentPref = updateData.paymentPreference !== undefined ? updateData.paymentPreference : existingCustom.paymentPreference;
     const nextPictureUrl = updateData.pictureUrl !== undefined ? updateData.pictureUrl : (existingCustom as any).pictureUrl;
-    const nextWorkMode = updateData.workMode !== undefined ? updateData.workMode : existingCustom.workMode;
-
     dataToUpdate.notes = serializeInternNotes({
       linkedIn: nextLinkedIn || "",
       gitHub: nextGitHub || "",
@@ -877,7 +884,6 @@ export async function PUT(req: Request) {
       paymentPreference: nextPaymentPref || "",
       customNotes: nextCustomNotes || "",
       pictureUrl: nextPictureUrl || "",
-      workMode: nextWorkMode || "Remote",
     } as any);
 
 
