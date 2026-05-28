@@ -36,7 +36,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to read tasks." }, { status: 403 });
     }
 
-    if (user.role === "INTERN") {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       // Find intern record for this user
       const intern = await db.intern.findFirst({
         where: { userId: user.id },
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
     }
 
     // Mentor authorization validation:
-    if (user.role === "INTERN" || !(await hasPermission(user.id, user.role, "taskAccess"))) {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE" || !(await hasPermission(user.id, user.role, "taskAccess"))) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to assign tasks." }, { status: 403 });
     }
 
@@ -206,7 +206,7 @@ export async function PATCH(req: Request) {
     const isSupervisor = task.intern.supervisorId === user.id;
     const isOwner = task.intern.userId === user.id;
 
-    if (user.role === "INTERN") {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       if (!isOwner) {
         return NextResponse.json({ error: "Forbidden. You can only update your own tasks." }, { status: 403 });
       }
@@ -223,7 +223,7 @@ export async function PATCH(req: Request) {
     }
 
     // Role-based status transition restrictions:
-    if (user.role === "INTERN") {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE") {
       if (status === "COMPLETED" || status === "PENDING") {
         return NextResponse.json({ error: "Forbidden. Interns/Employees cannot approve tasks or revert them to PENDING." }, { status: 403 });
       }
@@ -241,7 +241,7 @@ export async function PATCH(req: Request) {
         remarks: remarks !== undefined ? remarks : undefined,
       };
 
-      if (user.role === "INTERN") {
+      if (user.role === "INTERN" || user.role === "EMPLOYEE") {
         if (submissionComment !== undefined) {
           updateData.submissionComment = submissionComment.trim();
         }
@@ -305,7 +305,7 @@ export async function DELETE(req: Request) {
 
     // Strict Authorization Check: Must have taskAccess permission and not be INTERN
     const hasTaskAccess = await hasPermission(user.id, user.role, "taskAccess");
-    if (user.role === "INTERN" || !hasTaskAccess) {
+    if (user.role === "INTERN" || user.role === "EMPLOYEE" || !hasTaskAccess) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to delete tasks." }, { status: 403 });
     }
 
