@@ -409,14 +409,17 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                   city={formData.city}
                   region={formData.region}
                   phoneNumber={formData.phoneNumber}
-                  onCountryChange={(val) => setFormData((prev) => ({ ...prev, country: val }))}
-                  onStateChange={(val) => setFormData((prev) => ({ ...prev, state: val }))}
-                  onCityChange={(val) => setFormData((prev) => ({ ...prev, city: val }))}
-                  onRegionChange={(val) => setFormData((prev) => ({ ...prev, region: val }))}
-                  onPhoneNumberChange={(val) => setFormData((prev) => ({ ...prev, phoneNumber: val }))}
-                  currentTheme="dark"
+                  onChange={(fields) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      country: fields.country,
+                      state: fields.state,
+                      city: fields.city,
+                      region: fields.region,
+                      phoneNumber: fields.phoneNumber,
+                    }));
+                  }}
                   disabled={loading}
-                  required={true}
                 />
                 <Input
                   label="PIN Code *"
