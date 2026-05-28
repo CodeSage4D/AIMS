@@ -72,9 +72,9 @@ export default function ForcePasswordChange() {
       if (!res.ok) {
         setError(data.error || "Failed to update password.");
       } else {
-        setSuccess("Password updated successfully! Reloading portal...");
+        setSuccess("Password updated successfully! Redirecting to login...");
         setTimeout(() => {
-          window.location.href = "/";
+          signOut({ callbackUrl: "/login" });
         }, 1500);
       }
     } catch (err) {

@@ -38,6 +38,12 @@ export default async function DashboardPage() {
   const session = await auth();
   const userRole = (session?.user as any)?.role || "INTERN";
   const userId = (session?.user as any)?.id;
+  
+  if (!session || !userId) {
+    const { redirect } = await import("next/navigation");
+    redirect("/login");
+  }
+
   const userName = session?.user?.name || "AURXON User";
 
   // Check Dashboard Access Permission
