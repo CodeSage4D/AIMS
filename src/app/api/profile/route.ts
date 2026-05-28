@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
     const { user } = authResult;
 
-    if (user.role !== "INTERN") {
+    if (user.role !== "INTERN" && user.role !== "EMPLOYEE") {
       return NextResponse.json({ error: "Forbidden. Only interns can submit correction requests." }, { status: 403 });
     }
 
@@ -399,7 +399,7 @@ export async function PATCH(req: Request) {
         body.accountHolderName !== undefined ||
         body.paymentPreference !== undefined;
 
-      if (isUpdatingBank && user.role === "INTERN") {
+      if (isUpdatingBank && (user.role === "INTERN" || user.role === "EMPLOYEE")) {
         let isBankAllowed = false;
         const offSetting = await db.systemSetting.findUnique({
           where: { key: "allow_intern_bank_updates" },
