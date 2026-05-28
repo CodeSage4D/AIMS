@@ -79,7 +79,7 @@ export default function ProfileSettingsClient({
   allActiveInterns = [],
 }: ProfileSettingsClientProps) {
   const router = useRouter();
-  const isIntern = user.role === "INTERN";
+  const isIntern = user.role === "INTERN" || user.role === "EMPLOYEE";
   const [selectedPeerId, setSelectedPeerId] = useState<string>("");
   const roleMeta = internProfile ? getRoleMeta(internProfile.roleDomain) : null;
   const isManager = user.role === "FOUNDER" || user.role === "HR";
@@ -1553,7 +1553,7 @@ export default function ProfileSettingsClient({
                     internId={selectedPeer ? (selectedPeer.internId || "AXN-REF-PENDING") : (internProfile.internId || "AXN-REF-PENDING")}
                     department={selectedPeer ? selectedPeer.department : internProfile.department}
                     roleDomain={selectedPeer ? selectedPeer.roleDomain : internProfile.roleDomain}
-                    status={selectedPeer ? (selectedPeer.employmentType === "INTERN" ? "INTERN" : "ACTIVE") : (user.role === "INTERN" ? "INTERN" : "ACTIVE")}
+                    status={selectedPeer ? (selectedPeer.employmentType === "INTERN" ? "INTERN" : "ACTIVE") : (isIntern ? "INTERN" : "ACTIVE")}
                     dbInternId={selectedPeer ? selectedPeer.id : internProfile.id}
                     employmentType={selectedPeer ? selectedPeer.employmentType : internProfile.employmentType}
                     defaultPhotoUrl={selectedPeer ? peerCustomProfile.pictureUrl : customProfile.pictureUrl}
