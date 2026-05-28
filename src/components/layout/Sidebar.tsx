@@ -38,7 +38,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "View Profile", href: "/profile", icon: User },
-    ...(user.role === "FOUNDER" ? [{ label: "Founder Panel", href: "/founder", icon: ClipboardList }] : []),
+    ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Operations Panel", href: "/founder", icon: ClipboardList }] : []),
     ...(user.role !== "INTERN" && user.role !== "EMPLOYEE" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
     { label: "Attendance", href: "/attendance", icon: Calendar },
     { label: "Task Logs", href: "/tasks", icon: CheckSquare },
@@ -50,8 +50,8 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   ];
 
 
-  // Secure super-admin / administrative log view (Founder-Only)
-  const isLogAllowed = user.role === "FOUNDER";
+  // Secure super-admin / administrative log view
+  const isLogAllowed = user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "ADMIN";
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
