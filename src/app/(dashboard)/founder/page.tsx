@@ -15,10 +15,12 @@ export default async function FounderPage() {
   }
 
   const userRole = (session.user as any).role;
-  if (userRole !== "FOUNDER") {
+  const allowedRoles = ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR"];
+  
+  if (!allowedRoles.includes(userRole)) {
     return (
       <AccessDeniedShield 
-        requiredRole="FOUNDER ELITE ACCESS" 
+        requiredRole="OPERATIONS ELITE ACCESS" 
         currentRole={userRole} 
       />
     );
@@ -103,10 +105,10 @@ export default async function FounderPage() {
           <div>
             <div className="flex items-center space-x-2">
               <h2 className="text-xl font-heading font-extrabold text-foreground tracking-tight text-white">
-                Founder Console Dashboard
+                Operations & Founder Console
               </h2>
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-heading font-extrabold bg-yellow-500/10 text-yellow-450 border border-yellow-500/20 uppercase tracking-widest shrink-0">
-                Elite Admin
+                Elite Ops
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
