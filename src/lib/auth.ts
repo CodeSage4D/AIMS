@@ -29,83 +29,103 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         console.log("[AUTH DEBUG] authorize called with input:", input);
 
-        try {
-          // Robust, multi-vector authentication lookup:
-          // Check by email, or username, or internId (all case-insensitive)
-          const user = await db.user.findFirst({
-            where: {
-              deletedAt: null,
-              OR: [
-                { email: { equals: input, mode: "insensitive" } },
-                { username: { equals: input, mode: "insensitive" } },
-                {
-                  internProfile: {
-                    internId: { equals: input, mode: "insensitive" }
+        // Retry loop: handles transient DB connection failures on cold-start
+        // (Prisma pool warmup, connection timeout on first request)
+        const MAX_RETRIES = 2;
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            // Robust, multi-vector authentication lookup:
+            // Check by email, or username, or internId (all case-insensitive)
+            const user = await db.user.findFirst({
+              where: {
+                deletedAt: null,
+                OR: [
+                  { email: { equals: input, mode: "insensitive" } },
+                  { username: { equals: input, mode: "insensitive" } },
+                  {
+                    internProfile: {
+                      internId: { equals: input, mode: "insensitive" }
+                    }
                   }
-                }
-              ]
-            }
-          });
+                ]
+              }
+            });
 
-          console.log("[AUTH DEBUG] User query returned:", user ? { email: user.email, role: user.role, status: user.status, deletedAt: user.deletedAt } : "null");
+            console.log("[AUTH DEBUG] User query returned:", user ? { email: user.email, role: user.role, status: user.status, deletedAt: user.deletedAt } : "null");
 
-          if (user) {
-            if (user.status === "PENDING") {
-              console.log("[AUTH DEBUG] User status is PENDING. Rejecting login.");
-              throw new Error("Your account registration is pending review by the administration.");
-            }
-            if (user.status === "REJECTED") {
-              console.log("[AUTH DEBUG] User status is REJECTED. Rejecting login.");
-              throw new Error("Your account registration has been rejected.");
-            }
-            if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
-              console.log("[AUTH DEBUG] User account is locked until:", user.lockedUntil);
-              throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
-            }
-
-            const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
-            console.log("[AUTH DEBUG] Password check result:", isPasswordValid);
-            if (isPasswordValid) {
-              await db.user.update({
-                where: { id: user.id },
-                data: { failedLoginAttempts: 0, lockedUntil: null }
-              });
-              return {
-                id: user.id,
-                email: user.email,
-                name: user.fullName,
-                role: user.role,
-                changePasswordRequired: user.changePasswordRequired,
-                tokenVersion: user.tokenVersion,
-              };
-            } else {
-              const attempts = user.failedLoginAttempts + 1;
-              const lockedUntil = attempts >= 10 ? new Date(Date.now() + 15 * 60 * 1000) : null;
-              await db.user.update({
-                where: { id: user.id },
-                data: {
-                  failedLoginAttempts: attempts,
-                  lockedUntil: lockedUntil
-                }
-              });
-              if (attempts >= 10) {
+            if (user) {
+              if (user.status === "PENDING") {
+                console.log("[AUTH DEBUG] User status is PENDING. Rejecting login.");
+                throw new Error("Your account registration is pending review by the administration.");
+              }
+              if (user.status === "REJECTED") {
+                console.log("[AUTH DEBUG] User status is REJECTED. Rejecting login.");
+                throw new Error("Your account registration has been rejected.");
+              }
+              if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+                console.log("[AUTH DEBUG] User account is locked until:", user.lockedUntil);
                 throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
               }
+
+              const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
+              console.log("[AUTH DEBUG] Password check result:", isPasswordValid);
+              if (isPasswordValid) {
+                await db.user.update({
+                  where: { id: user.id },
+                  data: { failedLoginAttempts: 0, lockedUntil: null }
+                });
+                return {
+                  id: user.id,
+                  email: user.email,
+                  name: user.fullName,
+                  role: user.role,
+                  changePasswordRequired: user.changePasswordRequired,
+                  tokenVersion: user.tokenVersion,
+                };
+              } else {
+                const attempts = user.failedLoginAttempts + 1;
+                const lockedUntil = attempts >= 10 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+                await db.user.update({
+                  where: { id: user.id },
+                  data: {
+                    failedLoginAttempts: attempts,
+                    lockedUntil: lockedUntil
+                  }
+                });
+                if (attempts >= 10) {
+                  throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
+                }
+                // Wrong password is a definitive result — no retry needed
+                return null;
+              }
             }
+
+            // User not found — definitive result, no retry needed
+            return null;
+
+          } catch (dbError: any) {
+            // Always re-throw account status / lockout errors immediately — no retry
+            if (
+              dbError?.message?.includes("pending") ||
+              dbError?.message?.includes("rejected") ||
+              dbError?.message?.includes("locked")
+            ) {
+              throw dbError;
+            }
+
+            // On last attempt, log and surface as auth failure
+            if (attempt === MAX_RETRIES) {
+              console.error(
+                `[AUTH] Database query failed after ${MAX_RETRIES} attempts during login:`,
+                dbError
+              );
+              return null;
+            }
+
+            // Transient DB error on first attempt — wait briefly and retry
+            console.warn(`[AUTH] Transient DB error on login attempt ${attempt}, retrying in 300ms:`, dbError?.message);
+            await new Promise((resolve) => setTimeout(resolve, 300));
           }
-        } catch (dbError: any) {
-          // Re-throw account status or lockout errors so NextAuth can surface them
-          if (
-            dbError?.message?.includes("pending") ||
-            dbError?.message?.includes("rejected") ||
-            dbError?.message?.includes("locked")
-          ) {
-            throw dbError;
-          }
-          console.warn(
-            "Database connection failed during login:",
-            dbError
-          );
         }
 
         return null;

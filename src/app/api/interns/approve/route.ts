@@ -158,6 +158,25 @@ export async function POST(req: Request) {
         }
       });
 
+      // 2.5 Ensure UserPermission row exists with correct intern defaults
+      if (pendingIntern.userId) {
+        await tx.userPermission.upsert({
+          where: { userId: pendingIntern.userId },
+          update: {}, // Don't overwrite if row already exists with custom settings
+          create: {
+            userId: pendingIntern.userId,
+            dashboardAccess: true,
+            attendanceAccess: true,
+            taskAccess: true,
+            documentAccess: true,
+            approvalAccess: false,
+            settingsAccess: false,
+            analyticsAccess: false,
+            onboardingAccess: false,
+          },
+        });
+      }
+
       // 3. Re-generate dynamic onboarding document drafts in the vault matching permanent sequential ID
       const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } = await import("@/lib/documentTemplates");
       const offerLetterContent = generateOfferLetterDraft(updatedIntern);

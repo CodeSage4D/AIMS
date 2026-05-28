@@ -27,6 +27,12 @@ export async function hasPermission(
     return true;
   }
 
+  // Core intern permissions that must always be granted for INTERN role.
+  // This is a safety net: even if a UserPermission row is misconfigured,
+  // interns should always have access to their own basic portal areas.
+  const INTERN_CORE_PERMISSIONS = ["dashboardAccess", "attendanceAccess", "taskAccess", "documentAccess"];
+  const isInternCorePermission = role === "INTERN" && INTERN_CORE_PERMISSIONS.includes(permission);
+
   try {
     // 2. Query custom user permissions override from the database
     const userPerm = await db.userPermission.findUnique({
@@ -34,7 +40,13 @@ export async function hasPermission(
     });
 
     if (userPerm) {
-      return !!userPerm[permission];
+      const permValue = !!userPerm[permission];
+      // Safety net: never deny core intern permissions even if row says false
+      if (isInternCorePermission && !permValue) {
+        console.warn(`[hasPermission] UserPermission row has ${permission}=false for INTERN user ${userId}. Overriding to true.`);
+        return true;
+      }
+      return permValue;
     }
   } catch (err) {
     console.warn(`[hasPermission] Database check failed for user ${userId}, falling back to defaults:`, err);

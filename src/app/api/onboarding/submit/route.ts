@@ -149,6 +149,26 @@ export async function POST(req: Request) {
       },
     });
 
+    // Ensure the intern has a UserPermission row with correct defaults.
+    // This handles interns who were onboarded via direct HR flow (no permission row created).
+    if (userId) {
+      await db.userPermission.upsert({
+        where: { userId },
+        update: {}, // Don't overwrite if row already exists with custom settings
+        create: {
+          userId,
+          dashboardAccess: true,
+          attendanceAccess: true,
+          taskAccess: true,
+          documentAccess: true,
+          approvalAccess: false,
+          settingsAccess: false,
+          analyticsAccess: false,
+          onboardingAccess: false,
+        },
+      });
+    }
+
     // 7. Audit log
     const safeUserId = await getSafeUserId(userId);
     await db.activityLog.create({
