@@ -225,7 +225,9 @@ export default async function DashboardPage() {
       include: {
         supervisor: {
           select: { fullName: true, email: true }
-        }
+        },
+        documents: true,
+        generatedDocuments: true,
       }
     });
 
@@ -260,6 +262,70 @@ export default async function DashboardPage() {
           <NoticeBoard announcements={announcements} anniversaries={anniversaries} userRole={userRole} />
         </div>
       );
+    }
+
+    // Check if they need to do onboarding and haven't skipped it
+    const { parseInternNotes } = await import("@/lib/roles");
+    const customFields = parseInternNotes(intern.notes);
+    const onboardingSkipped = !!customFields.onboardingSkipped;
+
+    if (intern.status === "ONBOARDING" && !onboardingSkipped) {
+      const OnboardingFlow = (await import("@/components/layout/OnboardingFlow")).default;
+      const safeUser = {
+        id: userId,
+        name: userName,
+        email: session?.user?.email || "",
+        role: userRole,
+      };
+
+      const serializedInternForOnboarding = {
+        id: intern.id,
+        internId: intern.internId,
+        fullName: intern.fullName,
+        email: intern.email,
+        phoneNumber: intern.phoneNumber,
+        address: intern.address,
+        city: intern.city,
+        state: intern.state,
+        country: intern.country,
+        pinCode: intern.pinCode,
+        citizenship: intern.citizenship,
+        region: intern.region,
+        university: intern.university,
+        degree: intern.degree,
+        department: intern.department,
+        roleDomain: intern.roleDomain,
+        batchSemester: intern.batchSemester,
+        startDate: intern.startDate.toISOString(),
+        endDate: intern.endDate ? intern.endDate.toISOString() : null,
+        emergencyContactName: intern.emergencyContactName,
+        emergencyContactNumber: intern.emergencyContactNumber,
+        skills: intern.skills,
+        stipendAmount: Number(intern.stipendAmount),
+        bankName: intern.bankName,
+        accountNumber: intern.accountNumber,
+        ifscCode: intern.ifscCode,
+        upiId: intern.upiId,
+        branchName: intern.branchName,
+        panCard: intern.panCard,
+        notes: intern.notes,
+        documents: intern.documents.map(d => ({
+          id: d.id,
+          type: d.type,
+          fileName: d.fileName,
+          fileUrl: `/api/documents/view?id=${d.id}`,
+          verified: d.verified,
+        })),
+        generatedDocuments: intern.generatedDocuments.map(gd => ({
+          id: gd.id,
+          type: gd.type,
+          status: gd.status,
+          content: gd.content,
+          signature: gd.signature,
+        })),
+      };
+
+      return <OnboardingFlow user={safeUser} intern={serializedInternForOnboarding} />;
     }
 
     // Fetch related records for the linked Intern

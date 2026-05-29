@@ -12,11 +12,12 @@ export default async function LogsPage() {
     redirect("/login");
   }
 
-  const userRole = (session.user as any).role || "MENTOR";
+  const userRole = (session.user as any).role || "INTERN";
 
-  // Strict Security Check: FOUNDER ONLY!
-  if (userRole !== "FOUNDER") {
-    return <AccessDeniedShield requiredRole="FOUNDER" currentRole={userRole} />;
+  // Logs accessible to Founder-tier admins only
+  const logsAllowedRoles = ["FOUNDER", "SUPER_ADMIN", "ADMIN"];
+  if (!logsAllowedRoles.includes(userRole)) {
+    return <AccessDeniedShield requiredRole="FOUNDER / ADMIN" currentRole={userRole} />;
   }
 
   let logs: any[] = [];

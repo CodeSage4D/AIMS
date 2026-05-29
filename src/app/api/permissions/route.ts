@@ -17,20 +17,13 @@ async function getAdminUser() {
   }
   const user = session.user as any;
   
-  // Founders and Super Admins always have full access
-  if (user.role === "FOUNDER" || user.role === "SUPER_ADMIN") {
+  // All elevated roles have access to the permissions management section
+  const ALLOWED_ROLES = ["FOUNDER", "SUPER_ADMIN", "ADMIN", "HR", "TEAM_LEAD"];
+  if (ALLOWED_ROLES.includes(user.role)) {
     return { authenticated: true, user };
   }
 
-  // HR and Admin have onboarding/approval access to the permissions page
-  const { hasPermission } = await import("@/lib/permissions");
-  const hasSettings = await hasPermission(user.id, user.role, "settingsAccess");
-  const hasOnboarding = await hasPermission(user.id, user.role, "onboardingAccess");
-  
-  if (!hasSettings && !hasOnboarding) {
-    return { authenticated: false, status: 403, error: "Forbidden. Administrative settings privileges required." };
-  }
-  return { authenticated: true, user };
+  return { authenticated: false, status: 403, error: "Forbidden. Administrative privileges required." };
 }
 
 /**
