@@ -11,10 +11,12 @@ export async function proxy(req: any) {
     // Public API exclusions:
     // - /api/auth/*
     // - /api/verify/*
+    // - /api/location/*
     // - /api/health
     const isPublicApi =
       nextUrl.pathname.startsWith("/api/auth") ||
       nextUrl.pathname.startsWith("/api/verify") ||
+      nextUrl.pathname.startsWith("/api/location") ||
       nextUrl.pathname.startsWith("/api/health");
 
     if (isApi) {
