@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { COUNTRIES, TIMEZONES } from "@/lib/countryData";
+import React, { useState, useEffect, useRef } from "react";
+import { COUNTRIES as STATIC_COUNTRIES, TIMEZONES } from "@/lib/countryData";
 import { Clock, Globe, MapPin, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface AdvancedLocationSelectorProps {
   country: string;
   state: string;
   city: string;
   region: string;
-  phoneNumber: string; // The full string, or we split it? Let's just manage full string inside or pass it.
+  phoneNumber: string;
   onChange: (fields: { country: string; state: string; city: string; region: string; phoneNumber: string }) => void;
   disabled?: boolean;
 }
@@ -31,23 +30,101 @@ export default function AdvancedLocationSelector({
   const [currentTimeIST, setCurrentTimeIST] = useState("");
   const [currentLocalTime, setCurrentLocalTime] = useState("");
 
-  const selectedCountryObj = COUNTRIES.find((c) => c.name === country) || COUNTRIES[0];
-  const states = selectedCountryObj?.states || [];
-  const selectedStateObj = states.find((s) => s.name === state) || states[0];
-  const cities = selectedStateObj?.cities || [];
+  const [countriesList, setCountriesList] = useState<any[]>(STATIC_COUNTRIES);
+  const [statesList, setStatesList] = useState<any[]>([]);
+  const [citiesList, setCitiesList] = useState<any[]>([]);
 
-  // Parse initial phone number once
+  const selectedCountryObj = countriesList.find((c) => c.name === country) || countriesList[0] || { code: "IN", name: "India" };
+
+  const parsedPhoneRef = useRef(false);
+
+  // Load countries dynamically on mount
   useEffect(() => {
-    if (phoneNumber) {
-      const match = COUNTRIES.find((c) => phoneNumber.startsWith(c.dialCode));
+    async function loadCountries() {
+      try {
+        const res = await fetch("/api/location?type=countries");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setCountriesList(data);
+          }
+        }
+      } catch (e) {
+        console.error("Load countries error:", e);
+      }
+    }
+    loadCountries();
+  }, []);
+
+  // Load states dynamically when country changes
+  useEffect(() => {
+    if (!country) {
+      setStatesList([]);
+      return;
+    }
+    const cObj = countriesList.find((c) => c.name === country);
+    if (!cObj) {
+      setStatesList([]);
+      return;
+    }
+
+    async function loadStates() {
+      try {
+        const res = await fetch(`/api/location?type=states&countryCode=${cObj.code}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStatesList(data || []);
+        }
+      } catch (e) {
+        console.error("Load states error:", e);
+      }
+    }
+    loadStates();
+  }, [country, countriesList]);
+
+  // Load cities dynamically when state changes
+  useEffect(() => {
+    if (!state || !country) {
+      setCitiesList([]);
+      return;
+    }
+    const cObj = countriesList.find((c) => c.name === country);
+    const sObj = statesList.find((s) => s.name === state);
+    if (!cObj || !sObj) {
+      setCitiesList([]);
+      return;
+    }
+
+    async function loadCities() {
+      try {
+        const res = await fetch(`/api/location?type=cities&countryCode=${cObj.code}&stateCode=${sObj.code}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCitiesList(data || []);
+        }
+      } catch (e) {
+        console.error("Load cities error:", e);
+      }
+    }
+    loadCities();
+  }, [state, statesList, country, countriesList]);
+
+  // Parse initial phone number once countries list is populated
+  useEffect(() => {
+    if (phoneNumber && countriesList.length > 0 && !parsedPhoneRef.current) {
+      const sorted = [...countriesList].sort((a, b) => b.dialCode.length - a.dialCode.length);
+      const match = sorted.find((c) => phoneNumber.startsWith(c.dialCode));
       if (match) {
         setDialCode(match.dialCode);
         setLocalNumber(phoneNumber.slice(match.dialCode.length).trim());
       } else {
         setLocalNumber(phoneNumber);
       }
+      parsedPhoneRef.current = true;
+    } else if (phoneNumber && !parsedPhoneRef.current) {
+      setLocalNumber(phoneNumber);
     }
-  }, []);
+  }, [phoneNumber, countriesList]);
 
   // Time station effect
   useEffect(() => {
@@ -92,7 +169,7 @@ export default function AdvancedLocationSelector({
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCountryName = e.target.value;
-    const cObj = COUNTRIES.find((c) => c.name === newCountryName);
+    const cObj = countriesList.find((c) => c.name === newCountryName);
     if (cObj) {
       setDialCode(cObj.dialCode);
       updateFields({
@@ -101,6 +178,13 @@ export default function AdvancedLocationSelector({
         state: "",
         city: "",
         dialCode: cObj.dialCode
+      });
+    } else {
+      updateFields({
+        country: "",
+        region: "",
+        state: "",
+        city: ""
       });
     }
   };
@@ -126,7 +210,7 @@ export default function AdvancedLocationSelector({
             className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
           >
             <option value="">Select Country</option>
-            {COUNTRIES.map((c) => (
+            {countriesList.map((c) => (
               <option key={c.code} value={c.name}>{c.name}</option>
             ))}
           </select>
@@ -145,8 +229,8 @@ export default function AdvancedLocationSelector({
             className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
           >
             <option value="">Select State</option>
-            {states.map((s) => (
-              <option key={s.name} value={s.name}>{s.name}</option>
+            {statesList.map((s) => (
+              <option key={s.code + s.name} value={s.name}>{s.name}</option>
             ))}
           </select>
         </div>
@@ -164,7 +248,7 @@ export default function AdvancedLocationSelector({
             className="flex h-11 w-full rounded-md border border-border bg-input px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-sm cursor-pointer"
           >
             <option value="">Select City</option>
-            {cities.map((c) => (
+            {citiesList.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
@@ -199,7 +283,7 @@ export default function AdvancedLocationSelector({
               }}
               className="flex h-11 w-24 rounded-l-md border border-r-0 border-border bg-secondary/30 px-2 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 font-mono font-bold"
             >
-              {COUNTRIES.map((c) => (
+              {countriesList.map((c) => (
                 <option key={c.code} value={c.dialCode}>{c.code} ({c.dialCode})</option>
               ))}
             </select>
@@ -217,7 +301,7 @@ export default function AdvancedLocationSelector({
           </div>
         </div>
 
-        {/* Dynamic Time Station */}
+        {/* Time Station Sync */}
         <div className="flex flex-col space-y-1.5 w-full">
           <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
             Time Station Sync

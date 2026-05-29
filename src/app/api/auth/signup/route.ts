@@ -44,22 +44,44 @@ export async function POST(req: Request) {
       employmentType
     } = body;
 
-    // 1. Basic required fields checking
-    if (!fullName || !email || !phone || !username || !department || !requestedPosition) {
+    // 1. Enforce validation on all core and profile required fields
+    if (
+      !fullName || !fullName.trim() ||
+      !email || !email.trim() ||
+      !phone || !phone.trim() ||
+      !username || !username.trim() ||
+      !department || !department.trim() ||
+      !requestedPosition || !requestedPosition.trim() ||
+      !country || !country.trim() ||
+      !state || !state.trim() ||
+      !city || !city.trim() ||
+      !address || !address.trim() ||
+      !citizenship || !citizenship.trim() ||
+      !pinCode || !pinCode.trim()
+    ) {
       return NextResponse.json(
-        { error: "All core registration fields (Name, Email, Phone, Username, Department, Role) are required." },
+        { error: "All registration fields (Full Name, Email, Phone, Username, Department, Role, Country, State, City, Street Address, Citizenship, and PIN Code) are required." },
         { status: 400 }
       );
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = username.trim().toLowerCase();
-    const finalCountry = country?.trim() || "India";
-    const finalState = state?.trim() || "PENDING";
-    const finalCity = city?.trim() || "PENDING";
-    const finalAddress = address?.trim() || "PENDING";
-    const finalCitizenship = citizenship?.trim() || "PENDING";
-    const finalRegion = region?.trim() || "PENDING";
+    const finalCountry = country.trim();
+    const finalState = state.trim();
+    const finalCity = city.trim();
+    const finalAddress = address.trim();
+    const finalCitizenship = citizenship.trim();
+    const finalRegion = region?.trim() || "Asia";
+
+    // 1.5 Email Format Check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return NextResponse.json(
+        { error: "Please enter a valid email address format." },
+        { status: 400 }
+      );
+    }
 
     // 2. Strict Username Validation
     const usernameRegex = /^[a-z0-9_-]+$/;

@@ -9,8 +9,27 @@ import { rateLimit } from "@/lib/rateLimit";
  */
 export async function GET(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limiter = rateLimit(ip, 10, 60 * 1000); // Max 10 requests per minute
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
+    
+    const isLocal = ip === "127.0.0.1" || 
+                    ip === "::1" || 
+                    ip === "localhost" || 
+                    ip.startsWith("::ffff:127.0.0.1") ||
+                    ip.startsWith("192.168.") ||
+                    ip.startsWith("10.") ||
+                    ip.startsWith("172.16.") ||
+                    ip.startsWith("172.17.") ||
+                    ip.startsWith("172.18.") ||
+                    ip.startsWith("172.19.") ||
+                    ip.startsWith("172.2") ||
+                    ip.startsWith("172.30.") ||
+                    ip.startsWith("172.31.") ||
+                    process.env.NODE_ENV === "development" ||
+                    process.env.NODE_ENV === "test";
+
+    const limit = isLocal ? 1000 : 120;
+    const limiter = rateLimit(ip, limit, 60 * 1000); // 1 minute window
     if (!limiter.success) {
       return NextResponse.json(
         { available: false, error: "Too many requests. Please try again later." },
@@ -53,25 +72,31 @@ export async function GET(req: Request) {
 
     // 3. Username is taken. Automatically compute 3 available alternatives based on input
     const suggestions: string[] = [];
-
-    // Suggestions recipes
-    const today = new Date();
-    const day = String(today.getDate()).padStart(2, "0");
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const dateSuffix = `${day}${month}`; // e.g. 2605
+    const prefixes = ["iam", "the", "its", "real", "official", "hello", "ask"];
+    const suffixes = ["official", "real", "dev", "axn", "hub", "design", "tech", "code"];
+    const year = new Date().getFullYear();
 
     const candidates = [
-      `${cleanUsername}_axn`,
-      `${cleanUsername}${dateSuffix}`,
-      `${cleanUsername}_ped`,
-      `${cleanUsername}_swe`,
-      `${cleanUsername}${Math.floor(100 + Math.random() * 900)}`
+      `${cleanUsername}_${suffixes[0]}`,
+      `${cleanUsername}_${suffixes[1]}`,
+      `${cleanUsername}_${suffixes[2]}`,
+      `${cleanUsername}_${suffixes[3]}`,
+      `${prefixes[0]}_${cleanUsername}`,
+      `${prefixes[1]}_${cleanUsername}`,
+      `${prefixes[2]}_${cleanUsername}`,
+      `${prefixes[3]}_${cleanUsername}`,
+      `${cleanUsername}${year}`,
+      `${cleanUsername}_${year}`,
+      `${cleanUsername}26`,
+      `${cleanUsername}_26`,
+      `${cleanUsername}${Math.floor(100 + Math.random() * 900)}`,
+      `${prefixes[0]}_${cleanUsername}_${suffixes[0]}`,
+      `${prefixes[1]}_${cleanUsername}_${suffixes[2]}`
     ];
 
     for (const candidate of candidates) {
       if (suggestions.length >= 3) break;
 
-      // Check if candidate is taken
       const isTaken = await db.user.findFirst({
         where: {
           username: {

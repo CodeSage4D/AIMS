@@ -27,6 +27,7 @@ export default function SignupPage() {
   const [country, setCountry] = useState("India");
   const [state, setState] = useState("Maharashtra");
   const [city, setCity] = useState("Mumbai");
+  const [address, setAddress] = useState("");
   const [citizenship, setCitizenship] = useState("");
   const [region, setRegion] = useState("Asia");
   const [bankName, setBankName] = useState("");
@@ -160,6 +161,21 @@ export default function SignupPage() {
       return;
     }
 
+    // 1. Validate email format with standard email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Ensure all basic profile details are mandatory and not empty
+    if (!country || !country.trim() || !state || !state.trim() || !city || !city.trim() || !address || !address.trim() || !citizenship || !citizenship.trim() || !pinCode || !pinCode.trim()) {
+      setError("Please fill in all mandatory residence and profile details (Country, State, City, Street Address, Citizenship, and PIN Code).");
+      setLoading(false);
+      return;
+    }
+
     if (usernameAvailable === false) {
       setError("Please choose a unique and valid username.");
       setLoading(false);
@@ -217,6 +233,7 @@ export default function SignupPage() {
           country,
           state,
           city,
+          address,
           citizenship,
           region,
           bankName,
@@ -245,6 +262,7 @@ export default function SignupPage() {
         setCountry("India");
         setState("Maharashtra");
         setCity("Mumbai");
+        setAddress("");
         setCitizenship("");
         setRegion("Asia");
         setBankName("");
@@ -663,6 +681,29 @@ export default function SignupPage() {
                       setError(null);
                     }}
                     disabled={loading}
+                  />
+                </div>
+
+                {/* Street Address */}
+                <div className="relative group flex flex-col pt-1">
+                  <div className={`absolute left-4 top-[39px] transition-colors duration-300 pointer-events-none z-10 ${
+                    currentTheme === "dark" ? "text-gray-400 group-focus-within:text-blue-400" : "text-slate-400 group-focus-within:text-blue-600"
+                  }`}>
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <Input
+                    label="Street Address"
+                    type="text"
+                    placeholder="e.g. 123, Park Avenue, Sector 4"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className={`pl-11 h-11 text-xs rounded-xl transition-all duration-200 ${
+                      currentTheme === "dark"
+                        ? "bg-white/5 border-white/10 hover:border-white/20 focus:border-blue-500/70 focus:bg-[#0d1424] text-white placeholder-gray-500"
+                        : "bg-slate-50 border-slate-200 hover:border-slate-300 focus:border-blue-500/70 focus:bg-white text-slate-900 placeholder-slate-400"
+                    }`}
+                    disabled={loading}
+                    required
                   />
                 </div>
 
