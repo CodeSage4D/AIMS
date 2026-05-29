@@ -474,10 +474,10 @@ export default function PortfolioClient({
                       <div className="p-4.5 bg-secondary/15 rounded-2xl border border-border/40 hover:border-indigo-500/35 transition-all duration-300 space-y-3.5 text-left">
                         <div className="flex flex-wrap justify-between items-start gap-2.5">
                           <div>
-                            <span className="text-[9px] font-heading font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">
+                            <span className="text-[9px] font-heading font-extrabold uppercase tracking-widest text-indigo-500 dark:text-indigo-400 block mb-1">
                               {p.roleInProject}
                             </span>
-                            <h4 className="text-sm font-extrabold text-white">{p.title}</h4>
+                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{p.title}</h4>
                             <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
                               Created: {new Date(p.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             </p>
@@ -488,15 +488,15 @@ export default function PortfolioClient({
                             <span className={cn(
                               "text-[8.5px] font-heading font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border select-none",
                               isCompleted
-                                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                                : "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
+                                : "bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400"
                             )}>
                               {p.status.replace(/_/g, " ")}
                             </span>
 
                             {/* Assigner indicator */}
                             {p.assignedById && (
-                              <span className="text-[8.5px] font-heading font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border bg-purple-500/10 border-purple-500/25 text-purple-400 select-none flex items-center space-x-1">
+                              <span className="text-[8.5px] font-heading font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border bg-purple-500/10 border-purple-500/25 text-purple-600 dark:text-purple-400 select-none flex items-center space-x-1">
                                 <Briefcase className="h-3 w-3 shrink-0" />
                                 <span>ASSIGNED WORK</span>
                               </span>
@@ -532,7 +532,7 @@ export default function PortfolioClient({
                                 }}
                                 variant="secondary"
                                 size="sm"
-                                className="h-7 px-2.5 text-[9px] font-extrabold uppercase bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 text-indigo-400 flex items-center space-x-1"
+                                className="h-7 px-2.5 text-[9px] font-extrabold uppercase bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center space-x-1"
                               >
                                 <UserCheck className="h-3 w-3 shrink-0" />
                                 <span>Review Log</span>
@@ -542,7 +542,7 @@ export default function PortfolioClient({
                         </div>
 
                         {/* Description */}
-                        <p className="text-xs text-gray-300 font-medium leading-relaxed font-sans">
+                        <p className="text-xs text-slate-650 dark:text-gray-300 font-medium leading-relaxed font-sans">
                           {p.description}
                         </p>
 
@@ -552,7 +552,7 @@ export default function PortfolioClient({
                             {p.technologies.map((t, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-bold text-gray-400 select-none"
+                                className="px-2 py-0.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded text-[9px] font-bold text-slate-600 dark:text-gray-400 select-none"
                               >
                                 {t}
                               </span>
@@ -562,11 +562,11 @@ export default function PortfolioClient({
 
                         {/* Deliverables details */}
                         {(p.deliverableUrl || p.documentName) && (
-                          <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-400 border-t border-border/20 pt-3 mt-3 select-text">
+                          <div className="flex flex-wrap gap-4 text-[10px] font-bold text-slate-500 dark:text-gray-400 border-t border-border/20 pt-3 mt-3 select-text">
                             {p.documentName && (
                               <span className="flex items-center space-x-1.5">
                                 <FileText className="h-3.5 w-3.5 text-indigo-400" />
-                                <span>Doc: <strong className="text-gray-300">{p.documentName}</strong></span>
+                                <span>Doc: <strong className="text-slate-800 dark:text-gray-300">{p.documentName}</strong></span>
                               </span>
                             )}
                             {p.deliverableUrl && (
@@ -574,7 +574,7 @@ export default function PortfolioClient({
                                 href={p.deliverableUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300 hover:underline transition-all"
+                                className="flex items-center space-x-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 hover:underline transition-all"
                               >
                                 <LinkIcon className="h-3.5 w-3.5 shrink-0" />
                                 <span>Repository / Live URL</span>
@@ -585,12 +585,12 @@ export default function PortfolioClient({
 
                         {/* Review Notes (Feedback) */}
                         {p.reviewNotes && (
-                          <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-1 mt-3">
-                            <span className="text-[9px] font-heading font-extrabold uppercase tracking-widest text-indigo-400 flex items-center space-x-1">
+                          <div className="p-3 bg-indigo-500/5 dark:bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-1 mt-3">
+                            <span className="text-[9px] font-heading font-extrabold uppercase tracking-widest text-indigo-500 dark:text-indigo-400 flex items-center space-x-1">
                               <MessageSquare className="h-3 w-3 shrink-0" />
                               <span>Supervisor Feedback Review</span>
                             </span>
-                            <p className="text-xs text-gray-300 italic font-medium leading-normal">
+                            <p className="text-xs text-indigo-950 dark:text-gray-300 italic font-medium leading-normal">
                               "{p.reviewNotes}"
                             </p>
                           </div>

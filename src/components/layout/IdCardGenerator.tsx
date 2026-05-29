@@ -1075,7 +1075,7 @@ export default function IdCardGenerator({
                       className={cn(
                         "h-8 rounded-lg text-[9px] font-bold uppercase transition-all border flex items-center justify-center space-x-1",
                         cardType === t
-                          ? "bg-indigo-50 border-indigo-500 text-white"
+                          ? "bg-indigo-600 border-indigo-650 text-white"
                           : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-650 dark:text-gray-400"
                       )}
                     >
@@ -1157,10 +1157,10 @@ export default function IdCardGenerator({
                           setThemeColor(preset.theme);
                         }}
                         className={cn(
-                          "h-8 rounded-md text-[8.5px] font-extrabold uppercase transition-all border flex flex-col items-center justify-center p-1",
+                          "h-8 rounded-md text-[8.5px] font-extrabold uppercase transition-all border flex flex-col items-center justify-center p-1 cursor-pointer",
                           badgeColor === preset.badge && themeColor === preset.theme
-                            ? "border-indigo-500 bg-indigo-500/20 text-white scale-105"
-                            : "border-white/10 bg-slate-900/60 text-gray-400 hover:bg-slate-900"
+                            ? "border-indigo-500 bg-indigo-655 dark:bg-indigo-500/20 text-white scale-105"
+                            : "border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900/60 text-slate-650 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-slate-900"
                         )}
                         title={`${preset.name} Preset`}
                       >
@@ -1190,10 +1190,10 @@ export default function IdCardGenerator({
             {!isApproved && cardStatus === "PENDING" && isAdminActor && (
               <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2.5">
                 <div className="flex items-start space-x-2">
-                  <AlertTriangle className="h-4.5 w-4.5 text-amber-400 shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <h4 className="text-xs font-bold text-white">Verification Approvals Audit</h4>
-                    <p className="text-[9px] text-gray-400 leading-normal">
+                    <h4 className="text-xs font-bold text-amber-900 dark:text-white">Verification Approvals Audit</h4>
+                    <p className="text-[9px] text-amber-800 dark:text-gray-400 leading-normal">
                       Inspect the dynamic preview on the right. Press compile & approve below to cryptographically sign and lock this workforce credential.
                     </p>
                   </div>
@@ -1217,10 +1217,10 @@ export default function IdCardGenerator({
 
             {!isApproved && !isAdminActor && (
               <div className="p-4 rounded-xl border border-red-500/25 bg-red-500/5 flex items-start space-x-2.5">
-                <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0 mt-0.5 animate-pulse" />
+                <AlertTriangle className="h-4.5 w-4.5 text-red-500 dark:text-red-400 shrink-0 mt-0.5 animate-pulse" />
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white">Awaiting Administrator Review</h4>
-                  <p className="text-[9px] text-red-300 leading-normal">
+                  <h4 className="text-xs font-bold text-red-900 dark:text-white">Awaiting Administrator Review</h4>
+                  <p className="text-[9px] text-red-700 dark:text-red-300 leading-normal">
                     This card is currently pending approval. Watermarks and warnings will clear automatically once verified by Founder (Karan Mishra) or HR.
                   </p>
                 </div>
@@ -1293,24 +1293,24 @@ export default function IdCardGenerator({
         <div className={cn("flex flex-col items-center justify-center space-y-5 w-full pt-4", viewOnly ? "lg:col-span-1" : "lg:col-span-7")}>
           
           {/* Card Style preview header */}
-          <div className="flex items-center justify-between w-full max-w-[320px] select-none bg-slate-900/40 p-2 rounded-xl border border-white/[0.04]">
-            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-2">Live Rendering</span>
+          <div className="flex items-center justify-between w-full max-w-[320px] select-none bg-slate-100 dark:bg-slate-900/40 p-2 rounded-xl border border-slate-200 dark:border-white/[0.04]">
+            <span className="text-[9px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-widest pl-2">Live Rendering</span>
             {cardType === "standard" && (
               <Button
                 size="sm"
                 onClick={() => setIsFlipped(!isFlipped)}
                 variant="outline"
-                className="h-6 px-2.5 text-[8.5px] font-bold border-indigo-500/20 hover:bg-indigo-500/10 text-indigo-400 rounded-md flex items-center space-x-1"
+                className="h-6 px-2.5 text-[8.5px] font-bold border-indigo-500/20 hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-md flex items-center space-x-1"
               >
                 <RotateCcw className="h-3 w-3 shrink-0" />
                 <span>{isFlipped ? "Show Front" : "Flip to Back"}</span>
               </Button>
             )}
             {cardType === "banner" && (
-              <span className="text-[8px] bg-cyan-950/40 text-cyan-300 border border-cyan-800/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Mobile Banner</span>
+              <span className="text-[8px] bg-cyan-100 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Mobile Banner</span>
             )}
             {cardType === "smart" && (
-              <span className="text-[8px] bg-purple-950/40 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Smart Chip</span>
+              <span className="text-[8px] bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Smart Chip</span>
             )}
           </div>
 
