@@ -240,8 +240,8 @@ export async function POST(req: Request) {
           finalAssignedId = computedId;
 
           // Create linked User account for the intern/employee
-          const crypto = require("crypto");
-          const rawTempPassword = body.tempPassword || `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+          const { generateSecureTempPassword } = require("@/lib/tempPassword");
+          const rawTempPassword = generateSecureTempPassword();
           finalTempPassword = rawTempPassword;
           const passwordHash = bcrypt.hashSync(rawTempPassword, 10);
           
