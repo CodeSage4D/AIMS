@@ -104,6 +104,7 @@ export default function FounderDashboardQueues() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tempPasswordToShow, setTempPasswordToShow] = useState<string | null>(null);
+  const [modalUserMeta, setModalUserMeta] = useState<{ name: string; id: string; actionType: string } | null>(null);
 
   // Onboarding details verification modal and fields editing states
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -197,7 +198,13 @@ export default function FounderDashboardQueues() {
       if (res.ok) {
         setSuccess(`Password request successfully ${action === "APPROVE" ? "approved" : "rejected"}.`);
         if (action === "APPROVE" && data.tempPassword) {
+          const reqRecord = resets.find((r) => r.id === requestId);
           setTempPasswordToShow(data.tempPassword);
+          setModalUserMeta({
+            name: reqRecord ? reqRecord.internName : "Employee",
+            id: reqRecord ? reqRecord.internId : "ID",
+            actionType: "PASSWORD_RESET"
+          });
         }
         await fetchData();
       } else {
@@ -299,6 +306,11 @@ export default function FounderDashboardQueues() {
         setSuccess(`Self-registration successfully ${action === "APPROVE" ? "approved and sequence ID generated" : "rejected"}.`);
         if (action === "APPROVE" && data.tempPassword) {
           setTempPasswordToShow(data.tempPassword);
+          setModalUserMeta({
+            name: data.intern?.fullName || adjFullName || (selectedRegistrant ? selectedRegistrant.fullName : "Employee"),
+            id: data.intern?.internId || data.previewId || (selectedRegistrant ? selectedRegistrant.internId : "ID"),
+            actionType: "ONBOARDING_APPROVAL"
+          });
         }
         setShowVerificationModal(false);
         setSelectedRegistrant(null);
@@ -1164,6 +1176,81 @@ export default function FounderDashboardQueues() {
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Glassmorphic Success Credentials Approval Modal */}
+      {tempPasswordToShow && modalUserMeta && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn select-none">
+          <div className="bg-[#0b0f19]/95 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6 animate-scaleIn">
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Check className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-heading font-extrabold text-white tracking-wide">
+                {modalUserMeta.actionType === "PASSWORD_RESET" ? "Reset Request Approved!" : "Onboarding Request Approved!"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Credentials successfully initialized for <strong className="text-white">{modalUserMeta.name}</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-black/50 border border-white/[0.06] rounded-xl p-4 text-left space-y-3.5">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
+                    Workspace Identifier / ID
+                  </span>
+                  <code className="text-sm font-mono font-bold text-cyan-400 select-all block mt-1">
+                    {modalUserMeta.id}
+                  </code>
+                </div>
+
+                <div className="border-t border-white/[0.06] pt-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
+                      Secure Temporary Password
+                    </span>
+                    <span className="text-[8px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      CSPRNG Generated
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/40 border border-white/[0.04] p-2.5 rounded-lg mt-1.5 font-mono text-sm font-bold text-emerald-400">
+                    <code className="select-all">{tempPasswordToShow}</code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `ID: ${modalUserMeta.id}\nPassword: ${tempPasswordToShow}`
+                        );
+                        setCopiedId("modal-copied");
+                        setTimeout(() => setCopiedId(null), 2000);
+                      }}
+                      className="p-1 hover:bg-white/10 rounded text-emerald-450 hover:text-emerald-400 transition-all cursor-pointer"
+                    >
+                      {copiedId === "modal-copied" ? <Check className="h-4.5 w-4.5" /> : <Copy className="h-4.5 w-4.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] text-indigo-300 text-left leading-relaxed">
+                <strong>Important:</strong> Copy these credentials now. The temporary password is cryptographically salted and hashed. It cannot be retrieved after leaving this screen.
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full font-bold h-11 rounded-xl shadow-lg shadow-indigo-600/10 cursor-pointer animate-pulse"
+              onClick={() => {
+                setTempPasswordToShow(null);
+                setModalUserMeta(null);
+              }}
+            >
+              Continue to Dashboard
+            </Button>
           </div>
         </div>
       )}
