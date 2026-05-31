@@ -117,6 +117,7 @@ model User {
   createdKnowledgeDocs      KnowledgeDocument[]    @relation("CreatedKnowledgeDocs")
   approvedKnowledgeDocs     KnowledgeDocument[]    @relation("ApprovedKnowledgeDocs")
   aiQueryLogs               AiQueryLog[]
+  uploadedSecureDocuments   SecureDocument[]       @relation("UploadedDocs")
 
   @@map("users")
 }
@@ -596,3 +597,25 @@ model AiQueryLog {
 
   @@map("ai_query_logs")
 }
+
+model SecureDocument {
+  id               String    @id @default(uuid())
+  fileId           String    @unique @map("file_id")
+  fileName         String    @map("file_name")
+  storagePath      String    @map("storage_path")
+  fileType         String    @map("file_type")
+  fileSize         Int       @map("file_size")
+  ownerId          String    @map("owner_id")
+  uploadedById     String    @map("uploaded_by_id")
+  uploadedBy       User      @relation("UploadedDocs", fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadDate       DateTime  @default(now()) @map("upload_date")
+  sha256Hash       String    @map("sha256_hash")
+  documentCategory String    @map("document_category")
+  version          Int       @default(1)
+  bucketUsed       String    @default("aurxon-vault-primary") @map("bucket_used")
+  archived         Boolean   @default(false)
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@map("secure_documents")
+}
+
