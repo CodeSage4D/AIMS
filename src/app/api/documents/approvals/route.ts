@@ -149,6 +149,12 @@ export async function PUT(req: Request) {
       
       const signatureStamp = `Digitally Signed by ${userRole} [${userName}] | HASH: AXN-SIG-${sigHash} | DATE: ${approvedAt.toLocaleDateString()}`;
 
+      const salt = process.env.NEXTAUTH_SECRET || "AURXON_SALT_2026";
+      const verificationHash = crypto
+        .createHash("sha256")
+        .update(`${documentId}-${doc.internId}-${doc.type}-${approvedAt.getTime()}-${salt}`)
+        .digest("hex");
+
       let nextContent = doc.content;
       if (doc.type === "ID_CARD") {
         nextContent = {
@@ -174,6 +180,7 @@ export async function PUT(req: Request) {
             signature: signatureStamp,
             notes: notes || "Document approved and digitally signed.",
             content: nextContent as any,
+            verificationHash,
           },
         });
 
