@@ -543,7 +543,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {intern.generatedDocuments
                   .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
                   .map((doc: any) => {
@@ -626,8 +626,8 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
               {/* Document Sign modal drawer */}
               {activeSignDoc && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs select-none">
-                  <div className="bg-[#0b0f19]/90 border border-white/10 w-full max-w-2xl rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col justify-between max-h-[85vh] text-left animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs select-none">
+                  <div className="bg-[#0b0f19]/95 border border-white/10 w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl p-4 sm:p-8 flex flex-col justify-between max-h-[92vh] sm:max-h-[85vh] text-left animate-fadeIn">
                     <div className="space-y-4 overflow-y-auto pr-1 flex-1">
                       <div className="flex justify-between items-start">
                         <div>
@@ -650,7 +650,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                       </div>
 
                       {/* Document terms content details */}
-                      <div className="bg-white text-slate-800 p-5 sm:p-8 rounded-xl text-xs space-y-4 max-h-[45vh] overflow-y-auto leading-relaxed select-text font-serif">
+                      <div className="bg-white text-slate-800 p-4 sm:p-8 rounded-xl text-xs space-y-4 max-h-[50vh] overflow-y-auto leading-relaxed select-text font-serif">
                         {/* Company Letterhead in Onboarding Preview */}
                         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-3 mb-4">
                           <div className="flex items-center space-x-2">
@@ -661,15 +661,25 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                             />
                             <div>
                               <h2 className="text-xs font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
-                                {activeSignDoc.content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
+                                {activeSignDoc.content.companyName || "AURXON"}
                               </h2>
                               <p className="text-[7px] text-slate-500 font-bold uppercase tracking-wider leading-none mt-0.5">
-                                Enterprise Databases • API Orchestrations • Automated Operations
+                                INTERNAL MANAGEMENT SYSTEM
                               </p>
                             </div>
                           </div>
                           <div className="text-right text-[7px] text-slate-400 font-bold uppercase">
-                            <span>Ref: AXN-DOC-{intern.internId || "DRAFT"}</span>
+                            <div>Ref: AXN-DOC-{intern.internId || "DRAFT"}</div>
+                            {/* Lifecycle watermark badge */}
+                            <div className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[6px] font-bold uppercase tracking-widest ${
+                              activeSignDoc.lifecycleStatus === "APPROVED" || activeSignDoc.status === "APPROVED"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : activeSignDoc.lifecycleStatus === "PENDING_REVIEW"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}>
+                              {activeSignDoc.lifecycleStatus || activeSignDoc.status || "DRAFT"}
+                            </div>
                           </div>
                         </div>
 
@@ -740,7 +750,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                       </div>
                     </div>
 
-                    <div className="mt-5 pt-4 border-t border-white/[0.08] flex justify-end">
+                    <div className="mt-4 pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row gap-2 justify-end">
                       <Button
                         type="button"
                         variant="secondary"
@@ -748,7 +758,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                           setActiveSignDoc(null);
                           setSigName("");
                         }}
-                        className="h-10 px-6 font-bold text-xs"
+                        className="h-10 px-6 font-bold text-xs w-full sm:w-auto"
                       >
                         Close Preview
                       </Button>
