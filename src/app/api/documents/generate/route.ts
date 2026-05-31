@@ -70,15 +70,15 @@ export async function POST(req: Request) {
 
     let content: any;
     if (type === "OFFER_LETTER") {
-      content = generateOfferLetterDraft(intern, finalCurrency);
+      content = generateOfferLetterDraft(intern, finalCurrency, existingDoc);
     } else if (type === "NDA") {
-      content = generateNDADraft(intern);
+      content = generateNDADraft(intern, existingDoc);
     } else if (type === "ID_CARD") {
-      content = generateIDCardDraft(intern);
+      content = generateIDCardDraft(intern, existingDoc);
     } else if (type === "EXPERIENCE_LETTER") {
-      content = generateExperienceLetterDraft(intern);
+      content = generateExperienceLetterDraft(intern, existingDoc);
     } else if (type === "AGREEMENT") {
-      content = generateAgreementDraft(intern);
+      content = generateAgreementDraft(intern, existingDoc);
     }
 
     let resultDoc;
@@ -87,11 +87,11 @@ export async function POST(req: Request) {
         where: { id: existingDoc.id },
         data: {
           content: content as any,
-          status: "PENDING",
+          status: "DRAFT",
           approvedById: null,
           approvedAt: null,
           signature: null,
-          notes: "Re-compiled draft document.",
+          notes: "Re-compiled draft document with version increment.",
         },
       });
     } else {
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
           internId,
           type,
           content: content as any,
-          status: "PENDING",
+          status: "DRAFT",
         },
       });
     }
