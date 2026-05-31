@@ -56,7 +56,7 @@ function getBrandedWrapper(title: string, bodyContent: string, actionUrl?: strin
               <!-- Footer Section -->
               <tr>
                 <td style="background-color: #f1f5f9; padding: 25px 30px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
-                  <p style="margin: 0; font-weight: 600;">AURXON DB & Software Systems Inc.</p>
+                  <p style="margin: 0; font-weight: 600;">AURXON</p>
                   <p style="margin: 4px 0 0 0;">This is an automated production notification. Please do not reply directly to this mail.</p>
                 </td>
               </tr>
