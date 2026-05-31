@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { User, School, Heart, Check, AlertTriangle } from "lucide-react";
+import { User, School, Heart, Check, AlertTriangle, Copy, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLE_CODES } from "@/lib/roles";
 import { useSession } from "next-auth/react";
@@ -33,6 +33,8 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
   const [activeTab, setActiveTab] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{ internId: string; tempPassword: string; fullName: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Form State Values
   const [formData, setFormData] = useState(() => {
@@ -240,8 +242,12 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
         throw new Error(data.error || "Failed to onboard new intern.");
       }
 
-      router.push("/interns");
-      router.refresh();
+      setSuccessData({
+        internId: data.intern?.internId || data.internId || "Generated ID",
+        tempPassword: data.tempPassword,
+        fullName: formData.fullName.trim(),
+      });
+      setLoading(false);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during database save.");
       setLoading(false);
@@ -290,6 +296,7 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
   ];
 
   return (
+    <>
     <Card className="border-border/60 max-w-4xl mx-auto shadow-2xl select-none">
       {/* 1. Header with Tab steps tracker */}
       <div className="border-b border-border/40 p-6 bg-secondary/10">
@@ -431,34 +438,8 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="flex flex-col space-y-1.5 w-full">
-                  <label className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-                    <span>Temporary Account Password (Required)</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const randomPass = `AXN-TMP-${Math.floor(100000 + Math.random() * 900000)}`;
-                        setFormData((prev) => ({ ...prev, tempPassword: randomPass }));
-                      }}
-                      className="text-[10px] font-bold text-cyan-400 hover:underline hover:text-cyan-300 transition-colors"
-                    >
-                      Generate New
-                    </button>
-                  </label>
-                  <Input
-                    name="tempPassword"
-                    placeholder="Enter temporary password"
-                    value={formData.tempPassword}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="flex items-center justify-start pt-6">
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Note: Storing a temporary password allows the founder or admins to view it for candidate reference during onboarding.
-                  </p>
-                </div>
+              <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/25 text-xs text-indigo-300 leading-relaxed font-semibold">
+                Note: A strong, high-entropy corporate temporary password will be generated automatically on the server upon successful verification. You will be able to preview and copy it once onboarding is completed.
               </div>
 
 
@@ -904,5 +885,82 @@ export default function AddInternForm({ mentors }: AddInternFormProps) {
         </form>
       </CardContent>
     </Card>
+
+    {/* Glassmorphic CSPRNG Credentials Onboarding Success Modal */}
+    {successData && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+        <div className="bg-[#0b0f19]/95 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6 animate-scaleIn">
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Check className="h-8 w-8" />
+            </div>
+            <h3 className="text-xl font-heading font-extrabold text-white tracking-wide">
+              Onboarding Successful!
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              The candidate file for <strong className="text-white">{successData.fullName}</strong> has been securely generated.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-black/50 border border-white/[0.06] rounded-xl p-4 text-left space-y-3.5">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
+                  Assigned Sequential ID
+                </span>
+                <code className="text-sm font-mono font-bold text-cyan-400 select-all block mt-1">
+                  {successData.internId}
+                </code>
+              </div>
+
+              <div className="border-t border-white/[0.06] pt-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
+                    Secure Temporary Password
+                  </span>
+                  <span className="text-[8px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                    CSPRNG Generated
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-black/40 border border-white/[0.04] p-2.5 rounded-lg mt-1.5 font-mono text-sm font-bold text-emerald-400">
+                  <code className="select-all">{successData.tempPassword}</code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `ID: ${successData.internId}\nPassword: ${successData.tempPassword}`
+                      );
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="p-1 hover:bg-white/10 rounded text-emerald-450 hover:text-emerald-400 transition-all cursor-pointer"
+                  >
+                    {copied ? <Check className="h-4.5 w-4.5" /> : <Copy className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] text-indigo-300 text-left leading-relaxed">
+              <strong>Important:</strong> Copy these credentials now. The temporary password is cryptographically salted and hashed. It cannot be retrieved after leaving this screen.
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full font-bold h-11 rounded-xl shadow-lg shadow-indigo-600/10 cursor-pointer animate-pulse"
+            onClick={() => {
+              setSuccessData(null);
+              router.push("/interns");
+              router.refresh();
+            }}
+          >
+            Continue to Directory
+          </Button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
