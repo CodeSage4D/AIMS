@@ -15,37 +15,64 @@ export async function POST(request: Request) {
     const { newPassword, skipTokenInvalidation } = await request.json();
     if (!newPassword || !validatePassword(newPassword)) {
       return NextResponse.json(
-        { error: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character." },
+        { error: "Password must be at least 12 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character." },
         { status: 400 }
       );
     }
 
     const userId = (session.user as any).id;
+
+    // 1. Fetch the last 3 password hashes from history to prevent reuse
+    const recentHashes = await db.passwordHistory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    });
+
+    const isReused = recentHashes.some((ph) =>
+      bcrypt.compareSync(newPassword, ph.passwordHash)
+    );
+
+    if (isReused) {
+      return NextResponse.json(
+        { error: "Security Violation: Password matches one of your last 3 passwords. Please choose a fresh credentials password." },
+        { status: 400 }
+      );
+    }
+
     const passwordHash = bcrypt.hashSync(newPassword, 10);
 
-    // When skipTokenInvalidation=true (force-first-login change), we don't bump
-    // tokenVersion so the user's current JWT session stays valid and they go
-    // directly to the dashboard without being forced to log in again.
     const updateData: any = {
       passwordHash,
       changePasswordRequired: false,
+      passwordUpdatedAt: new Date(),
     };
 
     if (!skipTokenInvalidation) {
       updateData.tokenVersion = { increment: 1 };
     }
 
-    await db.user.update({
-      where: { id: userId },
-      data: updateData,
-    });
+    // 2. Transactionally update user, insert history record, and record audit log
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
 
-    await db.activityLog.create({
-      data: {
-        userId,
-        action: "PASSWORD_CHANGED",
-        description: "User successfully updated their password.",
-      },
+      await tx.passwordHistory.create({
+        data: {
+          userId,
+          passwordHash,
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          userId,
+          action: "PASSWORD_CHANGED",
+          description: "User successfully updated their password and registered a fresh history hash.",
+        },
+      });
     });
 
     return NextResponse.json({ message: "Password updated successfully." }, { status: 200 });
