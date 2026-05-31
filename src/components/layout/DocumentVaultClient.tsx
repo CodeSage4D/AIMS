@@ -3001,7 +3001,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   <g transform="translate(615, 475)">
                     <line x1="0" y1="28" x2="160" y2="28" stroke={certTheme.goldLine} strokeWidth="1" opacity="0.4" />
                     <text x="80" y="42" fill={certTheme.accentColor} className="cert-font-inter" fontWeight="800" fontSize="9" letterSpacing="1" textAnchor="middle">FOUNDER & CEO</text>
-                    <text x="80" y="53" fill={certTheme.bodyColor} opacity="0.4" className="cert-font-inter" fontSize="7.5" textAnchor="middle">{content.companyName || "AURXON DB SYSTEMS"}</text>
+                    <text x="80" y="53" fill={certTheme.bodyColor} opacity="0.4" className="cert-font-inter" fontSize="7.5" textAnchor="middle">{content.companyName || "AURXON"}</text>
                     
                     {/* Signature cursive path overlay */}
                     {isApproved && (
@@ -3033,15 +3033,27 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                         />
                         <div>
                           <h2 className="text-base font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
-                            {content.companyName || "AURXON DB & SOFTWARE SYSTEMS"}
+                            {content.companyName || "AURXON"}
                           </h2>
                           <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider leading-none mt-1">
-                            Enterprise Databases • API Orchestrations • Automated Operations
+                            INTERNAL MANAGEMENT SYSTEM
                           </p>
                         </div>
                       </div>
-                      <div className="text-right text-[8px] text-slate-400 font-bold uppercase">
-                        <span>Ref: AXN-DOC-{doc.intern?.internId || "DRAFT"}</span>
+                      <div className="text-right text-[8px] text-slate-400 font-bold uppercase space-y-1">
+                        <div>Ref: AXN-DOC-{doc.intern?.internId || "DRAFT"}</div>
+                        {/* Lifecycle & Watermark badge */}
+                        <div className={`inline-block px-1.5 py-0.5 rounded text-[6.5px] font-bold uppercase tracking-widest ${
+                          (doc as any).watermarkStatus === "OFFICIAL" || doc.status === "APPROVED"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : (doc as any).watermarkStatus === "PENDING" || (doc as any).lifecycleStatus === "PENDING_REVIEW"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-slate-50 text-slate-500 border border-slate-200"
+                        }`}>
+                          {(doc as any).watermarkStatus === "OFFICIAL" ? "✓ OFFICIAL"
+                            : (doc as any).watermarkStatus === "PENDING" ? "⏳ PENDING"
+                            : "◎ DRAFT"}
+                        </div>
                       </div>
                     </div>
 
