@@ -53,7 +53,8 @@ export async function POST(req: Request) {
     }
 
     // Generate secure randomized temporary password
-    const rawTempPassword = `AXN-REC-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const { generateSecureTempPassword } = require("@/lib/tempPassword");
+    const rawTempPassword = generateSecureTempPassword();
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(rawTempPassword, salt);
 
