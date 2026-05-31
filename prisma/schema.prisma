@@ -76,6 +76,14 @@ enum DocType {
   JOINING_DOCUMENTS
   OTHER_FILES
   ID_CARD
+  // Employee & Contractor categories
+  EMPLOYEE_OFFER_LETTER
+  EMPLOYEE_AGREEMENT
+  EMPLOYEE_NDA
+  CONTRACT_OFFER_LETTER
+  CONTRACT_AGREEMENT
+  CONTRACT_NDA
+  COMPLETION_CERTIFICATE
 }
 
 model User {
@@ -306,21 +314,30 @@ model Certificate {
 }
 
 model GeneratedDocument {
-  id             String    @id @default(uuid())
-  internId       String    @map("intern_id")
-  intern         Intern    @relation(fields: [internId], references: [id], onDelete: Cascade)
-  type           String    // e.g. "OFFER_LETTER", "NDA", "ID_CARD"
-  content        Json      // Contains custom terms, template variables, or filled strings
-  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED
-  approvedById   String?   @map("approved_by_id")
-  approvedBy     User?     @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
-  approvedAt     DateTime? @map("approved_at")
-  signature      String?   // Cryptographic base64 signature hash or Admin/Founder signature stamp
-  notes          String?   // Audit notes from founder review
-  fileUrl        String?   @map("file_url") // Location of final generated document (PDF/Image)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  verificationHash String?   @unique @map("verification_hash")
+  id               String    @id @default(uuid())
+  internId         String    @map("intern_id")
+  intern           Intern    @relation(fields: [internId], references: [id], onDelete: Cascade)
+  type             String    // e.g. "OFFER_LETTER", "NDA", "ID_CARD", "EMPLOYEE_OFFER_LETTER", etc.
+  content          Json      // Contains custom terms, template variables, or filled strings
+  // --- Lifecycle & Versioning ---
+  version          Int       @default(1) // Increments on re-draft (re-generation)
+  lifecycleStatus  String    @default("DRAFT") @map("lifecycle_status") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED | ARCHIVED | REVOKED
+  watermarkStatus  String    @default("DRAFT") @map("watermark_status") // DRAFT | PENDING | OFFICIAL
+  // Legacy status kept for backward compatibility with existing UI code
+  status           String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById     String?   @map("approved_by_id")
+  approvedBy       User?     @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt       DateTime? @map("approved_at")
+  signature        String?   // SHA-256-based cryptographic signature stamp (Founder/HR)
+  candidateSigned  Boolean   @default(false) @map("candidate_signed") // Tracks candidate e-signature
+  founderSigned    Boolean   @default(false) @map("founder_signed")   // Tracks founder/HR e-signature
+  founderSignatory String?   @map("founder_signatory") // Auto-filled: Founder full name from session/settings
+  notes            String?   // Audit notes from founder review
+  fileUrl          String?   @map("file_url") // GCS path to final compiled PDF in vault
+  gcsFileId        String?   @map("gcs_file_id") // SecureDocument.fileId reference after vault archival
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  verificationHash String?   @unique @map("verification_hash") // SHA-256 hash of document identity fields
 
   @@map("generated_documents")
 }
