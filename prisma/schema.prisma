@@ -112,6 +112,11 @@ model User {
   tokenVersion              Int                    @default(0) @map("token_version")
   notes                     String?                @default("{}")
   diaries                   Diary[]
+  passwordUpdatedAt         DateTime               @default(now()) @map("password_updated_at")
+  passwordHistories         PasswordHistory[]
+  createdKnowledgeDocs      KnowledgeDocument[]    @relation("CreatedKnowledgeDocs")
+  approvedKnowledgeDocs     KnowledgeDocument[]    @relation("ApprovedKnowledgeDocs")
+  aiQueryLogs               AiQueryLog[]
 
   @@map("users")
 }
@@ -314,6 +319,7 @@ model GeneratedDocument {
   fileUrl        String?   @map("file_url") // Location of final generated document (PDF/Image)
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
+  verificationHash String?   @unique @map("verification_hash")
 
   @@map("generated_documents")
 }
@@ -548,4 +554,45 @@ model Project {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("projects")
+}
+
+model PasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("password_histories")
+}
+
+model KnowledgeDocument {
+  id           String    @id @default(uuid())
+  title        String
+  category     String    // e.g. "POLICY", "SOP", "HR_GUIDELINE"
+  content      String    @db.Text
+  version      Int       @default(1)
+  roleBarrier  Role      @default(INTERN)
+  status       String    @default("PENDING")
+  createdById  String    @map("created_by_id")
+  creator      User      @relation("CreatedKnowledgeDocs", fields: [createdById], references: [id], onDelete: Cascade)
+  approvedById String?   @map("approved_by_id")
+  approvedBy   User?     @relation("ApprovedKnowledgeDocs", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt   DateTime? @map("approved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("knowledge_documents")
+}
+
+model AiQueryLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  response  String   @db.Text
+  roleUsed  String   @map("role_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_query_logs")
 }
