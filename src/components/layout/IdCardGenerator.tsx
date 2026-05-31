@@ -1032,7 +1032,7 @@ export default function IdCardGenerator({
       {/* Hidden Render Canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className={cn("grid grid-cols-1 gap-6 items-start overflow-hidden", viewOnly ? "lg:grid-cols-1" : "lg:grid-cols-12")}>
+      <div className={cn("grid grid-cols-1 gap-6 items-start overflow-visible", viewOnly ? "lg:grid-cols-1" : "lg:grid-cols-12")}>
         
         {/* Left: Customizer Controls (Only when not viewOnly) */}
         {!viewOnly && (
@@ -1316,8 +1316,9 @@ export default function IdCardGenerator({
 
           {/* 3D Flipping Card for Standard */}
           {cardType === "standard" && (
-            <div className="w-[310px] h-[465px] shrink-0 relative select-none flip-card">
-              <div className={cn("w-full h-full flip-card-inner transition-transform duration-600", isFlipped && "flipped")}>
+            <div className="flex items-center justify-center p-4 md:p-8 lg:p-12 xl:p-16 overflow-visible w-full">
+              <div className="w-[310px] h-[465px] shrink-0 relative select-none flip-card transition-all duration-300 md:scale-110 lg:scale-125 xl:scale-135 origin-center">
+                <div className={cn("w-full h-full flip-card-inner transition-transform duration-600", isFlipped && "flipped")}>
                 
                 {/* Standard FRONT */}
                 <div className="flip-card-front w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between relative shadow-2xl overflow-hidden text-white"
@@ -1456,11 +1457,13 @@ export default function IdCardGenerator({
 
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Digital Banner Style Horizontal ID Card */}
           {cardType === "banner" && (
-            <div className="w-full max-w-[440px] shrink-0 relative select-none">
+            <div className="flex items-center justify-center p-3 md:p-6 lg:p-10 w-full overflow-visible">
+              <div className="w-full max-w-[440px] shrink-0 relative select-none transition-all duration-300 md:scale-110 lg:scale-125 xl:scale-135 origin-center">
               <div
                 className="w-full rounded-2xl border-4 p-4.5 flex items-center justify-between relative shadow-xl overflow-hidden text-white aspect-[3/1] min-h-[148px]"
                 style={{
@@ -1526,11 +1529,13 @@ export default function IdCardGenerator({
 
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Digital Chip-Based Smart ID Card */}
           {cardType === "smart" && (
-            <div className="w-[310px] h-[465px] shrink-0 relative select-none">
+            <div className="flex items-center justify-center p-4 md:p-8 lg:p-12 xl:p-16 overflow-visible w-full">
+              <div className="w-[310px] h-[465px] shrink-0 relative select-none transition-all duration-300 md:scale-110 lg:scale-125 xl:scale-135 origin-center">
               <div
                 className="w-full h-full rounded-2xl border-4 p-4.5 flex flex-col justify-between relative shadow-2xl overflow-hidden text-white"
                 style={{
@@ -1599,7 +1604,7 @@ export default function IdCardGenerator({
                 </div>
 
                 {/* Footer and dynamic tags */}
-                <div className="space-y-2 relative z-10 pb-1">
+                <div className="space-y-2 relative z-10 pb-1 text-left">
                   <div className="flex justify-between items-center text-[8.5px] px-1.5 border border-white/[0.06] bg-black/50 p-1.5 rounded-xl">
                     <div className="text-left">
                       <span className="text-gray-500 block text-[6px] font-bold uppercase tracking-wider">Credential ID</span>
@@ -1619,7 +1624,8 @@ export default function IdCardGenerator({
 
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Download buttons when in viewOnly mode */}
           {viewOnly && (
