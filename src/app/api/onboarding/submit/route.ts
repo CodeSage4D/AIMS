@@ -159,13 +159,13 @@ export async function POST(req: Request) {
             data: {
               content: updatedContent as any,
               verificationHash,
-              status: "APPROVED",
+              status: "PENDING_FOUNDER",
             }
           });
           
           doc.content = updatedContent; // sync local object
           (doc as any).verificationHash = verificationHash;
-          doc.status = "APPROVED";
+          doc.status = "PENDING_FOUNDER";
         }
       }
     }
