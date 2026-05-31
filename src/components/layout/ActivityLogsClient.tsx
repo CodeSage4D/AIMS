@@ -83,6 +83,32 @@ export default function ActivityLogsClient({ initialLogs }: ActivityLogsClientPr
     return action.replace(/_/g, " ");
   };
 
+  const handleExportCSV = () => {
+    const csvRows = [
+      ["ID", "Timestamp", "Actor", "Actor Role", "Action", "Description"],
+      ...filteredLogs.map((log) => [
+        log.id,
+        log.createdAt,
+        log.user?.fullName || "System Admin",
+        log.user?.role || "ADMIN",
+        log.action,
+        log.description,
+      ]),
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      csvRows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `AURXON_AIMS_AuditLog_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 select-none relative animate-fadeIn">
       {/* 1. Header controls */}
@@ -96,6 +122,14 @@ export default function ActivityLogsClient({ initialLogs }: ActivityLogsClientPr
             Immutable chronological logging of all intern creations, attendance locks, task items, and compliance overrides.
           </p>
         </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleExportCSV}
+          className="h-9 font-bold bg-secondary hover:bg-secondary/80 border border-border text-foreground tracking-wide shrink-0"
+        >
+          Export CSV Audit Log
+        </Button>
       </div>
 
       {/* 2. Analytical summaries */}
