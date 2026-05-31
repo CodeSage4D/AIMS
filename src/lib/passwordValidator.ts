@@ -1,5 +1,5 @@
 export function validatePassword(password: string): boolean {
-  if (password.length < 10) return false;
+  if (password.length < 12) return false;
   
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);
