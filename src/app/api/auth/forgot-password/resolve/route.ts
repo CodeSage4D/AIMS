@@ -57,7 +57,8 @@ export async function POST(request: Request) {
     }
 
     // Generate a cryptographically secure temporary password (e.g. AXN-TMP-3F8C4A12)
-    const tempPassword = `AXN-TMP-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const { generateSecureTempPassword } = require("@/lib/tempPassword");
+    const tempPassword = generateSecureTempPassword();
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(tempPassword, salt);
 
