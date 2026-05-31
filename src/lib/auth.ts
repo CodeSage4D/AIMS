@@ -70,21 +70,40 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               const isPasswordValid = bcrypt.compareSync(password, user.passwordHash);
               console.log("[AUTH DEBUG] Password check result:", isPasswordValid);
               if (isPasswordValid) {
+                const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+                const isPasswordExpired = Date.now() - new Date(user.passwordUpdatedAt).getTime() > ninetyDaysInMs;
+
                 await db.user.update({
                   where: { id: user.id },
-                  data: { failedLoginAttempts: 0, lockedUntil: null }
+                  data: {
+                    failedLoginAttempts: 0,
+                    lockedUntil: null,
+                    ...(isPasswordExpired ? { changePasswordRequired: true } : {}),
+                  },
                 });
+
+                await db.activityLog.create({
+                  data: {
+                    userId: user.id,
+                    action: "LOGIN_SUCCESS",
+                    description: `User ${user.fullName} logged in successfully. ${
+                      isPasswordExpired ? "Password expired after 90 days. Mandatory reset gated." : ""
+                    }`,
+                  },
+                });
+
                 return {
                   id: user.id,
                   email: user.email,
                   name: user.fullName,
                   role: user.role,
-                  changePasswordRequired: user.changePasswordRequired,
+                  changePasswordRequired: user.changePasswordRequired || isPasswordExpired,
                   tokenVersion: user.tokenVersion,
                 };
               } else {
                 const attempts = user.failedLoginAttempts + 1;
                 const lockedUntil = attempts >= 10 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+                
                 await db.user.update({
                   where: { id: user.id },
                   data: {
@@ -92,6 +111,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     lockedUntil: lockedUntil
                   }
                 });
+
+                await db.activityLog.create({
+                  data: {
+                    userId: user.id,
+                    action: lockedUntil ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+                    description: lockedUntil
+                      ? `Security Lockout: Account locked for 15 minutes due to 10 consecutive authentication failures.`
+                      : `Failed password attempt. Attempts remaining before lockout: ${10 - attempts}`,
+                  },
+                });
+
                 if (attempts >= 10) {
                   throw new Error("Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes.");
                 }
