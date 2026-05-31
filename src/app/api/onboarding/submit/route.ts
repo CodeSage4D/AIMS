@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSafeUserId } from "@/lib/safeUser";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
       bloodGroup,
       accountHolderName,
       paymentPreference,
+      signatureName,
     } = body;
 
     // Required fields check
@@ -90,8 +92,85 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please upload your resume before submitting." }, { status: 400 });
     }
 
-    // 4. Verify candidate signatures on OFFER_LETTER, NDA, and AGREEMENT
+    // 4. Verify / auto-generate and sign candidate agreements on-the-fly
     const requiredTypes = ["OFFER_LETTER", "NDA", "AGREEMENT"];
+    
+    // Auto-generate any missing drafts on-the-fly to prevent signature blockers
+    const missingTypes = requiredTypes.filter(t => !intern.generatedDocuments.some(gd => gd.type === t));
+    if (!intern.generatedDocuments.some(gd => gd.type === "ID_CARD")) {
+      missingTypes.push("ID_CARD");
+    }
+
+    if (missingTypes.length > 0) {
+      console.log(`[ONBOARDING SUBMIT] Auto-compiling missing drafts on-the-fly for intern ${intern.id}:`, missingTypes);
+      const { generateOfferLetterDraft, generateNDADraft, generateIDCardDraft, generateAgreementDraft } = await import("@/lib/documentTemplates");
+      
+      const createdDocs = [];
+      for (const type of missingTypes) {
+        let content;
+        if (type === "OFFER_LETTER") content = generateOfferLetterDraft(intern);
+        if (type === "NDA") content = generateNDADraft(intern);
+        if (type === "AGREEMENT") content = generateAgreementDraft(intern);
+        if (type === "ID_CARD") content = generateIDCardDraft(intern);
+
+        const newDoc = await db.generatedDocument.create({
+          data: {
+            internId: intern.id,
+            type,
+            content: content as any,
+            status: "PENDING",
+          }
+        });
+        createdDocs.push(newDoc);
+      }
+      intern.generatedDocuments.push(...createdDocs);
+    }
+
+    // Apply unified "One-Click Accept & Sign All" digital signature server-side if provided
+    if (signatureName && signatureName.trim()) {
+      const signedAt = new Date();
+      const cleanSigName = signatureName.trim();
+      
+      console.log(`[ONBOARDING SUBMIT] Atomically signing all ${requiredTypes.length} agreements for intern ${intern.id} with name: ${cleanSigName}`);
+      for (const type of requiredTypes) {
+        const doc = intern.generatedDocuments.find((gd) => gd.type === type);
+        if (doc) {
+          const updatedContent = typeof doc.content === "object" && doc.content !== null
+            ? {
+                ...doc.content,
+                candidateSignature: cleanSigName,
+                candidateSignedAt: signedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+                candidateSignatureStamp: `Digitally Signed by Candidate [${cleanSigName}] | Date: ${signedAt.toLocaleDateString()}`
+              }
+            : {
+                candidateSignature: cleanSigName,
+                candidateSignedAt: signedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+                candidateSignatureStamp: `Digitally Signed by Candidate [${cleanSigName}] | Date: ${signedAt.toLocaleDateString()}`
+              };
+
+          const salt = process.env.NEXTAUTH_SECRET || "AURXON_SALT_2026";
+          const verificationHash = crypto
+            .createHash("sha256")
+            .update(`${doc.id}-${intern.id}-${type}-${signedAt.getTime()}-${salt}`)
+            .digest("hex");
+
+          await db.generatedDocument.update({
+            where: { id: doc.id },
+            data: {
+              content: updatedContent as any,
+              verificationHash,
+              status: "APPROVED",
+            }
+          });
+          
+          doc.content = updatedContent; // sync local object
+          (doc as any).verificationHash = verificationHash;
+          doc.status = "APPROVED";
+        }
+      }
+    }
+
+    // Perform validation check to ensure all required documents are successfully signed
     for (const type of requiredTypes) {
       const doc = intern.generatedDocuments.find((gd) => gd.type === type);
       if (!doc) {
