@@ -55,7 +55,7 @@ interface TaskItem {
 
 interface DocumentItem {
   id: string;
-  type: "OFFER_LETTER" | "RESUME" | "ID_PROOF" | "AGREEMENT" | "CERTIFICATE" | "NDA" | "EXPERIENCE_LETTER" | "APPOINTMENT_LETTER" | "JOINING_DOCUMENTS" | "OTHER_FILES" | "ID_CARD";
+  type: string; // DocType enum (extended) — use string to allow new employment doc types
   fileName: string;
   fileUrl: string;
   verified: boolean;

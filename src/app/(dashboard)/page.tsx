@@ -386,7 +386,7 @@ export default async function DashboardPage() {
 
     const serializedDocuments = documents.map((d) => ({
       id: d.id,
-      type: d.type,
+      type: d.type as string,
       fileName: d.fileName,
       fileUrl: d.fileUrl,
       verified: d.verified,
