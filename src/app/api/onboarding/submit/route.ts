@@ -118,6 +118,9 @@ export async function POST(req: Request) {
             internId: intern.id,
             type,
             content: content as any,
+            version: 1,
+            lifecycleStatus: "DRAFT",
+            watermarkStatus: "DRAFT",
             status: "PENDING",
           }
         });
@@ -159,13 +162,19 @@ export async function POST(req: Request) {
             data: {
               content: updatedContent as any,
               verificationHash,
-              status: "PENDING_FOUNDER",
+              status: "APPROVED",
+              candidateSigned: true,
+              lifecycleStatus: "PENDING_REVIEW", // Moves to APPROVED only after founder signs
+              watermarkStatus: "PENDING",
             }
           });
           
           doc.content = updatedContent; // sync local object
           (doc as any).verificationHash = verificationHash;
-          doc.status = "PENDING_FOUNDER";
+          doc.status = "APPROVED";
+          (doc as any).candidateSigned = true;
+          (doc as any).lifecycleStatus = "PENDING_REVIEW";
+          (doc as any).watermarkStatus = "PENDING";
         }
       }
     }
