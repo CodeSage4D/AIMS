@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { getSafeUserId } from "@/lib/safeUser";
 import crypto from "crypto";
 import { hasPermission } from "@/lib/permissions";
+import { generateDocumentPdf } from "@/lib/pdfGenerator";
+import { uploadToGcs } from "@/lib/gcs";
+import { scanFileBuffer } from "@/lib/scanner";
 
 /**
  * REST Endpoint for Document Approvals
@@ -170,7 +173,78 @@ export async function PUT(req: Request) {
         };
       }
 
+      // 1. Compile the high-fidelity PDF server-side using jsPDF
+      const pdfBuffer = await generateDocumentPdf({
+        type: doc.type,
+        id: documentId,
+        status: "APPROVED",
+        signature: signatureStamp,
+        intern: {
+          internId: doc.intern.internId,
+          fullName: doc.intern.fullName,
+          email: doc.intern.email,
+          phoneNumber: doc.intern.phoneNumber,
+          address: doc.intern.address,
+          roleDomain: doc.intern.roleDomain,
+          department: doc.intern.department,
+          startDate: doc.intern.startDate,
+          employmentType: doc.intern.employmentType,
+        },
+        content: nextContent,
+      });
+
+      // 2. Perform malware safety verification
+      const pdfName = `Verified_${doc.type}_${doc.intern.internId || doc.intern.id}.pdf`;
+      const scanResult = await scanFileBuffer(pdfBuffer, pdfName, "application/pdf");
+      if (!scanResult.clean) {
+        return NextResponse.json({ error: `Security threat detected in compiled document layout: ${scanResult.threatName}` }, { status: 400 });
+      }
+
+      // 3. Upload to Google Cloud Storage (with backup failover support)
+      const uploadRes = await uploadToGcs(
+        pdfBuffer,
+        pdfName,
+        "application/pdf",
+        doc.internId,
+        doc.type
+      );
+
       const updatedDoc = await db.$transaction(async (tx) => {
+        // Calculate document versioning atomically
+        const lastDoc = await tx.secureDocument.findFirst({
+          where: { ownerId: doc.internId, documentCategory: doc.type, archived: false },
+          orderBy: { version: "desc" },
+        });
+        const nextVersion = lastDoc ? lastDoc.version + 1 : 1;
+
+        // Archive previous versions of the same category
+        if (lastDoc) {
+          await tx.secureDocument.updateMany({
+            where: { ownerId: doc.internId, documentCategory: doc.type },
+            data: { archived: true },
+          });
+        }
+
+        // Persist metadata and audit compliance in secure_documents table
+        const secureDoc = await tx.secureDocument.create({
+          data: {
+            fileId: uploadRes.fileId,
+            fileName: pdfName,
+            storagePath: uploadRes.storagePath,
+            fileType: "application/pdf",
+            fileSize: uploadRes.fileSize,
+            ownerId: doc.internId,
+            uploadedById: userId,
+            sha256Hash: uploadRes.sha256Hash,
+            documentCategory: doc.type,
+            version: nextVersion,
+            bucketUsed: uploadRes.bucketUsed,
+          },
+        });
+
+        // Generate the secure redirect url to point to GCS signed url stream proxy
+        const vaultUrlProxy = `/api/documents/view?id=${secureDoc.id}&vault=true`;
+
         const docRecord = await tx.generatedDocument.update({
           where: { id: documentId },
           data: {
@@ -178,19 +252,20 @@ export async function PUT(req: Request) {
             approvedById: userId,
             approvedAt,
             signature: signatureStamp,
-            notes: notes || "Document approved and digitally signed.",
+            notes: notes || `Document approved, digitally signed, and archived (Ver: ${nextVersion}).`,
             content: nextContent as any,
             verificationHash,
+            fileUrl: vaultUrlProxy, // Lock preview link to vault stream
           },
         });
 
-        // Store a verified final PDF reference inside the candidate's personal vault
+        // Store a verified final GCS PDF reference inside the candidate's personal documents vault
         await tx.document.create({
           data: {
             internId: doc.internId,
             type: doc.type as any,
-            fileName: `Verified_${doc.type}_${doc.intern.internId || doc.intern.id}.pdf`,
-            fileUrl: `https://yck9uoc24tphuxtg.public.blob.vercel-storage.com/verified_${doc.type.toLowerCase()}_${doc.intern.internId || doc.intern.id}.pdf`,
+            fileName: pdfName,
+            fileUrl: vaultUrlProxy,
             verified: true,
           },
         });
