@@ -74,6 +74,8 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
     bloodGroup: "O+",
   });
 
+  const [unifiedSignatureName, setUnifiedSignatureName] = useState("");
+
   // Resume Upload State
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeUploadLoading, setResumeUploadLoading] = useState(false);
@@ -181,46 +183,13 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
     // Final checks
     if (!resumeUploadedUrl) {
-      setError("Please upload your resume before final submission.");
+      setError("Please upload your resume before submitting.");
       setLoading(false);
       return;
     }
 
-    let offerSigned = signedDocs["OFFER_LETTER"] || intern.generatedDocuments.find((d: any) => d.type === "OFFER_LETTER")?.content?.candidateSignature;
-    let ndaSigned = signedDocs["NDA"] || intern.generatedDocuments.find((d: any) => d.type === "NDA")?.content?.candidateSignature;
-    let agreementSigned = signedDocs["AGREEMENT"] || intern.generatedDocuments.find((d: any) => d.type === "AGREEMENT")?.content?.candidateSignature;
-
-    const inputEl = document.getElementById("signAllName") as HTMLInputElement;
-    const nameToSign = inputEl?.value?.trim();
-
-    if ((!offerSigned || !ndaSigned || !agreementSigned) && nameToSign) {
-      try {
-        const unsignedDocs = intern.generatedDocuments
-          .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
-          .filter((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature);
-
-        for (const doc of unsignedDocs) {
-          const res = await fetch("/api/documents/sign", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ documentId: doc.id, signatureName: nameToSign }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || `Failed to sign ${doc.type}.`);
-          setSignedDocs((prev) => ({ ...prev, [doc.type]: nameToSign }));
-        }
-        offerSigned = nameToSign;
-        ndaSigned = nameToSign;
-        agreementSigned = nameToSign;
-      } catch (err: any) {
-        setError(err.message || "Failed to auto-sign documents.");
-        setLoading(false);
-        return;
-      }
-    }
-
-    if (!offerSigned || !ndaSigned || !agreementSigned) {
-      setError("Please sign all three onboarding documents (Offer Letter, NDA, and Internship Agreement).");
+    if (!unifiedSignatureName.trim()) {
+      setError("Please type your name in the electronic signature panel to sign and authorize all onboarding documents.");
       setLoading(false);
       return;
     }
@@ -229,7 +198,10 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
       const res = await fetch("/api/onboarding/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          signatureName: unifiedSignatureName.trim(),
+        }),
       });
 
       const data = await res.json();
@@ -237,7 +209,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
 
       setSuccess("Congratulations! Onboarding completed successfully. Welcome to AURXON!");
       setTimeout(() => {
-        router.refresh();
+        window.location.reload();
       }, 2000);
     } catch (err: any) {
       setError(err.message || "Onboarding failed.");
@@ -575,7 +547,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                 {intern.generatedDocuments
                   .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
                   .map((doc: any) => {
-                    const isSigned = signedDocs[doc.type] || doc.content?.candidateSignature;
+                    const isSigned = unifiedSignatureName.trim() || signedDocs[doc.type] || doc.content?.candidateSignature;
                     return (
                       <Card
                         key={doc.id}
@@ -606,7 +578,7 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                             size="sm"
                             className="w-full h-8 text-[10px] font-bold"
                           >
-                            {isSigned ? "Review Draft" : "Review & Sign"}
+                            Review Document
                           </Button>
                         </div>
                       </Card>
@@ -614,74 +586,43 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                   })}
               </div>
 
-              {/* One-Click Digital Signature Panel */}
-              {intern.generatedDocuments
-                .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
-                .some((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature) && (
-                <div className="border border-indigo-500/30 bg-indigo-500/5 p-5 rounded-2xl space-y-4">
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>One-Click Digital Signature</span>
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground">
-                      Type your full name once to instantly sign all pending agreements.
-                    </p>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3 items-end">
-                    <div className="flex-1 space-y-1.5 w-full">
-                      <label className="text-[9px] font-heading font-semibold text-muted-foreground uppercase tracking-wider block">
-                        Type Full Name to Sign All
-                      </label>
+              {/* Unified One-Click electronic signature panel */}
+              <div className="border border-indigo-500/20 bg-[#0b0f19]/40 p-5 rounded-2xl space-y-4 shadow-xl">
+                <div className="space-y-1 text-left">
+                  <h4 className="text-xs font-heading font-extrabold text-white flex items-center gap-1.5">
+                    <Fingerprint className="h-4 w-4 text-cyan-400 shrink-0" />
+                    <span>Unified "One-Click Accept & Sign All" Agreement Panel</span>
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    By typing your name below, you digitally authorize, accept, and execute all three onboarding instruments (<strong className="text-white">Offer Letter, NDA, and Internship Agreement</strong>) atomically.
+                  </p>
+                </div>
+                
+                <div className="space-y-2 text-left">
+                  <label className="text-[9px] font-heading font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Type Your Full Legal Name to Digitally Authorize
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="relative flex-1 w-full">
                       <input
                         type="text"
+                        required
+                        value={unifiedSignatureName}
+                        onChange={(e) => setUnifiedSignatureName(e.target.value)}
                         placeholder={formData.accountHolderName}
-                        id="signAllName"
-                        className="flex h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                        className="flex h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
                       />
                     </div>
-                    <Button
-                      onClick={async () => {
-                        const inputEl = document.getElementById("signAllName") as HTMLInputElement;
-                        const nameToSign = inputEl?.value?.trim();
-                        if (!nameToSign) {
-                          setError("Please type your name to sign all documents.");
-                          return;
-                        }
-                        setError(null);
-                        setLoading(true);
-                        try {
-                          const unsignedDocs = intern.generatedDocuments
-                            .filter((d: any) => ["OFFER_LETTER", "NDA", "AGREEMENT"].includes(d.type))
-                            .filter((d: any) => !signedDocs[d.type] && !d.content?.candidateSignature);
-
-                          for (const doc of unsignedDocs) {
-                            const res = await fetch("/api/documents/sign", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ documentId: doc.id, signatureName: nameToSign }),
-                            });
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.error || `Failed to sign ${doc.type}.`);
-                            setSignedDocs((prev) => ({ ...prev, [doc.type]: nameToSign }));
-                          }
-                          setSuccess("All documents signed successfully!");
-                          setTimeout(() => setSuccess(null), 3000);
-                        } catch (err: any) {
-                          setError(err.message || "Failed to sign all documents.");
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      variant="primary"
-                      className="h-10 text-xs font-bold shrink-0 w-full sm:w-auto"
-                      disabled={loading}
-                    >
-                      Sign All Documents
-                    </Button>
+                    
+                    {/* Premium script-style signature live visualizer */}
+                    {unifiedSignatureName.trim() && (
+                      <div className="h-10 w-full sm:w-48 bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-center font-mono italic text-xs text-indigo-400 font-bold select-none px-4 truncate shadow-[0_0_15px_rgba(129,140,248,0.06)] bg-black/40">
+                        {unifiedSignatureName.trim()}
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Document Sign modal drawer */}
               {activeSignDoc && (
@@ -799,45 +740,19 @@ export default function OnboardingFlow({ user, intern }: OnboardingFlowProps) {
                       </div>
                     </div>
 
-                    <form onSubmit={handleSignDocument} className="mt-5 pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                      <div className="flex-1 space-y-1.5">
-                        <label className="text-[10px] font-heading font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Type Full Name to Sign
-                        </label>
-                        <Input
-                          type="text"
-                          required
-                          value={sigName}
-                          onChange={(e) => setSigName(e.target.value)}
-                          placeholder={formData.accountHolderName}
-                          disabled={activeSignDoc.content?.candidateSignature}
-                          className="bg-white/5 border-white/10 text-white rounded-xl h-10 text-xs"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => {
-                            setActiveSignDoc(null);
-                            setSigName("");
-                          }}
-                          className="h-10 px-4 font-bold text-xs"
-                        >
-                          Close
-                        </Button>
-                        {!activeSignDoc.content?.candidateSignature && (
-                          <Button
-                            type="submit"
-                            variant="primary"
-                            isLoading={loading}
-                            className="h-10 px-5 font-bold text-xs"
-                          >
-                            Apply Signature
-                          </Button>
-                        )}
-                      </div>
-                    </form>
+                    <div className="mt-5 pt-4 border-t border-white/[0.08] flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setActiveSignDoc(null);
+                          setSigName("");
+                        }}
+                        className="h-10 px-6 font-bold text-xs"
+                      >
+                        Close Preview
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
