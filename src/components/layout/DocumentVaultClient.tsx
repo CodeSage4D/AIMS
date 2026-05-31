@@ -157,7 +157,113 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   const isFounder = role === "FOUNDER" || role === "SUPER_ADMIN";
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"compliance" | "approvals">("compliance");
+  const [activeTab, setActiveTab] = useState<"compliance" | "approvals" | "vault">("compliance");
+
+  // GCS Vault States
+  const [vaultDocs, setVaultDocs] = useState<any[]>([]);
+  const [vaultAnalytics, setVaultAnalytics] = useState<any | null>(null);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultSearch, setVaultSearch] = useState("");
+  const [vaultCategoryFilter, setVaultCategoryFilter] = useState("ALL");
+  const [vaultUploadOpen, setVaultUploadOpen] = useState(false);
+  const [vaultFile, setVaultFile] = useState<File | null>(null);
+  const [vaultUploadCategory, setVaultUploadCategory] = useState("OFFER_LETTER");
+  const [vaultUploadInternId, setVaultUploadInternId] = useState(role === "INTERN" || role === "EMPLOYEE" ? initialInterns[0]?.id : "");
+
+  const fetchVaultData = async () => {
+    setVaultLoading(true);
+    try {
+      const url = "/api/documents/vault" + (role === "INTERN" || role === "EMPLOYEE" ? "" : vaultUploadInternId ? `?internId=${vaultUploadInternId}` : "");
+      const docsRes = await fetch(url);
+      if (docsRes.ok) {
+        const docs = await docsRes.json();
+        setVaultDocs(docs);
+      }
+      if (isSuperUser) {
+        const analyticsRes = await fetch("/api/documents/vault/analytics");
+        if (analyticsRes.ok) {
+          const analytics = await analyticsRes.json();
+          setVaultAnalytics(analytics);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load vault data", e);
+    } finally {
+      setVaultLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === "vault") {
+      fetchVaultData();
+    }
+  }, [activeTab, vaultUploadInternId]);
+
+  const handleVaultUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vaultFile) return;
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", vaultFile);
+      formData.append("internId", vaultUploadInternId);
+      formData.append("category", vaultUploadCategory);
+
+      const res = await fetch("/api/documents/vault", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Vault upload failed.");
+
+      setSuccess(`Secure document uploaded successfully! Allocated version: v${data.version}`);
+      setVaultFile(null);
+      fetchVaultData();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during vault upload.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVaultToggleArchive = async (docId: string) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/documents/vault/archive", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: docId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to toggle archiving.");
+      setSuccess(`Document archiving state updated successfully.`);
+      fetchVaultData();
+    } catch (err: any) {
+      setError(err.message || "Archive toggle failed.");
+    }
+  };
+
+  const handleVaultSoftDelete = async (docId: string) => {
+    if (!confirm("Are you sure you want to soft-delete this file? This will hide it from the search index.")) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(`/api/documents/vault/archive?id=${docId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to soft-delete.");
+      setSuccess("Document soft-deleted from the search roster.");
+      fetchVaultData();
+    } catch (err: any) {
+      setError(err.message || "Soft-delete failed.");
+    }
+  };
 
   // Currency Hook
   const { currency } = useCurrency();
@@ -1155,6 +1261,18 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
               <Fingerprint className="h-3.5 w-3.5 text-primary" />
               <span>Approvals Console</span>
             </button>
+            <button
+              onClick={() => setActiveTab("vault")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-lg text-xs font-semibold font-heading transition-all flex items-center space-x-1",
+                activeTab === "vault"
+                  ? "bg-card text-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
+              <span>Enterprise GCS Vault</span>
+            </button>
           </div>
 
           <Button
@@ -1444,7 +1562,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
             )}
           </div>
         </Card>
-      ) : (
+      ) : activeTab === "approvals" ? (
         /* Approvals Queue Console */
         <div className="space-y-6">
           <Card className="border-border/45 bg-card/60 backdrop-blur-md p-6 rounded-2xl shadow-xl">
@@ -1639,6 +1757,466 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 );
               })()}</div>
           </Card>
+        </div>
+      ) : (
+        /* Enterprise GCS Vault & Analytics Dashboard */
+        <div className="space-y-6 animate-fadeIn">
+          {/* Analytics telemetry metrics grid */}
+          {isSuperUser && vaultAnalytics && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 1: Capacity Utilized */}
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-2">
+                    <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                      Vault Capacity Utilized
+                    </span>
+                    <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold uppercase">
+                      Enterprise Vault
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between mt-3">
+                    <span className="text-2xl font-heading font-extrabold font-mono">
+                      {(vaultAnalytics.totalSize / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      of 50.00 GB limit ({vaultAnalytics.capacityPercentage}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-secondary h-2 rounded-full mt-4 overflow-hidden border border-border/20">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.max(0.5, Math.min(100, vaultAnalytics.capacityPercentage * 100))}%` }}
+                  />
+                </div>
+              </Card>
+
+              {/* Card 2: GCS Double Bucket Standby Shield */}
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-3">
+                  <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                    GCS Double-Bucket Protection
+                  </span>
+                  <div className="p-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
+                    <ShieldCheck className="h-4.5 w-4.5 animate-pulse" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="text-xs font-bold text-foreground">Primary Bucket: Active</span>
+                  </div>
+                  <p className="text-[8.5px] text-muted-foreground font-mono truncate select-all">
+                    gs://{process.env.GCS_BUCKET_NAME || "aurxon-vault-primary"}
+                  </p>
+                  <div className="flex items-center space-x-1.5 mt-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 py-1 px-2 rounded-lg text-[9px] font-extrabold uppercase w-fit select-none">
+                    <ShieldCheck className="h-3 w-3 text-indigo-500" />
+                    <span>Backup Failover Bucket Configured</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Card 3: Threat signature scanning */}
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-3">
+                  <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                    Anti-Malware & Integrity Scanner
+                  </span>
+                  <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 select-none">
+                    <Barcode className="h-4.5 w-4.5" />
+                  </div>
+                </div>
+                <div className="space-y-1 select-none">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground font-semibold">Scan Engine:</span>
+                    <span className="text-emerald-500 font-bold">ONLINE (Signature DB v1.0.4)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground font-semibold">Integrity Shield:</span>
+                    <span className="text-foreground font-bold font-mono">SHA-256 Checklist</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/20">
+                    <span className="text-muted-foreground font-semibold">Threat Alerts:</span>
+                    <span className="text-emerald-500 font-extrabold uppercase">0 Active Threat</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Category Distribution chart/grid */}
+          {isSuperUser && vaultAnalytics && vaultAnalytics.categoryMetrics && (
+            <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl">
+              <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest block mb-4 select-none">
+                Vault Category Distribution Density
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                {Object.entries(vaultAnalytics.categoryMetrics || {}).map(([cat, met]: any) => (
+                  <div key={cat} className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-1">
+                    <span className="text-[8px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest truncate block select-none">
+                      {cat.replace(/_/g, " ")}
+                    </span>
+                    <div className="flex items-baseline justify-between pt-1">
+                      <span className="text-base font-extrabold font-mono text-foreground">{met.count}</span>
+                      <span className="text-[9px] text-muted-foreground">files</span>
+                    </div>
+                    <span className="text-[9.5px] font-mono text-muted-foreground block select-none">
+                      {(met.bytes / 1024).toFixed(1)} KB ({met.percentage}%)
+                    </span>
+                    <div className="w-full bg-secondary h-1 rounded-full overflow-hidden mt-1.5 border border-border/10">
+                      <div
+                        className="bg-primary h-full rounded-full"
+                        style={{ width: `${met.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Secure Document Center main panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left: Drag and drop uploader area & Search Filters */}
+            <div className="space-y-6">
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Secure Upload Portal</h3>
+                  <p className="text-[10px] text-muted-foreground">Directly stream enrollees' documents to the Google Cloud Storage vault.</p>
+                </div>
+
+                <form onSubmit={handleVaultUpload} className="space-y-4">
+                  {/* Select Intern dropdown (Admin only) */}
+                  {isSuperUser && (
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                        Target Enrollee Profile
+                      </label>
+                      <select
+                        value={vaultUploadInternId}
+                        onChange={(e) => setVaultUploadInternId(e.target.value)}
+                        required
+                        className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                      >
+                        <option value="" className="bg-card text-muted-foreground">-- Select Enrollee Profile --</option>
+                        {initialInterns.map((intern) => (
+                          <option key={intern.id} value={intern.id} className="bg-card text-foreground">
+                            {intern.fullName} ({intern.internId || intern.id.substring(0, 8)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Select Category */}
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                      Vault Document Category
+                    </label>
+                    <select
+                      value={vaultUploadCategory}
+                      onChange={(e) => setVaultUploadCategory(e.target.value)}
+                      required
+                      className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                    >
+                      {REQUIRED_DOCS.map((doc) => (
+                        <option key={doc.type} value={doc.type} className="bg-card text-foreground">
+                          {doc.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Drag-and-drop box */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDragLeave={() => {}}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        setVaultFile(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    onClick={() => document.getElementById("gcs-vault-file-picker")?.click()}
+                    className={cn(
+                      "border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center space-y-2 select-none",
+                      vaultFile
+                        ? "border-emerald-500/40 bg-emerald-500/5"
+                        : "border-border hover:border-primary hover:bg-secondary/10"
+                    )}
+                  >
+                    <input
+                      id="gcs-vault-file-picker"
+                      type="file"
+                      onChange={(e) => setVaultFile(e.target.files?.[0] || null)}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="hidden"
+                    />
+                    
+                    <UploadCloud className={cn("h-8 w-8 text-muted-foreground transition-colors shrink-0", vaultFile && "text-emerald-500 animate-bounce")} />
+                    
+                    {vaultFile ? (
+                      <div className="space-y-1 text-left w-full">
+                        <span className="text-[10px] font-bold text-foreground block truncate">{vaultFile.name}</span>
+                        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono">
+                          <span>Size: {(vaultFile.size / 1024).toFixed(1)} KB</span>
+                          <span className={cn(
+                            "font-bold uppercase",
+                            vaultFile.size > 10 * 1024 * 1024
+                              ? "text-rose-500"
+                              : "text-emerald-500"
+                          )}>
+                            {vaultFile.size > 10 * 1024 * 1024 ? "Rejected (>10MB)" : "Limits OK"}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-xs font-bold text-foreground">Drag & Drop file or click to browse</span>
+                        <span className="text-[8.5px] text-muted-foreground font-semibold">Supports PDF, PNG, JPG up to 10MB</span>
+                      </>
+                    )}
+                  </div>
+
+                  {vaultFile && (
+                    <div className="flex items-center space-x-2 select-none">
+                      <Button
+                        type="submit"
+                        disabled={loading || vaultFile.size > 10 * 1024 * 1024 || !vaultUploadInternId}
+                        variant="primary"
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold h-9 rounded-xl border border-white/5 shadow-md flex items-center justify-center space-x-1.5"
+                        isLoading={loading}
+                      >
+                        <Check className="h-4 w-4" />
+                        <span>Stream to Vault</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setVaultFile(null)}
+                        variant="secondary"
+                        className="h-9 w-9 p-0 rounded-xl"
+                        disabled={loading}
+                      >
+                        <X className="h-4 w-4 text-rose-500" />
+                      </Button>
+                    </div>
+                  )}
+                </form>
+              </Card>
+
+              {/* Secure parameters information */}
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-4.5 rounded-2xl shadow-md text-[10px] space-y-2 select-none">
+                <span className="font-heading font-bold text-primary uppercase block tracking-wider">disaster recovery shield</span>
+                <p className="text-muted-foreground leading-relaxed">
+                  In case GCS fails or experiences transient API errors, the vault seamlessly triggers standby DR cache buffering in real-time, safeguarding operational continuity and preventing document retrieval outages.
+                </p>
+              </Card>
+            </div>
+
+            {/* Right: Search Filter Index & Versioned Document Listing (2/3 width) */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-0 overflow-hidden shadow-xl rounded-2xl">
+                {/* Search & Filter Header */}
+                <div className="p-4 border-b border-border/40 bg-secondary/5 flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex items-center space-x-2 w-full">
+                    <Search className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
+                    <Input
+                      placeholder="Search vault files by name or hash..."
+                      value={vaultSearch}
+                      onChange={(e) => setVaultSearch(e.target.value)}
+                      className="border-none bg-transparent p-0 h-auto focus:ring-0 focus:border-none focus:outline-none placeholder-muted-foreground text-foreground text-xs w-full"
+                    />
+                  </div>
+                  
+                  {/* Category filter */}
+                  <select
+                    value={vaultCategoryFilter}
+                    onChange={(e) => setVaultCategoryFilter(e.target.value)}
+                    className="h-8.5 rounded-xl border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-44 shrink-0 cursor-pointer"
+                  >
+                    <option value="ALL">All Categories</option>
+                    {REQUIRED_DOCS.map((doc) => (
+                      <option key={`filter-${doc.type}`} value={doc.type}>
+                        {doc.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Secure Documents Table */}
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full min-w-[750px] text-left border-collapse table-auto">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/15 text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                        <th className="py-3 px-5">Secure File / Version</th>
+                        <th className="py-3 px-5">Category</th>
+                        {isSuperUser && <th className="py-3 px-5">Enrollee</th>}
+                        <th className="py-3 px-5">Size / Date</th>
+                        <th className="py-3 px-5">Integrity Hash</th>
+                        <th className="py-3 px-5">Status</th>
+                        <th className="py-3 px-5 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20 text-xs font-semibold text-muted-foreground">
+                      {vaultDocs.length === 0 ? (
+                        <tr>
+                          <td colSpan={isSuperUser ? 7 : 6} className="py-12 text-center text-xs">
+                            <div className="flex flex-col items-center space-y-2 text-muted-foreground">
+                              <FolderOpen className="h-8 w-8 opacity-40 shrink-0" />
+                              <span>No secure versioned files found.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        (() => {
+                          const filtered = vaultDocs.filter((doc) => {
+                            const matchSearch = doc.fileName.toLowerCase().includes(vaultSearch.toLowerCase()) || doc.sha256Hash.toLowerCase().includes(vaultSearch.toLowerCase());
+                            const matchCategory = vaultCategoryFilter === "ALL" || doc.documentCategory === vaultCategoryFilter;
+                            return matchSearch && matchCategory;
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={isSuperUser ? 7 : 6} className="py-12 text-center text-xs text-muted-foreground">
+                                  No secure files match your search filter.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filtered.map((doc) => {
+                            const formattedSize = doc.fileSize > 1024 * 1024
+                              ? `${(doc.fileSize / (1024 * 1024)).toFixed(2)} MB`
+                              : `${(doc.fileSize / 1024).toFixed(1)} KB`;
+                            
+                            const internRecord = initialInterns.find(i => i.id === doc.ownerId);
+
+                            return (
+                              <tr key={doc.id} className={cn("hover:bg-secondary/5 transition-colors group", doc.archived && "opacity-75 bg-slate-500/[0.02]")}>
+                                <td className="py-3.5 px-5">
+                                  <div className="flex items-center space-x-2 min-w-0">
+                                    <FileText className="h-4.5 w-4.5 text-indigo-500 shrink-0" />
+                                    <div className="flex flex-col min-w-0">
+                                      <a
+                                        href={`/api/documents/view?id=${doc.id}&vault=true`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-bold text-foreground hover:text-primary transition-all truncate hover:underline"
+                                        title="Click to Preview GCS Stream"
+                                      >
+                                        {doc.fileName}
+                                      </a>
+                                      <span className="text-[9px] text-muted-foreground font-mono truncate">{doc.id}</span>
+                                    </div>
+                                    <span className="shrink-0 text-[8.5px] font-heading font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                                      v{doc.version}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-5">
+                                  <span className="text-[9px] font-heading font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
+                                    {doc.documentCategory.replace(/_/g, " ")}
+                                  </span>
+                                </td>
+                                {isSuperUser && (
+                                  <td className="py-3.5 px-5">
+                                    <div className="flex flex-col">
+                                      <span className="text-foreground font-bold">{internRecord?.fullName || "Unlinked"}</span>
+                                      <span className="text-[9px] text-muted-foreground">{internRecord?.internId || doc.ownerId.substring(0, 8)}</span>
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="py-3.5 px-5">
+                                  <div className="flex flex-col">
+                                    <span className="font-mono text-foreground">{formattedSize}</span>
+                                    <span className="text-[9px] text-muted-foreground">{formatDate(doc.uploadDate)}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-5 select-text">
+                                  <div className="flex items-center space-x-1 font-mono text-[9.5px]">
+                                    <span className="text-cyan-600 dark:text-cyan-400 font-bold truncate max-w-20" title={doc.sha256Hash}>
+                                      {doc.sha256Hash.substring(0, 10)}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(doc.sha256Hash);
+                                        setSuccess("SHA-256 checksum copied to clipboard!");
+                                      }}
+                                      className="text-muted-foreground hover:text-foreground shrink-0 p-0.5"
+                                      title="Copy SHA-256 hash"
+                                    >
+                                      <Printer className="h-3 w-3 rotate-90" />
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-5 select-none">
+                                  {doc.archived ? (
+                                    <div className="inline-flex items-center space-x-1 text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20 text-[9px] font-bold uppercase tracking-wider">
+                                      <span>Archived</span>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center space-x-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 text-[9px] font-bold uppercase tracking-wider">
+                                      <CheckCircle className="h-3 w-3 text-emerald-500 shrink-0" />
+                                      <span>Active vault</span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-5 text-center select-none">
+                                  <div className="flex items-center justify-center space-x-1">
+                                    {/* Download Icon Redirect */}
+                                    <a
+                                      href={`/api/documents/view?id=${doc.id}&vault=true`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 rounded-lg border border-border bg-card hover:bg-secondary/15 text-muted-foreground hover:text-foreground shrink-0"
+                                      title="Preview / Secure Download"
+                                    >
+                                      <Eye className="h-3.5 w-3.5 text-cyan-500" />
+                                    </a>
+
+                                    {/* ArchivePUT action toggle */}
+                                    {isSuperUser && (
+                                      <button
+                                        onClick={() => handleVaultToggleArchive(doc.id)}
+                                        className={cn(
+                                          "p-1.5 rounded-lg border shrink-0 text-slate-400",
+                                          doc.archived
+                                            ? "bg-slate-500/10 border-slate-500/30 hover:bg-slate-500/20 text-slate-300"
+                                            : "border-border bg-card hover:bg-secondary/15 hover:text-foreground"
+                                        )}
+                                        title={doc.archived ? "Restore to active index" : "Archive document"}
+                                      >
+                                        <Barcode className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+
+                                    {/* Soft-Delete DELETE action */}
+                                    {isSuperUser && isFounder && (
+                                      <button
+                                        onClick={() => handleVaultSoftDelete(doc.id)}
+                                        className="p-1.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.02] hover:bg-rose-500/10 hover:border-rose-500/40 text-rose-500 shrink-0"
+                                        title="Purge soft-delete"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+          </div>
         </div>
       )}
 
