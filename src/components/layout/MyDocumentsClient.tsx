@@ -21,6 +21,8 @@ import {
   Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import IdCardGenerator from "@/components/layout/IdCardGenerator";
+import { parseInternNotes } from "@/lib/roles";
 
 interface InternProfile {
   id: string;
@@ -30,6 +32,9 @@ interface InternProfile {
   roleDomain: string;
   employmentType: string;
   startDate: string;
+  status: string;
+  reportingManager: string;
+  notes: string | null;
 }
 
 interface GeneratedDoc {
@@ -83,7 +88,7 @@ export default function MyDocumentsClient({
   secureDocs,
   isDemoMode = false
 }: MyDocumentsClientProps) {
-  const [activeTab, setActiveTab] = useState<"all" | "offer" | "agreement" | "nda" | "certificates" | "uploads">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "offer" | "agreement" | "nda" | "certificates" | "uploads" | "verification">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<{ type: "generated" | "secure"; doc: any } | null>(null);
@@ -193,6 +198,56 @@ export default function MyDocumentsClient({
         )}
       </div>
 
+      {/* 2. Employment Profile Summary Panel */}
+      <div className="relative overflow-hidden bg-slate-900/25 border border-white/[0.08] backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-xl">
+        <div className="absolute top-0 right-0 w-[150px] h-[150px] bg-indigo-500/5 rounded-full blur-[50px] pointer-events-none" />
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center space-x-2 pb-2.5 border-b border-white/[0.05]">
+            <Sparkles className="h-4 w-4 text-orange-400 shrink-0" />
+            <h2 className="text-xs uppercase font-heading font-black tracking-widest text-white">Employment Profile Summary</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-xs select-text">
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Employee ID</span>
+              <span className="text-white font-mono font-bold text-xs select-all">{internProfile.internId}</span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Department</span>
+              <span className="text-white font-semibold text-xs">{internProfile.department}</span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Designated Role</span>
+              <span className="text-white font-semibold text-xs">{internProfile.roleDomain}</span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Joining Date</span>
+              <span className="text-white font-semibold text-xs">
+                {new Date(internProfile.startDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              </span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Reporting Manager</span>
+              <span className="text-white font-semibold text-xs">{internProfile.reportingManager}</span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Employment Type</span>
+              <span className="text-orange-400 font-bold text-xs uppercase tracking-wider">{internProfile.employmentType}</span>
+            </div>
+            <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl col-span-2">
+              <span className="text-slate-500 block uppercase font-bold text-[8.5px] tracking-wider">Current Status</span>
+              <span className={cn(
+                "inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border mt-0.5",
+                internProfile.status === "ACTIVE" || internProfile.status === "ONBOARDED"
+                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                  : "bg-amber-500/10 border-amber-500/25 text-amber-400"
+              )}>
+                ● {internProfile.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs and Search Roster */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Navigation Tabs */}
@@ -203,7 +258,8 @@ export default function MyDocumentsClient({
             { id: "agreement", label: "Agreements", icon: FileCheck },
             { id: "nda", label: "NDAs", icon: Key },
             { id: "certificates", label: "Certificates & ID", icon: Award },
-            { id: "uploads", label: "Compliance Uploads", icon: Download }
+            { id: "uploads", label: "Compliance Uploads", icon: Download },
+            { id: "verification", label: "My Verification Center", icon: ShieldCheck }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -239,8 +295,200 @@ export default function MyDocumentsClient({
       </div>
 
       {/* Roster Grid View */}
-      {totalCount > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {activeTab === "certificates" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start select-text animate-fadeIn">
+          {/* Left Side: Certificates list */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-slate-900/10 border border-white/[0.05] p-5 rounded-2xl space-y-2">
+              <h3 className="text-xs uppercase font-heading font-black tracking-widest text-white">Verifiable Roster Certificates</h3>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Review and download your official Experience Letters and Completion Certificates issued by AURXON corporate registry.
+              </p>
+            </div>
+            
+            {filteredGenerated
+              .filter((doc) => doc.type.includes("CERTIFICATE") || doc.type.includes("EXPERIENCE"))
+              .map((doc) => {
+                const dateObj = new Date(doc.createdAt);
+                const formattedDate = dateObj.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+                return (
+                  <div key={doc.id} className="relative overflow-hidden bg-slate-900/20 border border-white/[0.06] hover:border-white/[0.12] rounded-xl p-4.5 flex flex-col justify-between space-y-4 shadow transition-all duration-300">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8.5px] font-heading font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded uppercase">
+                          {doc.type.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-bold uppercase">Ver {doc.version}</span>
+                      </div>
+                      <h4 className="text-sm font-bold text-white leading-snug">{getDocumentLabel(doc.type)}</h4>
+                      <p className="text-[10px] text-slate-500">Issued Date: {formattedDate} • Downloads: {doc.content?.downloadCount || 0}</p>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2.5 border-t border-white/[0.04]">
+                      <button
+                        onClick={() => setPreviewDoc({ type: "generated", doc })}
+                        className="h-8 flex-1 flex items-center justify-center space-x-1 bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.04] rounded-lg text-[10.5px] font-bold text-slate-350 hover:text-white transition-all cursor-pointer"
+                      >
+                        <Eye className="h-3.5 w-3.5 shrink-0" />
+                        <span>Preview</span>
+                      </button>
+                      <a
+                        href={`/api/documents/view?id=${doc.id}`}
+                        className="h-8 flex-1 flex items-center justify-center space-x-1 bg-orange-500/10 hover:bg-orange-500 text-orange-400 hover:text-slate-950 border border-orange-500/20 hover:border-transparent rounded-lg text-[10.5px] font-bold transition-all cursor-pointer text-center"
+                      >
+                        <Download className="h-3.5 w-3.5 shrink-0" />
+                        <span>Download</span>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredGenerated.filter((doc) => doc.type.includes("CERTIFICATE") || doc.type.includes("EXPERIENCE")).length === 0 && (
+                <div className="p-8 text-center bg-slate-900/10 border border-dashed border-white/[0.05] rounded-2xl text-slate-500 text-xs">
+                  No experience certificates or completion credentials have been generated for your profile yet.
+                </div>
+              )}
+          </div>
+
+          {/* Right Side: IdCardGenerator */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-slate-900/10 border border-white/[0.05] p-5 rounded-2xl space-y-2">
+              <h3 className="text-xs uppercase font-heading font-black tracking-widest text-white">Workforce Digital ID Credential</h3>
+              <p className="text-[11px] text-slate-450 leading-relaxed">
+                Attach your portrait photo, configure corporate theme styles, and export high-fidelity credentials in PNG or PDF.
+              </p>
+            </div>
+            
+            <div className="bg-[#0b101d]/60 border border-white/[0.06] backdrop-blur-md p-6 rounded-3xl shadow-xl">
+              <IdCardGenerator
+                fullName={internProfile.fullName}
+                internId={internProfile.internId}
+                department={internProfile.department}
+                roleDomain={internProfile.roleDomain}
+                status={internProfile.status === "ACTIVE" ? "ACTIVE" : "INTERN"}
+                dbInternId={internProfile.id}
+                employmentType={internProfile.employmentType}
+                defaultPhotoUrl={parseInternNotes(internProfile.notes).pictureUrl}
+                linkedIn={parseInternNotes(internProfile.notes).linkedIn}
+                gitHub={parseInternNotes(internProfile.notes).gitHub}
+                instagram={parseInternNotes(internProfile.notes).instagram}
+              />
+            </div>
+          </div>
+        </div>
+      ) : activeTab === "verification" ? (
+        <div className="space-y-6 select-text animate-fadeIn">
+          <div className="bg-slate-900/10 border border-white/[0.05] p-6 rounded-3xl space-y-4">
+            <h2 className="text-base font-bold text-white flex items-center space-x-2">
+              <ShieldCheck className="h-5 w-5 text-orange-400" />
+              <span>My Authenticated Verification Roster</span>
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              AURXON implements advanced SHA-256 cryptographic fingerprints on all generated contracts and certificates. Use the options below to review verification credentials or copy public verification links to showcase your achievements to third parties.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {generatedDocs.map((doc) => {
+              const verificationUrl = typeof window !== "undefined"
+                ? `${window.location.origin}/verify/${doc.id}`
+                : `https://aims.aurxon.com/verify/${doc.id}`;
+              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+              const isApproved = doc.lifecycleStatus === "APPROVED" || doc.status === "APPROVED" || doc.watermarkStatus === "OFFICIAL";
+              
+              return (
+                <div
+                  key={doc.id}
+                  className="relative overflow-hidden bg-slate-900/25 border border-white/[0.08] backdrop-blur-md rounded-2xl p-5.5 flex flex-col justify-between space-y-5 shadow-lg"
+                >
+                  <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500/20 to-teal-500/20" />
+                  
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2.5 flex-1 min-w-0">
+                      <span className="text-[9px] font-heading font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded uppercase tracking-wider block w-fit">
+                        {doc.type.replace(/_/g, " ")}
+                      </span>
+                      <h3 className="text-sm font-semibold text-white truncate">
+                        {getDocumentLabel(doc.type)}
+                      </h3>
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Verification Number</span>
+                          <span className="text-white font-mono font-bold">{doc.id}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Verification Status</span>
+                          <span className={cn(
+                            "inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase tracking-wider mt-0.5 border",
+                            isApproved
+                              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                              : "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                          )}>
+                            ● {isApproved ? "VERIFIED & SIGNED" : "AWAITING SIGNOFF"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">SHA-256 Hash Fingerprint</span>
+                          <button
+                            onClick={() => handleCopyText(doc.verificationHash || doc.id)}
+                            className="flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-mono text-[10.5px] font-bold text-left select-all bg-white/[0.02] px-2 py-1 rounded border border-white/[0.04] mt-0.5"
+                          >
+                            <span className="truncate max-w-[150px] inline-block font-bold">
+                              {doc.verificationHash || "N/A"}
+                            </span>
+                            {copiedHash === (doc.verificationHash || doc.id) ? (
+                              <Check className="h-3 w-3 text-emerald-400 shrink-0" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* QR Verification Block */}
+                    <div className="flex flex-col items-center space-y-1.5 shrink-0 bg-white p-2 rounded-xl shadow-md border border-white/10 select-none">
+                      <img
+                        src={qrCodeUrl}
+                        alt="QR Verification"
+                        className="h-20 w-20 object-contain select-none"
+                        loading="lazy"
+                      />
+                      <span className="text-[7.5px] text-slate-800 font-black uppercase tracking-wider">SCAN TO VERIFY</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3.5 border-t border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-[10px] text-slate-500 truncate max-w-[200px]">
+                      URL: <span className="font-mono">{verificationUrl}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleCopyText(verificationUrl);
+                        setCopySuccess(true);
+                        setTimeout(() => setCopySuccess(false), 2000);
+                      }}
+                      className="h-8 flex items-center justify-center space-x-1.5 px-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/[0.1] rounded-xl text-[10.5px] font-bold text-slate-350 hover:text-white transition-all select-none active:scale-98 cursor-pointer"
+                    >
+                      {copySuccess ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <span>URL Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy URL</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : totalCount > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fadeIn">
           {/* 1. Generated Documents */}
           {filteredGenerated.map((doc) => {
             const Icon = getDocumentIcon(doc.type);
@@ -293,6 +541,11 @@ export default function MyDocumentsClient({
                       <Calendar className="h-3.5 w-3.5 shrink-0" />
                       <span>Issued {formattedDate}</span>
                     </p>
+                    <div className="flex items-center space-x-2.5 text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1 select-text">
+                      <span>Downloads: {doc.content?.downloadCount || 0}</span>
+                      <span>•</span>
+                      <span>Last: {doc.content?.lastDownloaded ? new Date(doc.content.lastDownloaded).toLocaleDateString() : "Never"}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -320,7 +573,7 @@ export default function MyDocumentsClient({
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       onClick={() => setPreviewDoc({ type: "generated", doc })}
-                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/[0.1] rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all select-none active:scale-98"
+                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/[0.1] rounded-xl text-xs font-bold text-slate-350 hover:text-white transition-all select-none active:scale-98 cursor-pointer"
                     >
                       <Eye className="h-4.5 w-4.5 shrink-0" />
                       <span>Preview</span>
@@ -330,7 +583,7 @@ export default function MyDocumentsClient({
                       href={`/api/documents/view?id=${doc.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-orange-500/10 hover:bg-orange-500 text-orange-400 hover:text-slate-950 border border-orange-500/20 hover:border-transparent rounded-xl text-xs font-bold transition-all select-none active:scale-98"
+                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-orange-500/10 hover:bg-orange-500 text-orange-400 hover:text-slate-950 border border-orange-500/20 hover:border-transparent rounded-xl text-xs font-bold transition-all select-none active:scale-98 text-center"
                     >
                       <Download className="h-4.5 w-4.5 shrink-0" />
                       <span>Download</span>
@@ -408,7 +661,7 @@ export default function MyDocumentsClient({
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       onClick={() => setPreviewDoc({ type: "secure", doc })}
-                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/[0.1] rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all select-none active:scale-98"
+                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] hover:border-white/[0.1] rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all select-none active:scale-98 cursor-pointer"
                     >
                       <Eye className="h-4.5 w-4.5 shrink-0" />
                       <span>Details</span>
@@ -418,7 +671,7 @@ export default function MyDocumentsClient({
                       href={`/api/documents/view?id=${doc.id}&vault=true`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-slate-950 border border-blue-500/20 hover:border-transparent rounded-xl text-xs font-bold transition-all select-none active:scale-98"
+                      className="h-9 w-full flex items-center justify-center space-x-1.5 px-3 bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-slate-950 border border-blue-500/20 hover:border-transparent rounded-xl text-xs font-bold transition-all select-none active:scale-98 text-center"
                     >
                       <Download className="h-4.5 w-4.5 shrink-0" />
                       <span>Download</span>
@@ -430,7 +683,7 @@ export default function MyDocumentsClient({
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-900/10 border border-white/[0.05] rounded-3xl text-center space-y-4">
+        <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-900/10 border border-white/[0.05] rounded-3xl text-center space-y-4 animate-fadeIn">
           <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-full text-slate-500">
             <FileText className="h-10 w-10" />
           </div>
@@ -623,6 +876,85 @@ export default function MyDocumentsClient({
                           <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           <span className="font-extrabold">AURXON TRUSTED</span>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Document Audit Lifecycle Timeline */}
+                  <div className="bg-slate-950/60 border border-white/[0.05] p-5 rounded-2xl space-y-4">
+                    <h4 className="text-xs uppercase font-extrabold text-orange-400 tracking-widest flex items-center space-x-2">
+                      <Layers className="h-4 w-4 text-orange-400" />
+                      <span>Verifiable Document Lifecycle Audit Trail</span>
+                    </h4>
+                    
+                    <div className="relative flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-0 pt-2 select-none">
+                      {/* Connector Line */}
+                      <div className="absolute left-[15px] md:left-[10%] right-auto md:right-[10%] top-0 md:top-[16px] bottom-0 md:bottom-auto w-[2px] md:w-[80%] h-auto md:h-[2px] bg-white/10 -z-0 pointer-events-none hidden md:block" />
+
+                      {[
+                        { id: "GENERATED", label: "Generated", desc: "Initialized in vault", done: true },
+                        { id: "REVIEW", label: "Sent For Review", desc: "Awaiting board audit", done: previewDoc.doc.lifecycleStatus !== "DRAFT" },
+                        { id: "APPROVED", label: "Approved", desc: "Board sign-off granted", done: previewDoc.doc.lifecycleStatus === "APPROVED" || previewDoc.doc.lifecycleStatus === "SIGNED" },
+                        { id: "SIGNED", label: "Signed", desc: "Both parties executed", done: previewDoc.doc.candidateSigned && previewDoc.doc.founderSigned },
+                        { id: "ARCHIVED", label: "Archived", desc: "Safely filed in GCS", done: previewDoc.doc.lifecycleStatus === "ARCHIVED" || previewDoc.doc.gcsFileId !== null }
+                      ].map((step, idx) => {
+                        return (
+                          <div key={step.id} className="relative z-10 flex flex-row md:flex-col items-center text-left md:text-center space-x-4 md:space-x-0 space-y-0 md:space-y-2.5 flex-1 min-w-0">
+                            <div className={cn(
+                              "h-8 w-8 rounded-full border flex items-center justify-center font-bold text-xs transition-all shrink-0 shadow-lg",
+                              step.done
+                                ? "bg-emerald-500 border-transparent text-slate-950 shadow-emerald-500/10"
+                                : "bg-slate-900 border-white/10 text-slate-500"
+                            )}>
+                              {step.done ? "✓" : idx + 1}
+                            </div>
+                            
+                            <div className="space-y-0.5 min-w-0">
+                              <span className={cn(
+                                "block text-[11px] font-black uppercase tracking-wider",
+                                step.done ? "text-white font-black" : "text-slate-500"
+                              )}>
+                                {step.label}
+                              </span>
+                              <span className="block text-[8.5px] text-slate-500 truncate max-w-[120px] font-medium">
+                                {step.desc}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Document Download & Audit Roster */}
+                  <div className="bg-slate-950/60 border border-white/[0.05] p-5 rounded-2xl space-y-4">
+                    <h4 className="text-xs uppercase font-extrabold text-orange-400 tracking-widest flex items-center space-x-2">
+                      <Download className="h-4 w-4 text-orange-400" />
+                      <span>Document Download & Revision Auditing</span>
+                    </h4>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Version Number</span>
+                        <span className="text-white font-mono font-bold">v{previewDoc.doc.version}</span>
+                      </div>
+                      <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Total Downloads</span>
+                        <span className="text-white font-bold">{previewDoc.doc.content?.downloadCount || 0} times</span>
+                      </div>
+                      <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Last Downloaded</span>
+                        <span className="text-white font-semibold">
+                          {previewDoc.doc.content?.lastDownloaded
+                            ? new Date(previewDoc.doc.content.lastDownloaded).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                            : "Never"}
+                        </span>
+                      </div>
+                      <div className="space-y-1 bg-white/[0.02] border border-white/[0.04] p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase font-bold text-[8px] tracking-wider">Last Updated</span>
+                        <span className="text-white font-semibold">
+                          {new Date(previewDoc.doc.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                        </span>
                       </div>
                     </div>
                   </div>
