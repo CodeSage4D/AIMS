@@ -97,7 +97,7 @@ export async function GET(
           signedAt: certificate.issueDate,
           signedBy: "AURXON Executive Board",
           verificationHash: certificate.verificationToken,
-          signatureStamp: `Digitally Verified Certificate [${certificate.certificateId}] | Issuer: Auroxon Board of Directors`,
+          signatureStamp: `Digitally Verified Certificate [${certificate.certificateId}] | Issuer: AURXON Board of Directors`,
         },
         { status: 200 }
       );
