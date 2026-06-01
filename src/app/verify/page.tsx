@@ -98,7 +98,7 @@ export default function VerifyCertificatePage() {
           <span>Back to Login</span>
         </Link>
         <span className="text-xs font-heading font-extrabold tracking-widest text-indigo-400 uppercase select-none">
-          Aurxon Trust Network
+          AURXON Trust Network
         </span>
       </div>
 
@@ -167,7 +167,7 @@ export default function VerifyCertificatePage() {
                     AUTHENTIC CREDENTIAL VERIFIED
                   </span>
                   <span className="text-[11px] text-emerald-500/80 font-medium">
-                    This document is digitally validated and permanently recorded on the Aurxon system.
+                    This document is digitally validated and permanently recorded on the AURXON system.
                   </span>
                 </div>
               </div>
@@ -265,7 +265,7 @@ export default function VerifyCertificatePage() {
       {/* Footer */}
       <div className="text-center z-10 mt-8">
         <p className="text-[10px] font-medium text-slate-500 tracking-wider">
-          © {new Date().getFullYear()} AURXON INC. ALL RIGHTS RESERVED. DIGITAL CRYPTO SECURE PROTOCOL V1.
+          © {new Date().getFullYear()} AURXON. ALL RIGHTS RESERVED. DIGITAL CRYPTO SECURE PROTOCOL V1.
         </p>
       </div>
     </div>
