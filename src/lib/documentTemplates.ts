@@ -786,9 +786,30 @@ export function generateExperienceLetter(
     intern.performanceNotes ||
     "demonstrated high technical aptitude, consistent work ethic, active collaboration, and positive professional conduct throughout the engagement.";
 
+  const type = intern.employmentType || "INTERN";
+
+  let documentTitle = "CERTIFICATE OF WORK EXPERIENCE";
+  let body = "";
+  let closing = "";
+
+  if (type === "PERMANENT") {
+    documentTitle = "EMPLOYEE EXPERIENCE & SERVICE CERTIFICATE";
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was employed with AURXON as a permanent ${intern.roleDomain} within the ${intern.department} department. During their service tenure, they ${perfNotes}`;
+    closing = "We wish them continued success in all future professional and personal endeavours. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
+  } else if (type === "CONTRACT") {
+    documentTitle = "CONTRACTOR SERVICE & EXPERIENCE CERTIFICATE";
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON as an independent Contractor/Consultant in the capacity of ${intern.roleDomain} within the ${intern.department} department. During their contract tenure, they ${perfNotes}`;
+    closing = "We wish them continued success in all future professional projects and service contracts. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
+  } else {
+    // Default or INTERN
+    documentTitle = "INTERNSHIP EXPERIENCE & COMPLETION LETTER";
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON in the capacity of ${intern.roleDomain} within the ${intern.department} department. During their internship tenure, they ${perfNotes}`;
+    closing = "We wish them continued success in all future professional and academic endeavours. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
+  }
+
   return {
     companyName: "AURXON",
-    documentTitle: "CERTIFICATE OF WORK EXPERIENCE",
+    documentTitle,
     referenceNumber: buildRefNumber(intern.internId, `EXP-LTR`),
     issueDate: fmt(new Date()),
     candidate: buildCandidateInfo(intern),
@@ -798,9 +819,8 @@ export function generateExperienceLetter(
     startDate: intern.startDate ? fmt(intern.startDate) : fmt(new Date()),
     endDate: intern.endDate ? fmt(intern.endDate) : fmt(new Date()),
     performanceNotes: perfNotes,
-    body: `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON in the capacity of ${intern.roleDomain} within the ${intern.department} department. During their tenure, they ${perfNotes}`,
-    closing:
-      "We wish them continued success in all future professional and academic endeavours. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.",
+    body,
+    closing,
   };
 }
 
