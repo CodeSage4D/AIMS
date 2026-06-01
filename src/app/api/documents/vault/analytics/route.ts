@@ -9,7 +9,7 @@ async function getAuthenticatedUser() {
   if (!session?.user) {
     return { authenticated: false, status: 401, error: "Unauthorized access. Please log in." };
   }
-  const user = session.user as any;
+  const user = session.user as { id: string; role: string };
   return { authenticated: true, user };
 }
 
@@ -17,7 +17,7 @@ async function getAuthenticatedUser() {
  * GET /api/documents/vault/analytics
  * Provides storage analytics telemetry for the secure vault
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const authResult = await getAuthenticatedUser();
     if (!authResult.authenticated) {
@@ -91,7 +91,7 @@ export async function GET(req: Request) {
       recentUploads,
     }, { status: 200 });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Vault analytics generation failed:", err);
     return NextResponse.json({ error: "Internal server error during analytics telemetry aggregation." }, { status: 500 });
   }
