@@ -782,28 +782,38 @@ export function generateExperienceLetter(
   docId: string = "draft",
   version: number = 1
 ): ExperienceLetterContent {
-  const perfNotes =
-    intern.performanceNotes ||
-    "demonstrated high technical aptitude, consistent work ethic, active collaboration, and positive professional conduct throughout the engagement.";
-
   const type = intern.employmentType || "INTERN";
+  
+  let defaultPerfNotes = "";
+  if (type === "PERMANENT") {
+    defaultPerfNotes = "demonstrated exceptional technical mastery, assumed full responsibility for core engineering modules, achieved high-impact milestones, and consistently drove positive organizational outcomes through outstanding overall performance.";
+  } else if (type === "CONTRACT") {
+    defaultPerfNotes = "consistently delivered premium-quality project outcomes, met all defined deliverables, and demonstrated high-level technical expertise and professional dedication throughout the execution of their service contracts.";
+  } else {
+    defaultPerfNotes = "demonstrated an exceptional eagerness to learn, proactively embraced intensive training, collaborated closely under expert architectural mentorship, and made outstanding technical contributions to our core products.";
+  }
+
+  const perfNotes = intern.performanceNotes || defaultPerfNotes;
 
   let documentTitle = "CERTIFICATE OF WORK EXPERIENCE";
   let body = "";
   let closing = "";
 
+  const startDateStr = intern.startDate ? fmt(new Date(intern.startDate)) : fmt(new Date());
+  const endDateStr = intern.endDate ? fmt(new Date(intern.endDate)) : fmt(new Date());
+
   if (type === "PERMANENT") {
     documentTitle = "EMPLOYEE EXPERIENCE & SERVICE CERTIFICATE";
-    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was employed with AURXON as a permanent ${intern.roleDomain} within the ${intern.department} department. During their service tenure, they ${perfNotes}`;
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was employed with AURXON as a permanent ${intern.roleDomain} within the ${intern.department} department from ${startDateStr} to ${endDateStr}. During their service tenure, they took on critical corporate responsibilities, drove significant architectural advancements, and made major organizational contributions. They ${perfNotes}`;
     closing = "We wish them continued success in all future professional and personal endeavours. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
   } else if (type === "CONTRACT") {
     documentTitle = "CONTRACTOR SERVICE & EXPERIENCE CERTIFICATE";
-    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON as an independent Contractor/Consultant in the capacity of ${intern.roleDomain} within the ${intern.department} department. During their contract tenure, they ${perfNotes}`;
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON as an independent Contractor/Consultant in the capacity of ${intern.roleDomain} within the ${intern.department} department from ${startDateStr} to ${endDateStr}. Throughout their contractual engagement, they focused on high-stakes deliverables, drove key project outcomes to success, and ensured seamless service completion. They ${perfNotes}`;
     closing = "We wish them continued success in all future professional projects and service contracts. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
   } else {
     // Default or INTERN
     documentTitle = "INTERNSHIP EXPERIENCE & COMPLETION LETTER";
-    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) was engaged with AURXON in the capacity of ${intern.roleDomain} within the ${intern.department} department. During their internship tenure, they ${perfNotes}`;
+    body = `This is to certify that ${intern.fullName} (ID: ${intern.internId}) successfully completed a structured learning and training internship program at AURXON in the capacity of ${intern.roleDomain} within the ${intern.department} department from ${startDateStr} to ${endDateStr}. During their internship tenure, they exhibited outstanding learning agility, engaged deeply in mentorship opportunities under senior engineering guides, and made valuable contributions to real-world projects. They ${perfNotes}`;
     closing = "We wish them continued success in all future professional and academic endeavours. This certificate is issued in good faith and may be independently verified using the verification credentials provided herein.";
   }
 
@@ -816,8 +826,8 @@ export function generateExperienceLetter(
     verification: buildVerification(docId, intern.id, "EXPERIENCE_LETTER", version),
     signatures: {},
     role: intern.roleDomain,
-    startDate: intern.startDate ? fmt(intern.startDate) : fmt(new Date()),
-    endDate: intern.endDate ? fmt(intern.endDate) : fmt(new Date()),
+    startDate: startDateStr,
+    endDate: endDateStr,
     performanceNotes: perfNotes,
     body,
     closing,
