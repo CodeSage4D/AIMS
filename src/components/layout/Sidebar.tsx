@@ -38,6 +38,7 @@ export default function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "View Profile", href: "/profile", icon: User },
+    { label: "My Documents", href: "/my-documents", icon: FileText },
     ...(user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "HR" || user.role === "ADMIN" ? [{ label: "Operations Panel", href: "/founder", icon: ClipboardList }] : []),
     ...(user.role !== "INTERN" && user.role !== "EMPLOYEE" ? [{ label: "Internal Directory", href: "/interns", icon: Users }] : []),
     { label: "Attendance", href: "/attendance", icon: Calendar },
