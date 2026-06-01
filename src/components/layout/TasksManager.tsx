@@ -72,7 +72,10 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [assignmentMode, setAssignmentMode] = useState<"single" | "multi">("single");
+  const [internId, setInternId] = useState("");
   const [internIds, setInternIds] = useState<string[]>([]);
+  const [internSearch, setInternSearch] = useState("");
   const [submissionComment, setSubmissionComment] = useState("");
   const [feedbackComment, setFeedbackComment] = useState("");
 
@@ -138,7 +141,9 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
     setError(null);
     setLoading(true);
 
-    if (!title || !description || !deadline || internIds.length === 0) {
+    const finalInternIds = assignmentMode === "single" ? (internId ? [internId] : []) : internIds;
+
+    if (!title || !description || !deadline || finalInternIds.length === 0) {
       setError("Please complete all task details and select at least one intern.");
       setLoading(false);
       return;
@@ -148,7 +153,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, deadline, internIds }),
+        body: JSON.stringify({ title, description, deadline, internIds: finalInternIds }),
       });
 
       const data = await res.json();
@@ -159,7 +164,9 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
       setTitle("");
       setDescription("");
       setDeadline("");
+      setInternId("");
       setInternIds([]);
+      setInternSearch("");
       setIsModalOpen(false);
       router.refresh();
     } catch (err: any) {
@@ -659,42 +666,129 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateTask} className="space-y-4">
-                  <div className="flex flex-col space-y-1.5 w-full">
-                    <div className="flex items-center justify-between">
+                  {/* Mode Selector */}
+                  <div className="flex items-center bg-muted/30 p-1 rounded-lg border border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentMode("single")}
+                      className={cn(
+                        "flex-1 py-1.5 text-xs font-bold rounded-md transition-all",
+                        assignmentMode === "single" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Single Intern
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentMode("multi")}
+                      className={cn(
+                        "flex-1 py-1.5 text-xs font-bold rounded-md transition-all",
+                        assignmentMode === "multi" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Multi Intern
+                    </button>
+                  </div>
+
+                  {assignmentMode === "single" ? (
+                    <div className="flex flex-col space-y-1.5 w-full animate-fadeIn">
                       <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                        Target Interns (Active Enrollees)
+                        Target Intern (Active Enrollee)
                       </label>
-                      <div className="space-x-3 text-[10px] font-bold">
-                        <button type="button" onClick={() => setInternIds(interns.map(i => i.id))} className="text-primary hover:underline">Select All</button>
-                        <button type="button" onClick={() => setInternIds([])} className="text-muted-foreground hover:underline">Clear</button>
+                      <select
+                        value={internId}
+                        onChange={(e) => setInternId(e.target.value)}
+                        required={assignmentMode === "single"}
+                        className="flex h-11 w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                      >
+                        <option value="" className="bg-card text-muted-foreground">Select Target Profile...</option>
+                        {interns.map((i) => (
+                          <option key={i.id} value={i.id} className="bg-card text-foreground">
+                            {i.fullName} ({i.internId || i.id})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col space-y-3 w-full animate-fadeIn">
+                      <div className="flex flex-col space-y-1.5">
+                        <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                          Search & Add Interns
+                        </label>
+                        <Input
+                          placeholder="Search interns by name or ID..."
+                          value={internSearch}
+                          onChange={(e) => setInternSearch(e.target.value)}
+                          className="bg-background border-border text-foreground rounded-xl"
+                        />
+                      </div>
+                      
+                      {internSearch.trim().length > 0 && (
+                        <div className="max-h-32 overflow-y-auto border border-border/50 rounded-xl bg-background p-1 space-y-0.5 shadow-inner">
+                          {interns.filter(i => 
+                            i.fullName.toLowerCase().includes(internSearch.toLowerCase()) || 
+                            (i.internId && i.internId.toLowerCase().includes(internSearch.toLowerCase()))
+                          ).length === 0 && (
+                            <div className="text-xs text-muted-foreground p-3 text-center">No matches found.</div>
+                          )}
+                          {interns.filter(i => 
+                            i.fullName.toLowerCase().includes(internSearch.toLowerCase()) || 
+                            (i.internId && i.internId.toLowerCase().includes(internSearch.toLowerCase()))
+                          ).map(i => (
+                            <button
+                              key={`search-${i.id}`}
+                              type="button"
+                              onClick={() => {
+                                if (!internIds.includes(i.id)) setInternIds([...internIds, i.id]);
+                                setInternSearch("");
+                              }}
+                              className="flex w-full items-center justify-between p-2 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors text-left"
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-sm font-semibold text-foreground">{i.fullName}</span>
+                                <span className="text-[10px] text-muted-foreground">{i.internId || i.id}</span>
+                              </div>
+                              <PlusCircle className="h-4 w-4 text-primary" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                            Selected Interns ({internIds.length})
+                          </label>
+                          <div className="space-x-3 text-[10px] font-bold">
+                            <button type="button" onClick={() => setInternIds(interns.map(i => i.id))} className="text-primary hover:underline">Select All</button>
+                            <button type="button" onClick={() => setInternIds([])} className="text-muted-foreground hover:underline">Clear</button>
+                          </div>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto border border-border rounded-xl bg-muted/10 p-2 space-y-1">
+                          {internIds.length === 0 && (
+                            <div className="text-xs text-muted-foreground p-4 text-center">No interns selected.</div>
+                          )}
+                          {internIds.map((id) => {
+                            const intern = interns.find(i => i.id === id);
+                            if (!intern) return null;
+                            return (
+                              <div key={`selected-${id}`} className="flex items-center justify-between p-2 bg-background border border-border/50 rounded-lg shadow-sm">
+                                <div className="flex items-center space-x-2">
+                                  <UserCheck className="h-4 w-4 text-emerald-500" />
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-semibold text-foreground">{intern.fullName}</span>
+                                  </div>
+                                </div>
+                                <button type="button" onClick={() => setInternIds(internIds.filter(i => i !== id))} className="text-muted-foreground hover:text-rose-500 p-1 rounded-md transition-colors">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                    <div className="max-h-48 overflow-y-auto border border-border rounded-xl bg-background p-1 space-y-0.5">
-                      {interns.length === 0 && (
-                        <div className="text-xs text-muted-foreground p-4 text-center">No interns available.</div>
-                      )}
-                      {interns.map((i) => (
-                        <label key={i.id} className="flex items-center space-x-3 p-2 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors group">
-                          <input
-                            type="checkbox"
-                            checked={internIds.includes(i.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setInternIds(prev => [...prev, i.id]);
-                              } else {
-                                setInternIds(prev => prev.filter(id => id !== i.id));
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background bg-background cursor-pointer"
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{i.fullName}</span>
-                            <span className="text-[10px] text-muted-foreground">{i.internId || i.id}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   <Input
                     label="Task Title / Heading"
