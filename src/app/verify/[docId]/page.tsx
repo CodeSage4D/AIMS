@@ -37,7 +37,7 @@ async function getCredentialData(docId: string) {
       return {
         found: true,
         type: "DOCUMENT",
-        docType: document.type.replace("_", " "),
+        docType: document.type.replace(/_/g, " "),
         status: document.status,
         fullName: document.intern.fullName,
         internId: document.intern.internId,
@@ -48,6 +48,7 @@ async function getCredentialData(docId: string) {
         signedBy: document.approvedBy ? `${document.approvedBy.fullName} (${document.approvedBy.role})` : "AIMS System Authority",
         verificationHash: document.verificationHash || document.id,
         signatureStamp: document.signature || `Auto-Generated and Validated by AIMS Platform Security Core`,
+        version: document.version,
       };
     }
 
@@ -75,7 +76,7 @@ async function getCredentialData(docId: string) {
       return {
         found: true,
         type: "CERTIFICATE",
-        docType: certificate.type.replace("_", " "),
+        docType: certificate.type.replace(/_/g, " "),
         status: "APPROVED",
         fullName: certificate.holderName,
         internId: certificate.intern?.internId || "AXN-EXT-ALUMNI",
@@ -86,6 +87,7 @@ async function getCredentialData(docId: string) {
         signedBy: "AURXON Executive Board",
         verificationHash: certificate.verificationToken,
         signatureStamp: `Digitally Verified Certificate [${certificate.certificateId}] | Issuer: Auroxon Board of Directors`,
+        version: 1,
       };
     }
 
@@ -145,11 +147,12 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
     signedAt: Date | string;
     verificationHash: string;
     signatureStamp: string;
+    version: number;
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-slate-200">
-      {/* Decorative gradient glowing spheres */}
+      {/* Decorative glowing spheres */}
       <div className="absolute top-10 left-1/4 w-[350px] h-[350px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -229,16 +232,23 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
               </div>
 
               <div className="flex items-center space-x-3.5">
-                <Calendar className="h-5 w-5 text-rose-400 shrink-0" />
+                <Clipboard className="h-5 w-5 text-indigo-400 shrink-0" />
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Issue Date</span>
-                  <span className="text-xs font-semibold text-slate-300">
-                    {new Date(credential.signedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                  </span>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Document Version</span>
+                  <span className="text-xs font-semibold text-slate-300 font-mono">v{credential.version}</span>
                 </div>
               </div>
             </div>
-          </div>
+
+            <div className="flex items-center space-x-3.5">
+              <Calendar className="h-5 w-5 text-rose-400 shrink-0" />
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Issue Date</span>
+                <span className="text-xs font-semibold text-slate-300">
+                  {new Date(credential.signedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                </span>
+              </div>
+            </div></div>
 
           {/* Cryptographic Hash and Signature details */}
           <div className="space-y-3">
