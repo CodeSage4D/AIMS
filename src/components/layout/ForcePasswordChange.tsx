@@ -23,19 +23,19 @@ export default function ForcePasswordChange() {
     if (!pass) return { score: 0, label: "", color: "bg-transparent", textClass: "text-gray-400" };
     
     let score = 0;
-    if (pass.length >= 8) score += 1;
-    if (pass.length >= 10) score += 1;
+    if (pass.length >= 12) score += 1;
+    if (pass.length >= 16) score += 1;
     if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
     if (/[0-9]/.test(pass)) score += 1;
     if (/[^A-Za-z0-9]/.test(pass)) score += 1;
 
-    if (pass.length < 8) {
-      return { score: 1, label: "Too Weak (Min 8 characters)", color: "bg-red-500 w-1/3", textClass: "text-red-500 font-bold" };
+    if (pass.length < 12) {
+      return { score: 1, label: "Too Weak (Min 12 characters)", color: "bg-red-500 w-1/3", textClass: "text-red-500 font-bold" };
     }
     if (score <= 2) {
       return { score: 1, label: "Weak Quality (Red)", color: "bg-red-500 w-1/3", textClass: "text-red-400 font-bold" };
     } else if (score <= 4) {
-      return { score: 2, label: "Medium Quality (Yellow)", color: "bg-yellow-500 w-2/3", textClass: "text-yellow-450 font-bold" };
+      return { score: 2, label: "Medium Quality (Yellow)", color: "bg-yellow-500 w-2/3", textClass: "text-yellow-455 font-bold" };
     } else {
       return { score: 3, label: "Strong Quality (Green)", color: "bg-emerald-500 w-full", textClass: "text-emerald-400 font-bold" };
     }
@@ -49,8 +49,18 @@ export default function ForcePasswordChange() {
     setSuccess(null);
     setLoading(true);
 
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long.");
+    if (newPassword.length < 12) {
+      setError("Password must be at least 12 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+    if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+      setError("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
       setLoading(false);
       return;
     }
