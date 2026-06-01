@@ -854,12 +854,17 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
   const complianceRate = totalRequired > 0 ? Math.round((totalVerified / totalRequired) * 100) : 100;
   
-  const filteredInterns = initialInterns.filter((i) =>
-    i.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    i.department.toLowerCase().includes(search.toLowerCase()) ||
-    i.id.toLowerCase().includes(search.toLowerCase()) ||
-    (i.internId && i.internId.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredInterns = initialInterns.filter((i) => {
+    const searchLower = (search || "").toLowerCase();
+    const fullNameLower = (i?.fullName || "").toLowerCase();
+    const deptLower = (i?.department || "").toLowerCase();
+    const idLower = (i?.id || "").toLowerCase();
+    const internIdLower = (i?.internId || "").toLowerCase();
+    return fullNameLower.includes(searchLower) ||
+      deptLower.includes(searchLower) ||
+      idLower.includes(searchLower) ||
+      internIdLower.includes(searchLower);
+  });
 
   // Document Upload Action (Admin)
   const handleUpload = async (e: React.FormEvent) => {
