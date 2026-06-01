@@ -72,7 +72,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [internId, setInternId] = useState("");
+  const [internIds, setInternIds] = useState<string[]>([]);
   const [submissionComment, setSubmissionComment] = useState("");
   const [feedbackComment, setFeedbackComment] = useState("");
 
@@ -138,8 +138,8 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
     setError(null);
     setLoading(true);
 
-    if (!title || !description || !deadline || !internId) {
-      setError("Please complete all task details.");
+    if (!title || !description || !deadline || internIds.length === 0) {
+      setError("Please complete all task details and select at least one intern.");
       setLoading(false);
       return;
     }
@@ -148,7 +148,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, deadline, internId }),
+        body: JSON.stringify({ title, description, deadline, internIds }),
       });
 
       const data = await res.json();
@@ -159,7 +159,7 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
       setTitle("");
       setDescription("");
       setDeadline("");
-      setInternId("");
+      setInternIds([]);
       setIsModalOpen(false);
       router.refresh();
     } catch (err: any) {
@@ -660,22 +660,40 @@ export default function TasksManager({ tasks, interns, userRole = "INTERN", curr
               <CardContent>
                 <form onSubmit={handleCreateTask} className="space-y-4">
                   <div className="flex flex-col space-y-1.5 w-full">
-                    <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
-                      Target Intern (Active Enrollee)
-                    </label>
-                    <select
-                      value={internId}
-                      onChange={(e) => setInternId(e.target.value)}
-                      required
-                      className="flex h-11 w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
-                    >
-                      <option value="" className="bg-card text-foreground">Select Target Profile...</option>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                        Target Interns (Active Enrollees)
+                      </label>
+                      <div className="space-x-3 text-[10px] font-bold">
+                        <button type="button" onClick={() => setInternIds(interns.map(i => i.id))} className="text-primary hover:underline">Select All</button>
+                        <button type="button" onClick={() => setInternIds([])} className="text-muted-foreground hover:underline">Clear</button>
+                      </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-xl bg-background p-1 space-y-0.5">
+                      {interns.length === 0 && (
+                        <div className="text-xs text-muted-foreground p-4 text-center">No interns available.</div>
+                      )}
                       {interns.map((i) => (
-                        <option key={i.id} value={i.id} className="bg-card text-foreground">
-                          {i.fullName} ({i.internId || i.id})
-                        </option>
+                        <label key={i.id} className="flex items-center space-x-3 p-2 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors group">
+                          <input
+                            type="checkbox"
+                            checked={internIds.includes(i.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setInternIds(prev => [...prev, i.id]);
+                              } else {
+                                setInternIds(prev => prev.filter(id => id !== i.id));
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background bg-background cursor-pointer"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{i.fullName}</span>
+                            <span className="text-[10px] text-muted-foreground">{i.internId || i.id}</span>
+                          </div>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
                   <Input

@@ -20,10 +20,10 @@ async function getAuthenticatedUser() {
 export async function GET() {
   try {
     const authResult = await getAuthenticatedUser();
-    if (!authResult.authenticated) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    if (!authResult.authenticated || !authResult.user) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
     }
-    const { user } = authResult;
+    const user = authResult.user;
 
     // Admin / HR / Super Admin / Founder role gating
     const hasDocAccess = await hasPermission(user.id, user.role, "documentAccess");

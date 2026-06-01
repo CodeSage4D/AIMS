@@ -96,11 +96,11 @@ export async function POST(req: Request) {
 
     // Strict input validation
     const body = await req.json().catch(() => ({}));
-    const { title, description, deadline, internId } = body;
+    const { title, description, deadline, internIds } = body;
 
-    if (!title?.trim() || !description?.trim() || !deadline || !internId) {
+    if (!title?.trim() || !description?.trim() || !deadline || !internIds || !Array.isArray(internIds) || internIds.length === 0) {
       return NextResponse.json(
-        { error: "Validation failed. Missing required fields: title, description, deadline, or internId." },
+        { error: "Validation failed. Missing required fields: title, description, deadline, or valid internIds array." },
         { status: 400 }
       );
     }
@@ -110,18 +110,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Validation failed. Invalid deadline date format." }, { status: 400 });
     }
 
-    // Verify intern exists and is ACTIVE
-    const intern = await db.intern.findUnique({
-      where: { id: internId },
+    // Verify interns exist and are ACTIVE
+    const interns = await db.intern.findMany({
+      where: { id: { in: internIds } },
       select: { id: true, status: true, supervisorId: true },
     });
 
-    if (!intern) {
-      return NextResponse.json({ error: "Validation failed. Target intern does not exist." }, { status: 400 });
+    if (interns.length !== internIds.length) {
+      return NextResponse.json({ error: "Validation failed. One or more target interns do not exist." }, { status: 400 });
     }
 
-    if (intern.status !== "ACTIVE" && intern.status !== "ONBOARDING") {
-      return NextResponse.json({ error: "Validation failed. Tasks can only be assigned to ACTIVE or ONBOARDING interns." }, { status: 400 });
+    for (const intern of interns) {
+      if (intern.status !== "ACTIVE" && intern.status !== "ONBOARDING") {
+        return NextResponse.json({ error: `Validation failed. Tasks can only be assigned to ACTIVE or ONBOARDING interns.` }, { status: 400 });
+      }
     }
 
     // Mentor authorization validation:
@@ -129,36 +131,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden. Insufficient permissions to assign tasks." }, { status: 403 });
     }
 
-    if ((user.role === "TEAM_LEAD" || user.role === "ADMIN") && intern.supervisorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden. Managers can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
+    if (user.role === "TEAM_LEAD" || user.role === "ADMIN") {
+      const unsupervised = interns.find(i => i.supervisorId !== user.id);
+      if (unsupervised) {
+        return NextResponse.json({ error: "Forbidden. Managers can only assign tasks to enrollees under their direct supervision." }, { status: 403 });
+      }
     }
 
-    // Create the task in a database transaction along with the audit log
-    const newTask = await db.$transaction(async (tx) => {
+    // Create tasks in a database transaction along with the audit log
+    const newTasks = await db.$transaction(async (tx) => {
       const safeUserId = await getSafeUserId(user.id, tx);
-      const task = await tx.task.create({
-        data: {
-          title: title.trim(),
-          description: description.trim(),
-          deadline: deadlineDate,
-          internId,
-          assignedById: safeUserId,
-          status: TaskStatus.PENDING,
-        },
-      });
+      
+      const createdTasks = await Promise.all(
+        internIds.map((id: string) => 
+          tx.task.create({
+            data: {
+              title: title.trim(),
+              description: description.trim(),
+              deadline: deadlineDate,
+              internId: id,
+              assignedById: safeUserId,
+              status: TaskStatus.PENDING,
+            },
+          })
+        )
+      );
 
       await tx.activityLog.create({
         data: {
           userId: safeUserId,
           action: "ASSIGN_TASK",
-          description: `Assigned task "${title.trim()}" to intern (ID: ${internId})`,
+          description: `Assigned task "${title.trim()}" to ${internIds.length} intern(s)`,
         },
       });
 
-      return task;
+      return createdTasks;
     });
 
-    return NextResponse.json(newTask, { status: 201 });
+    return NextResponse.json(newTasks, { status: 201 });
   } catch (err: any) {
     console.error("Error creating task:", err);
     return NextResponse.json({ error: "Internal database save error." }, { status: 500 });
