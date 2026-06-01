@@ -117,7 +117,7 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
           <div className="space-y-2">
             <h1 className="text-xl font-heading font-extrabold text-slate-100 tracking-tight">Verification Failure</h1>
             <p className="text-sm text-slate-400 leading-relaxed">
-              No matching records could be identified in the official Auroxon AIMS secure credential registry.
+              No matching records could be identified in the official AURXON secure credential registry.
             </p>
           </div>
           <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800 text-left">
@@ -163,7 +163,7 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
               <ShieldCheck className="h-9 w-9" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-[10px] font-heading font-extrabold text-slate-400 tracking-widest uppercase">AUROXON AIMS</h2>
+              <h2 className="text-[10px] font-heading font-extrabold text-slate-400 tracking-widest uppercase">AURXON AIMS</h2>
               <span className="inline-block text-[9px] font-bold bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
                 ✓ VERIFIED
               </span>
@@ -176,7 +176,7 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
           </div>
 
           <p className="text-[10px] text-slate-500 leading-normal max-w-[180px] mx-auto">
-            Scan to instantly verify the integrity and origin of this credential directly in the Auroxon registry.
+            Scan to instantly verify the integrity and origin of this credential directly in the AURXON registry.
           </p>
         </div>
 
@@ -187,7 +187,7 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
               Official Compliance Registry
             </span>
             <h1 className="text-xl font-heading font-extrabold text-slate-100 tracking-tight leading-tight">
-              Auroxon Credential Certificate
+              AURXON Credential Certificate
             </h1>
           </div>
 
@@ -255,7 +255,7 @@ export default async function VerifyCredentialPage(props: { params: Promise<{ do
 
           <div className="pt-2 text-center md:text-left">
             <p className="text-[9px] text-slate-500 leading-normal">
-              Auroxon Internal Management System (AIMS) secure document validation network. Registered under transaction hash index.
+              AURXON Internal Management System (AIMS) secure document validation network. Registered under transaction hash index.
             </p>
           </div>
         </div>
