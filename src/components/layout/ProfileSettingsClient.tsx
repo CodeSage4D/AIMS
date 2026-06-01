@@ -463,8 +463,18 @@ export default function ProfileSettingsClient({
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters long.");
+    if (newPassword.length < 12) {
+      setError("New password must be at least 12 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+    if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+      setError("New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
       setLoading(false);
       return;
     }
@@ -1503,12 +1513,22 @@ export default function ProfileSettingsClient({
         )}
 
         {/* TAB 4: DIGITAL ID CARD */}
-        {activeTab === "idcard" && internProfile && (() => {
+        {activeTab === "idcard" && (internProfile || user.role === "FOUNDER" || user.role === "SUPER_ADMIN" || user.role === "ADMIN" || user.role === "HR") && (() => {
+          const effectiveProfile = internProfile || {
+            id: user.id,
+            fullName: user.fullName,
+            internId: user.employeeId || `AXN-${user.role}`,
+            department: "Executive Leadership",
+            roleDomain: user.role === "FOUNDER" ? "Founder & CEO" : user.role === "HR" ? "HR Manager" : "Administrator",
+            employmentType: "PERMANENT",
+            status: "ACTIVE",
+            notes: JSON.stringify({ pictureUrl: user.pictureUrl })
+          };
           const selectedPeer = selectedPeerId
             ? allActiveInterns?.find((intern) => intern.id === selectedPeerId)
             : null;
           const peerCustomProfile = selectedPeer ? parseInternNotes(selectedPeer.notes) : {};
-          const customProfile = internProfile ? parseInternNotes(internProfile.notes) : {};
+          const customProfile = effectiveProfile ? parseInternNotes(effectiveProfile.notes) : {};
 
           return (
             <div className="space-y-6 animate-fadeIn">
@@ -1537,7 +1557,7 @@ export default function ProfileSettingsClient({
                         >
                           <option value="">My Card (Self)</option>
                           {allActiveInterns
-                            .filter((intern) => intern.id !== internProfile.id)
+                            .filter((intern) => intern.id !== effectiveProfile.id)
                             .map((intern) => (
                               <option key={intern.id} value={intern.id}>
                                 {intern.fullName} ({intern.internId || "No ID"})
@@ -1550,13 +1570,13 @@ export default function ProfileSettingsClient({
                 </CardHeader>
                 <CardContent className="p-0">
                   <IdCardGenerator
-                    fullName={selectedPeer ? selectedPeer.fullName : internProfile.fullName}
-                    internId={selectedPeer ? (selectedPeer.internId || "AXN-REF-PENDING") : (internProfile.internId || "AXN-REF-PENDING")}
-                    department={selectedPeer ? selectedPeer.department : internProfile.department}
-                    roleDomain={selectedPeer ? selectedPeer.roleDomain : internProfile.roleDomain}
+                    fullName={selectedPeer ? selectedPeer.fullName : effectiveProfile.fullName}
+                    internId={selectedPeer ? (selectedPeer.internId || "AXN-REF-PENDING") : (effectiveProfile.internId || "AXN-REF-PENDING")}
+                    department={selectedPeer ? selectedPeer.department : effectiveProfile.department}
+                    roleDomain={selectedPeer ? selectedPeer.roleDomain : effectiveProfile.roleDomain}
                     status={selectedPeer ? (selectedPeer.employmentType === "INTERN" ? "INTERN" : "ACTIVE") : (isIntern ? "INTERN" : "ACTIVE")}
-                    dbInternId={selectedPeer ? selectedPeer.id : internProfile.id}
-                    employmentType={selectedPeer ? selectedPeer.employmentType : internProfile.employmentType}
+                    dbInternId={selectedPeer ? selectedPeer.id : effectiveProfile.id}
+                    employmentType={selectedPeer ? selectedPeer.employmentType : effectiveProfile.employmentType}
                     defaultPhotoUrl={selectedPeer ? peerCustomProfile.pictureUrl : customProfile.pictureUrl}
                     linkedIn={selectedPeer ? peerCustomProfile.linkedIn : customProfile.linkedIn}
                     gitHub={selectedPeer ? peerCustomProfile.gitHub : customProfile.gitHub}
