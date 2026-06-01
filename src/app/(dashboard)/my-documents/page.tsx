@@ -19,6 +19,7 @@ export default async function MyDocumentsPage() {
   // 1. Fetch the user's corresponding Intern/Employee profile
   let intern = await db.intern.findUnique({
     where: { userId: user.id },
+    include: { supervisor: true },
   });
 
   // Admin/Founder preview fallback: let admin see first intern's documents for full system inspection
@@ -27,6 +28,7 @@ export default async function MyDocumentsPage() {
     intern = await db.intern.findFirst({
       where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
+      include: { supervisor: true },
     });
     isAdministratorPreview = true;
   }
@@ -106,6 +108,9 @@ export default async function MyDocumentsPage() {
         roleDomain: intern.roleDomain,
         employmentType: intern.employmentType,
         startDate: intern.startDate.toISOString(),
+        status: intern.status,
+        reportingManager: (intern as any).supervisor?.fullName || "Karan Mishra (Founder)",
+        notes: intern.notes,
       }}
       generatedDocs={serializedGeneratedDocs}
       secureDocs={serializedSecureDocs}
