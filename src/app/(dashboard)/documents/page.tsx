@@ -67,7 +67,10 @@ export default async function DocumentsPage() {
     // Secure Fallback mocks for robust local testing and UI presentation
     interns = [
       {
+        id: "uuid-aravind",
         internId: "AXN-SWE-2605-AS01",
+        fullName: "Aravind Sharma",
+        email: "aravind.sharma@aurxon.com",
         department: "Engineering",
         roleDomain: "Software Engineer",
         status: "ACTIVE",
