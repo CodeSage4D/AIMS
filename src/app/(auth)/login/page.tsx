@@ -47,6 +47,19 @@ export default function LoginPage() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+
+    // Safely parse NextAuth forwarded error parameters from the URL query strings
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get("error");
+      if (errorParam) {
+        if (errorParam === "CredentialsSignin") {
+          setLoginError("Invalid credentials or password.");
+        } else {
+          setLoginError(errorParam);
+        }
+      }
+    }
   }, []);
 
   const toggleTheme = () => {
