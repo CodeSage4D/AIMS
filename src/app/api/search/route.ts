@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     // Search query definitions
     const containsQuery = { contains: query, mode: "insensitive" as const };
 
-    if (role === "FOUNDER" || role === "HR") {
+    if (role === "FOUNDER" || role === "HR" || role === "SUPER_ADMIN" || role === "ADMIN") {
       // Admin Search: Can search all interns and all tasks
       const interns = await db.intern.findMany({
         where: {

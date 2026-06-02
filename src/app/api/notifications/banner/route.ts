@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     // ────────────────────────────────────────────────────────────────────────
     // 1. FOUNDER & HR ALERTS
     // ────────────────────────────────────────────────────────────────────────
-    if (userRole === "FOUNDER" || userRole === "HR" || userRole === "SUPER_ADMIN") {
+    if (userRole === "FOUNDER" || userRole === "HR" || userRole === "SUPER_ADMIN" || userRole === "ADMIN") {
       // Alert A: Pending correction requests
       const pendingRequestsCount = await db.profileUpdateRequest.count({
         where: { status: "PENDING" },

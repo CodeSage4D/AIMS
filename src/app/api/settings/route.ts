@@ -36,7 +36,7 @@ export async function PATCH(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role;
 
-    if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "SUPER_ADMIN") {
+    if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "SUPER_ADMIN" && userRole !== "ADMIN") {
       return NextResponse.json({ error: "Access Denied. Insufficient administrative privileges." }, { status: 403 });
     }
 

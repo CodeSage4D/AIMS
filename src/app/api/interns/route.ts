@@ -453,7 +453,7 @@ export async function GET(req: Request) {
     }
 
     const userRole = (session.user as any).role;
-    if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "SUPER_ADMIN") {
+    if (userRole !== "FOUNDER" && userRole !== "HR" && userRole !== "SUPER_ADMIN" && userRole !== "ADMIN") {
       return NextResponse.json({ error: "Access Denied. Administrative view restricted." }, { status: 403 });
     }
 
