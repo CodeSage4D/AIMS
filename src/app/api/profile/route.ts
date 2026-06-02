@@ -108,6 +108,17 @@ export async function POST(req: Request) {
         },
       });
 
+      await tx.profileAuditLog.create({
+        data: {
+          actorId: user.id,
+          profileId: internProfile.id,
+          action: "UPDATE",
+          field: fieldToUpdate,
+          previousValue: "correction_request_submitted",
+          newValue: proposedValue.trim(),
+        },
+      });
+
       await tx.activityLog.create({
         data: {
           userId: safeUserId,
@@ -225,6 +236,17 @@ export async function PATCH(req: Request) {
               },
             });
 
+            await tx.profileAuditLog.create({
+              data: {
+                actorId: user.id,
+                profileId: request.internId,
+                action: "APPROVAL",
+                field: request.fieldToUpdate,
+                previousValue: String((request.intern as any)[targetField] || ""),
+                newValue: String(request.proposedValue),
+              },
+            });
+
             // Also update the User table if fullName is updated
             if (targetField === "fullName" && request.intern.userId) {
               await tx.user.update({
@@ -233,6 +255,17 @@ export async function PATCH(req: Request) {
               });
             }
           }
+        } else {
+          await tx.profileAuditLog.create({
+            data: {
+              actorId: user.id,
+              profileId: request.internId,
+              action: "APPROVAL",
+              field: request.fieldToUpdate,
+              previousValue: "PENDING",
+              newValue: "REJECTED",
+            },
+          });
         }
 
         await tx.activityLog.create({
@@ -496,6 +529,17 @@ export async function PATCH(req: Request) {
             where: { id: user.id },
             data: { notes: updatedUserNotes },
           });
+
+          await tx.profileAuditLog.create({
+            data: {
+              actorId: user.id,
+              profileId: user.id,
+              action: "UPDATE",
+              field: "pictureUrl",
+              previousValue: "self_direct_edit",
+              newValue: "founder_photo_updated",
+            },
+          });
         } else {
           // Intern: save all fields including pictureUrl in intern.notes
           // Audit log bank update if bank details changed
@@ -514,6 +558,17 @@ export async function PATCH(req: Request) {
           await tx.intern.update({
             where: { id: internProfile.id },
             data: dataToUpdate,
+          });
+
+          await tx.profileAuditLog.create({
+            data: {
+              actorId: user.id,
+              profileId: internProfile.id,
+              action: "UPDATE",
+              field: "profile",
+              previousValue: "self_direct_edit",
+              newValue: "profile_updated",
+            },
           });
         }
 

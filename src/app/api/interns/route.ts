@@ -352,6 +352,17 @@ export async function POST(req: Request) {
             ],
           });
 
+          await tx.profileAuditLog.create({
+            data: {
+              actorId: userId,
+              profileId: createdIntern.id,
+              action: "CREATION",
+              field: null,
+              previousValue: null,
+              newValue: createdIntern.internId,
+            },
+          });
+
           return createdIntern;
         });
         break; // Successfully inserted!
@@ -986,6 +997,59 @@ export async function PUT(req: Request) {
         where: { id },
         data: dataToUpdate,
       });
+
+      // ── Audit logs for specific field transitions ──
+      if (updateData.roleDomain !== undefined && updateData.roleDomain !== existing.roleDomain) {
+        await tx.profileAuditLog.create({
+          data: {
+            actorId: userId,
+            profileId: id,
+            action: "ROLE_CHANGE",
+            field: "roleDomain",
+            previousValue: existing.roleDomain,
+            newValue: updateData.roleDomain,
+          },
+        });
+      }
+
+      if (updateData.department !== undefined && updateData.department !== existing.department) {
+        await tx.profileAuditLog.create({
+          data: {
+            actorId: userId,
+            profileId: id,
+            action: "DEPARTMENT_CHANGE",
+            field: "department",
+            previousValue: existing.department,
+            newValue: updateData.department,
+          },
+        });
+      }
+
+      if (updateData.status !== undefined && updateData.status !== existing.status) {
+        await tx.profileAuditLog.create({
+          data: {
+            actorId: userId,
+            profileId: id,
+            action: "UPDATE",
+            field: "status",
+            previousValue: existing.status,
+            newValue: updateData.status,
+          },
+        });
+      }
+
+      // Log a general update event
+      await tx.profileAuditLog.create({
+        data: {
+          actorId: userId,
+          profileId: id,
+          action: "UPDATE",
+          field: "profile",
+          previousValue: "bulk edit",
+          newValue: "profile_updated",
+        },
+      });
+
       return {
         ...updatedRecord,
         _freshTempPassword: freshTempPasswordVar,

@@ -24,6 +24,9 @@ enum InternStatus {
   TERMINATED
   ARCHIVED
   PENDING_VERIFICATION
+  PENDING
+  INCOMPLETE
+  SUSPENDED
 }
 
 enum UserStatus {
@@ -126,6 +129,7 @@ model User {
   approvedKnowledgeDocs     KnowledgeDocument[]    @relation("ApprovedKnowledgeDocs")
   aiQueryLogs               AiQueryLog[]
   uploadedSecureDocuments   SecureDocument[]       @relation("UploadedDocs")
+  profileAuditLogs          ProfileAuditLog[]      @relation("ProfileAuditLogsActor")
 
   @@map("users")
 }
@@ -634,5 +638,19 @@ model SecureDocument {
   deletedAt        DateTime? @map("deleted_at")
 
   @@map("secure_documents")
+}
+
+model ProfileAuditLog {
+  id            String   @id @default(uuid())
+  actorId       String   @map("actor_id")
+  actor         User     @relation("ProfileAuditLogsActor", fields: [actorId], references: [id], onDelete: Cascade)
+  profileId     String   @map("profile_id")
+  action        String   // e.g. CREATION, UPDATE, ROLE_CHANGE, DEPARTMENT_CHANGE, DOCUMENT_UPLOAD, APPROVAL
+  field         String?  // e.g. "roleDomain", "department", "status"
+  previousValue String?  @map("previous_value")
+  newValue      String?  @map("new_value")
+  timestamp     DateTime @default(now()) @map("timestamp")
+
+  @@map("profile_audit_logs")
 }
 

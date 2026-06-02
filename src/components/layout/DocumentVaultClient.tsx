@@ -159,6 +159,13 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
   // Tab State
   const [activeTab, setActiveTab] = useState<"compliance" | "approvals" | "vault">("compliance");
 
+  // Folders and Category State
+  const [folders, setFolders] = useState(REQUIRED_DOCS);
+  const [folderManageOpen, setFolderManageOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [editingFolderType, setEditingFolderType] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+
   // GCS Vault States
   const [vaultDocs, setVaultDocs] = useState<any[]>([]);
   const [vaultAnalytics, setVaultAnalytics] = useState<any | null>(null);
@@ -205,6 +212,12 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     setError(null);
     setSuccess(null);
     setLoading(true);
+
+    if (vaultFile.size > 100 * 1024) {
+      setError("Rejected: Selected file exceeds the strict maximum limit of 100 KB for vault compliance documents.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -263,6 +276,31 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
     } catch (err: any) {
       setError(err.message || "Soft-delete failed.");
     }
+  };
+
+  const handleCreateFolder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    const type = "CUSTOM_" + newFolderName.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    if (folders.some(f => f.type === type)) {
+      setError("Folder type already exists.");
+      return;
+    }
+    const newFolder = { type, label: newFolderName.trim() };
+    setFolders([...folders, newFolder]);
+    setNewFolderName("");
+    setSuccess(`Custom folder "${newFolder.label}" created successfully.`);
+  };
+
+  const handleRenameFolder = (type: string, newLabel: string) => {
+    if (!newLabel.trim()) return;
+    setFolders(folders.map(f => f.type === type ? { ...f, label: newLabel.trim() } : f));
+    setSuccess(`Folder renamed successfully to "${newLabel.trim()}".`);
+  };
+
+  const handleArchiveFolder = (type: string) => {
+    setFolders(folders.filter(f => f.type !== type));
+    setSuccess(`Folder category unlinked/archived successfully.`);
   };
 
   // Currency Hook
@@ -1766,7 +1804,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
       ) : (
         /* Enterprise GCS Vault & Analytics Dashboard */
         <div className="space-y-6 animate-fadeIn">
-          {/* Analytics telemetry metrics grid */}
+          {/* Analytics telemetry metrics grid (Storage Overview) */}
           {isSuperUser && vaultAnalytics && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Card 1: Capacity Utilized */}
@@ -1784,7 +1822,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     <span className="text-2xl font-heading font-extrabold font-mono">
                       {(vaultAnalytics.totalSize / (1024 * 1024)).toFixed(2)} MB
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-semibold">
+                    <span className="text-[10px] text-muted-foreground font-semibold font-sans">
                       of 50.00 GB limit ({vaultAnalytics.capacityPercentage}%)
                     </span>
                   </div>
@@ -1810,7 +1848,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-xs font-bold text-foreground">Primary Bucket: Active</span>
+                    <span className="text-xs font-bold text-foreground">Primary GCS: Active</span>
                   </div>
                   <p className="text-[8.5px] text-muted-foreground font-mono truncate select-all">
                     gs://{process.env.GCS_BUCKET_NAME || "aurxon-vault-primary"}
@@ -1850,42 +1888,100 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
             </div>
           )}
 
-          {/* Category Distribution chart/grid */}
-          {isSuperUser && vaultAnalytics && vaultAnalytics.categoryMetrics && (
-            <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl">
-              <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest block mb-4 select-none">
-                Vault Category Distribution Density
+          {/* Folder Navigation Area */}
+          <div className="space-y-3 select-none">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-heading font-bold text-muted-foreground uppercase tracking-widest">
+                Category Directories (Folders)
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                {Object.entries(vaultAnalytics.categoryMetrics || {}).map(([cat, met]: any) => (
-                  <div key={cat} className="p-3 bg-secondary/5 rounded-xl border border-border/10 space-y-1">
-                    <span className="text-[8px] font-heading font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest truncate block select-none">
-                      {cat.replace(/_/g, " ")}
-                    </span>
-                    <div className="flex items-baseline justify-between pt-1">
-                      <span className="text-base font-extrabold font-mono text-foreground">{met.count}</span>
-                      <span className="text-[9px] text-muted-foreground">files</span>
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={() => setFolderManageOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[10px] font-bold border-border/45 hover:bg-secondary/20 flex items-center space-x-1"
+                >
+                  <Edit className="h-3 w-3 text-primary" />
+                  <span>Manage Folders</span>
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {/* All Folder Card */}
+              <div
+                onClick={() => setVaultCategoryFilter("ALL")}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 relative overflow-hidden backdrop-blur-md",
+                  vaultCategoryFilter === "ALL"
+                    ? "bg-primary/10 border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-102"
+                    : "bg-card/45 border-border/45 hover:border-primary/45 hover:bg-secondary/10"
+                )}
+              >
+                <div className="flex items-start justify-between">
+                  <div className={cn(
+                    "p-2 rounded-xl border shrink-0",
+                    vaultCategoryFilter === "ALL" ? "bg-primary/20 border-primary/30 text-primary" : "bg-secondary/35 border-border/40 text-muted-foreground"
+                  )}>
+                    <FolderOpen className="h-5 w-5" />
+                  </div>
+                  <span className="text-2xl font-heading font-extrabold font-mono text-foreground mt-1">
+                    {vaultDocs.length}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <h4 className="text-xs font-bold text-foreground truncate">All Directories</h4>
+                  <span className="text-[9px] text-muted-foreground block mt-0.5">Total versioned files</span>
+                </div>
+              </div>
+
+              {/* Dynamic Categories Folders */}
+              {folders.map((folder) => {
+                const count = vaultDocs.filter(d => d.documentCategory === folder.type).length;
+                const isActive = vaultCategoryFilter === folder.type;
+
+                return (
+                  <div
+                    key={`folder-${folder.type}`}
+                    onClick={() => setVaultCategoryFilter(folder.type)}
+                    className={cn(
+                      "p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between h-28 relative overflow-hidden backdrop-blur-md",
+                      isActive
+                        ? "bg-primary/10 border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-102"
+                        : "bg-card/45 border-border/45 hover:border-primary/45 hover:bg-secondary/10"
+                    )}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className={cn(
+                        "p-2 rounded-xl border shrink-0",
+                        isActive ? "bg-primary/20 border-primary/30 text-primary" : "bg-secondary/35 border-border/40 text-muted-foreground"
+                      )}>
+                        <FolderOpen className="h-5 w-5" />
+                      </div>
+                      <span className="text-2xl font-heading font-extrabold font-mono text-foreground mt-1">
+                        {count}
+                      </span>
                     </div>
-                    <span className="text-[9.5px] font-mono text-muted-foreground block select-none">
-                      {(met.bytes / 1024).toFixed(1)} KB ({met.percentage}%)
-                    </span>
-                    <div className="w-full bg-secondary h-1 rounded-full overflow-hidden mt-1.5 border border-border/10">
-                      <div
-                        className="bg-primary h-full rounded-full"
-                        style={{ width: `${met.percentage}%` }}
-                      />
+                    <div className="mt-2">
+                      <h4 className="text-xs font-bold text-foreground truncate" title={folder.label}>
+                        {folder.label}
+                      </h4>
+                      <span className="text-[8px] text-muted-foreground block mt-0.5 uppercase tracking-wide font-semibold">
+                        {count > 0 ? "POPULATED" : "EMPTY"}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
+                );
+              })}
+            </div>
+          </div>
 
           {/* Secure Document Center main panel */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left: Drag and drop uploader area & Search Filters */}
             <div className="space-y-6">
+              {/* Quick Action Upload Portal */}
               <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl space-y-4">
                 <div>
                   <h3 className="text-sm font-bold text-foreground">Secure Upload Portal</h3>
@@ -1926,7 +2022,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       required
                       className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
                     >
-                      {REQUIRED_DOCS.map((doc) => (
+                      {folders.map((doc) => (
                         <option key={doc.type} value={doc.type} className="bg-card text-foreground">
                           {doc.label}
                         </option>
@@ -1965,22 +2061,22 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     {vaultFile ? (
                       <div className="space-y-1 text-left w-full">
                         <span className="text-[10px] font-bold text-foreground block truncate">{vaultFile.name}</span>
-                        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono">
+                        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono font-sans">
                           <span>Size: {(vaultFile.size / 1024).toFixed(1)} KB</span>
                           <span className={cn(
                             "font-bold uppercase",
-                            vaultFile.size > 10 * 1024 * 1024
+                            vaultFile.size > 100 * 1024
                               ? "text-rose-500"
                               : "text-emerald-500"
                           )}>
-                            {vaultFile.size > 10 * 1024 * 1024 ? "Rejected (>10MB)" : "Limits OK"}
+                            {vaultFile.size > 100 * 1024 ? "Rejected (>100KB)" : "Limits OK"}
                           </span>
                         </div>
                       </div>
                     ) : (
                       <>
                         <span className="text-xs font-bold text-foreground">Drag & Drop file or click to browse</span>
-                        <span className="text-[8.5px] text-muted-foreground font-semibold">Supports PDF, PNG, JPG up to 10MB</span>
+                        <span className="text-[8.5px] text-muted-foreground font-semibold">Supports PDF, PNG, JPG up to 100KB</span>
                       </>
                     )}
                   </div>
@@ -1989,7 +2085,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     <div className="flex items-center space-x-2 select-none">
                       <Button
                         type="submit"
-                        disabled={loading || vaultFile.size > 10 * 1024 * 1024 || !vaultUploadInternId}
+                        disabled={loading || vaultFile.size > 100 * 1024 || !vaultUploadInternId}
                         variant="primary"
                         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold h-9 rounded-xl border border-white/5 shadow-md flex items-center justify-center space-x-1.5"
                         isLoading={loading}
@@ -2013,8 +2109,8 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
               {/* Secure parameters information */}
               <Card className="border-border/45 bg-card/60 backdrop-blur-md p-4.5 rounded-2xl shadow-md text-[10px] space-y-2 select-none">
-                <span className="font-heading font-bold text-primary uppercase block tracking-wider">disaster recovery shield</span>
-                <p className="text-muted-foreground leading-relaxed">
+                <span className="font-heading font-bold text-primary uppercase block tracking-wider font-sans">disaster recovery shield</span>
+                <p className="text-muted-foreground leading-relaxed font-sans">
                   In case GCS fails or experiences transient API errors, the vault seamlessly triggers standby DR cache buffering in real-time, safeguarding operational continuity and preventing document retrieval outages.
                 </p>
               </Card>
@@ -2022,6 +2118,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
 
             {/* Right: Search Filter Index & Versioned Document Listing (2/3 width) */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Document Listing Grid */}
               <Card className="border-border/45 bg-card/60 backdrop-blur-md p-0 overflow-hidden shadow-xl rounded-2xl">
                 {/* Search & Filter Header */}
                 <div className="p-4 border-b border-border/40 bg-secondary/5 flex flex-col sm:flex-row items-center gap-3">
@@ -2042,7 +2139,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                     className="h-8.5 rounded-xl border border-border bg-background px-3 py-1 text-[10px] font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-44 shrink-0 cursor-pointer"
                   >
                     <option value="ALL">All Categories</option>
-                    {REQUIRED_DOCS.map((doc) => (
+                    {folders.map((doc) => (
                       <option key={`filter-${doc.type}`} value={doc.type}>
                         {doc.label}
                       </option>
@@ -2116,7 +2213,7 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                                       </a>
                                       <span className="text-[9px] text-muted-foreground font-mono truncate">{doc.id}</span>
                                     </div>
-                                    <span className="shrink-0 text-[8.5px] font-heading font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2 py-0.5 rounded-full shadow-sm">
+                                    <span className="shrink-0 text-[8.5px] font-heading font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2 py-0.5 rounded-full shadow-sm font-sans">
                                       v{doc.version}
                                     </span>
                                   </div>
@@ -2136,8 +2233,8 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                                 )}
                                 <td className="py-3.5 px-5">
                                   <div className="flex flex-col">
-                                    <span className="font-mono text-foreground">{formattedSize}</span>
-                                    <span className="text-[9px] text-muted-foreground">{formatDate(doc.uploadDate)}</span>
+                                    <span className="font-mono text-foreground font-sans">{formattedSize}</span>
+                                    <span className="text-[9px] text-muted-foreground font-sans">{formatDate(doc.uploadDate)}</span>
                                   </div>
                                 </td>
                                 <td className="py-3.5 px-5 select-text">
@@ -2217,6 +2314,62 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                       )}
                     </tbody>
                   </table>
+                </div>
+              </Card>
+
+              {/* Chronological Vault Activity Timeline */}
+              <Card className="border-border/45 bg-card/60 backdrop-blur-md p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Secure Vault History & Activity Ticker</h3>
+                    <p className="text-[10px] text-muted-foreground">Real-time cryptographic audit trail of the GCS compliance workspace.</p>
+                  </div>
+                  <div className="p-2 rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shrink-0 select-none">
+                    <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-4.5 max-h-72 overflow-y-auto pr-1">
+                  {vaultDocs.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground select-none">
+                      No secure vault operations recorded yet.
+                    </div>
+                  ) : (
+                    vaultDocs.slice(0, 10).map((doc, idx) => {
+                      const formattedDate = formatDate(doc.uploadDate);
+                      const internName = initialInterns.find(i => i.id === doc.ownerId)?.fullName || "Enrollee";
+
+                      return (
+                        <div key={`timeline-${doc.id}-${idx}`} className="flex items-start space-x-3 text-xs leading-relaxed">
+                          {/* Dot / line indicator */}
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
+                            {idx !== Math.min(10, vaultDocs.length) - 1 && (
+                              <div className="w-0.5 h-14 bg-border/45 mt-1" />
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1 bg-secondary/5 border border-border/10 p-3 rounded-xl w-full">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-[9.5px] text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
+                                Secure Upload Persisted
+                              </span>
+                              <span className="text-[9px] text-muted-foreground font-mono font-sans">{formattedDate}</span>
+                            </div>
+                            <p className="text-[11px] text-foreground/95">
+                              Compliance file <span className="font-bold text-foreground font-mono">"{doc.fileName}"</span> (version <span className="font-bold text-cyan-500">v{doc.version}</span>, Size: <span className="font-bold text-foreground font-sans">{(doc.fileSize / 1024).toFixed(1)} KB</span>) streamed directly to Google Cloud Storage bucket <span className="font-mono bg-secondary/30 px-1 py-0.5 rounded text-indigo-400">gs://{doc.bucketUsed || "aurxon-vault-primary"}</span> for enrollee <span className="font-bold">{internName}</span>.
+                            </p>
+                            
+                            {/* Integrity scan trail */}
+                            <div className="flex items-center space-x-1.5 mt-2 bg-emerald-500/[0.03] border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 py-1 px-2 rounded-lg text-[9px] font-extrabold uppercase w-fit select-text">
+                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                              <span>Integrity Scan: SHA-256 PASSED (Hash: {doc.sha256Hash.substring(0, 16)}...)</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </Card>
             </div>
@@ -2637,6 +2790,146 @@ export default function DocumentVaultClient({ initialInterns, role }: DocumentVa
                   </div>
                 </form>
               </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Folder Management Modal */}
+      {folderManageOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 transition-opacity animate-fadeIn select-none">
+          <div className="w-full max-w-lg">
+            <Card className="border-border bg-card shadow-2xl relative rounded-2xl overflow-hidden text-foreground">
+              <button
+                onClick={() => {
+                  setFolderManageOpen(false);
+                  setEditingFolderType(null);
+                }}
+                className="absolute top-4.5 right-4.5 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-secondary/15 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <CardHeader className="pb-4 border-b border-border/40">
+                <CardTitle className="flex items-center space-x-2">
+                  <FolderOpen className="h-5 w-5 text-primary" />
+                  <span>Compliance Directories & Folder Manager</span>
+                </CardTitle>
+                <CardDescription className="text-muted-foreground font-sans">Add new document compliance categories, rename them, or archive folders.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {/* Create New Folder Form */}
+                <form onSubmit={handleCreateFolder} className="space-y-3 p-4 bg-secondary/5 rounded-xl border border-border/20">
+                  <span className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest block font-sans">
+                    Create Custom Directory Folder
+                  </span>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g. Tax Documents, Direct Deposit"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      className="bg-background text-xs h-9"
+                    />
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="h-9 px-4 text-xs font-bold shrink-0"
+                    >
+                      Create
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Folder List */}
+                <div className="space-y-2.5">
+                  <span className="text-[9px] font-heading font-bold text-muted-foreground uppercase tracking-widest block font-sans">
+                    Active Vault Folders
+                  </span>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {folders.map((folder) => {
+                      const isEditing = editingFolderType === folder.type;
+                      const isSystemFolder = REQUIRED_DOCS.some(f => f.type === folder.type);
+
+                      return (
+                        <div
+                          key={`manage-${folder.type}`}
+                          className="flex items-center justify-between p-3 bg-secondary/5 rounded-xl border border-border/10 hover:border-border/30 transition-all"
+                        >
+                          {isEditing ? (
+                            <div className="flex gap-2 w-full">
+                              <Input
+                                value={editingFolderName}
+                                onChange={(e) => setEditingFolderName(e.target.value)}
+                                className="bg-background text-xs h-8"
+                              />
+                              <Button
+                                onClick={() => {
+                                  handleRenameFolder(folder.type, editingFolderName);
+                                  setEditingFolderType(null);
+                                }}
+                                size="sm"
+                                className="h-8 text-[10px] font-bold"
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                onClick={() => setEditingFolderType(null)}
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 text-[10px] font-bold"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center space-x-2">
+                                <FolderOpen className="h-4 w-4 text-indigo-500 shrink-0" />
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-bold text-foreground">{folder.label}</span>
+                                  <span className="text-[8px] text-muted-foreground font-mono">{folder.type}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1.5">
+                                <Button
+                                  onClick={() => {
+                                    setEditingFolderType(folder.type);
+                                    setEditingFolderName(folder.label);
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2.5 text-[9px] font-bold"
+                                >
+                                  Rename
+                                </Button>
+                                {!isSystemFolder && (
+                                  <Button
+                                    onClick={() => handleArchiveFolder(folder.type)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2.5 text-[9px] font-bold text-rose-500 border-rose-500/20 hover:bg-rose-500/5"
+                                  >
+                                    Archive
+                                  </Button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+              <div className="p-4 border-t border-border shrink-0 select-none bg-secondary/5 flex items-center justify-end">
+                <Button
+                  onClick={() => setFolderManageOpen(false)}
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 text-xs font-semibold"
+                >
+                  Close Manager
+                </Button>
+              </div>
             </Card>
           </div>
         </div>

@@ -6,6 +6,7 @@ import Header from "./Header";
 import { signOut, useSession } from "next-auth/react";
 import { CurrencyProvider } from "@/lib/useCurrency";
 import { useRouter } from "next/navigation";
+import NotificationBanner from "./NotificationBanner";
 
 interface DashboardLayoutProps {
   user: {
@@ -102,6 +103,7 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
           <Header user={activeUser} onMenuToggle={toggleSidebar} />
           {/* Scrollable Content Workspace */}
           <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8 relative">
+            <NotificationBanner />
             {children}
           </main>
         </div>
